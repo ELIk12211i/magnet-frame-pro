@@ -23,6 +23,7 @@
 !/site/
 !/אתר רכישה.bat
 !/אתר ניהול.bat
+!/פרסם שינויים.bat
 
 # --- Step 3: inside server/, still skip sensitive files ---
 server/.env

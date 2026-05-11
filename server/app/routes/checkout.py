@@ -302,20 +302,27 @@ def complete_checkout_dev(req: CheckoutCreateRequest, request: Request):
             order_id, exc,
         )
 
-    # 4) Fire-and-forget email — never block the success page on SMTP.
-    try:
-        email_service.send_license_delivery(
-            to_email      = email,
-            customer_name = name,
-            serial_key    = serial,
-            plan_name     = plan.get("name") or "",
-            expires_at    = license_row.get("expires_at") or "",
-        )
-    except Exception as exc:
-        logger.warning(
-            "checkout/complete-dev: email delivery failed for order=%s: %s",
-            order_id, exc,
-        )
+    # 4) Truly fire-and-forget email — runs on a background thread so a
+    # slow SMTP server (or a misconfigured app password) can't block the
+    # HTTP response. The customer sees their key immediately; the email
+    # arrives whenever SMTP completes (or never, without breaking the
+    # purchase).
+    import threading
+    def _send_email_bg():
+        try:
+            email_service.send_license_delivery(
+                to_email      = email,
+                customer_name = name,
+                serial_key    = serial,
+                plan_name     = plan.get("name") or "",
+                expires_at    = license_row.get("expires_at") or "",
+            )
+        except Exception as exc:
+            logger.warning(
+                "checkout/complete-dev: email delivery failed for order=%s: %s",
+                order_id, exc,
+            )
+    threading.Thread(target=_send_email_bg, daemon=True).start()
 
     logger.info(
         "checkout/complete-dev: order=%s plan=%s serial=%s amount=%s",
