@@ -1,0 +1,1902 @@
+{% extends "base.html" %}
+{% block title %}License {{ license.serial_key }}{% endblock %}
+
+{% block content %}
+
+{# ══════════════════════════════════════════════════════════════════
+   Header — serial + status + quick actions
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="lic-header">
+  <div class="lic-header-main">
+    <a href="/admin/licenses" class="lic-back">
+      <i class="bi bi-chevron-right"></i> חזרה לרשימה
+    </a>
+    <div class="lic-title-row">
+      <h1 class="lic-title mono-title">{{ license.serial_key }}</h1>
+      {% set lic = license %}
+      {% include "admin/_status_badge.html" %}
+    </div>
+    {% if license.customer_name or license.customer_phone or license.customer_email %}
+    <p class="lic-subtitle">
+      {% if license.customer_name %}
+        <span class="lic-subtitle-item">
+          <i class="bi bi-person-fill"></i> {{ license.customer_name }}
+        </span>
+      {% endif %}
+      {% if license.customer_phone %}
+        <span class="lic-subtitle-item">
+          <i class="bi bi-telephone-fill"></i>
+          <span dir="ltr">{{ license.customer_phone }}</span>
+        </span>
+      {% endif %}
+      {% if license.customer_email %}
+        <span class="lic-subtitle-item">
+          <i class="bi bi-envelope-fill"></i>
+          <span dir="ltr">{{ license.customer_email }}</span>
+        </span>
+      {% endif %}
+    </p>
+    {% endif %}
+  </div>
+  <div class="lic-header-actions">
+    {% if license.status != 'disabled' %}
+      <button type="button" class="lic-btn lic-btn-warn"
+              data-bs-toggle="modal" data-bs-target="#disableModal">
+        <i class="bi bi-x-octagon"></i><span>השבת</span>
+      </button>
+    {% else %}
+      <form method="post" action="/admin/licenses/{{ license.serial_key }}/enable" class="d-inline">
+        <button type="submit" class="lic-btn lic-btn-ok">
+          <i class="bi bi-check-circle"></i><span>הפעל</span>
+        </button>
+      </form>
+    {% endif %}
+    <button type="button" class="lic-btn lic-btn-ghost"
+            data-bs-toggle="modal" data-bs-target="#resetModal">
+      <i class="bi bi-arrow-counterclockwise"></i><span>אפס מכונה</span>
+    </button>
+    <button type="button" class="lic-btn lic-btn-primary"
+            data-bs-toggle="modal" data-bs-target="#extendModal">
+      <i class="bi bi-calendar-plus"></i><span>הארך</span>
+    </button>
+    <button type="button" class="lic-btn lic-btn-ghost"
+            id="toggleEditBtn" onclick="toggleEditPanel()">
+      <i class="bi bi-pencil-square"></i><span>ערוך ידני</span>
+    </button>
+    <button type="button" class="lic-btn lic-btn-danger"
+            data-bs-toggle="modal" data-bs-target="#deleteModal">
+      <i class="bi bi-trash"></i><span>מחק</span>
+    </button>
+  </div>
+</div>
+
+{# Banner for disabled state #}
+{% if license.status == 'disabled' %}
+<div class="lic-banner lic-banner-danger">
+  <i class="bi bi-x-octagon-fill"></i>
+  <div>
+    <strong>רישיון זה מושבת</strong>
+    <div class="lic-banner-sub">
+      {% if license.disabled_at %}הושבת ב־{{ license.disabled_at|localdt }}{% endif %}
+      {% if license.disabled_by %} · ע"י {{ license.disabled_by }}{% endif %}
+      {% if license.disabled_reason %} · סיבה: {{ license.disabled_reason }}{% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ══════════════════════════════════════════════════════════════════
+   Main layout — 2-column grid
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="lic-layout">
+
+  {# ── Left column ──────────────────────────────────────────── #}
+  <div class="lic-col-main">
+
+    {# Card 1: License info #}
+    <section class="lic-card">
+      <header class="lic-card-head">
+        <div class="lic-card-head-icon lic-card-head-icon-blue">
+          <i class="bi bi-award-fill"></i>
+        </div>
+        <h2 class="lic-card-title">פרטי הרישיון</h2>
+      </header>
+      <div class="lic-card-body">
+        <dl class="lic-grid">
+          <dt>סטטוס</dt>
+          <dd>
+            {% if license.status == 'active' %}
+              <span class="lic-status-pill lic-status-active">
+                <i class="bi bi-check-circle-fill"></i> פעיל
+              </span>
+            {% elif license.status == 'expired' %}
+              <span class="lic-status-pill lic-status-expired">
+                <i class="bi bi-clock-history"></i> פג תוקף
+              </span>
+            {% elif license.status == 'disabled' %}
+              <span class="lic-status-pill lic-status-disabled">
+                <i class="bi bi-pause-circle-fill"></i> מושבת
+              </span>
+            {% elif license.status == 'unused' %}
+              <span class="lic-status-pill lic-status-unused">
+                <i class="bi bi-dash-circle"></i> לא הופעל
+              </span>
+            {% else %}
+              <span class="lic-status-pill lic-status-unused">
+                {{ license.status or 'לא ידוע' }}
+              </span>
+            {% endif %}
+          </dd>
+
+          <dt>סוג</dt>
+          <dd>{% set lic = license %}{% include "admin/_type_badge.html" %}</dd>
+
+          {% if license.plan_name %}
+          <dt>תכנית</dt>
+          <dd>
+            <strong>{{ license.plan_name }}</strong>
+          </dd>
+          {% endif %}
+
+          <dt>מפתח</dt>
+          <dd>
+            <code class="lic-key">{{ license.serial_key }}</code>
+            <button type="button" class="lic-copy copy-btn"
+                    data-copy-text="{{ license.serial_key }}" title="העתק">
+              <i class="bi bi-clipboard"></i>
+            </button>
+          </dd>
+
+          <dt>נוצר</dt>
+          <dd>{{ license.created_at|localdt }}</dd>
+
+          <dt>הופעל</dt>
+          <dd>
+            {% if license.activated_at %}
+              {{ license.activated_at|localdt }}
+            {% else %}
+              <span class="lic-muted">לא הופעל עדיין</span>
+            {% endif %}
+          </dd>
+
+          <dt>תפוגה</dt>
+          <dd>
+            <span class="lic-editable" data-field="expires_at"
+                  data-raw="{{ license.expires_at or '' }}"
+                  data-kind="{{ license.license_type or '' }}">
+              <span class="lic-ed-display">
+                {% if license.expires_at %}
+                  {{ license.expires_at|localdt }}
+                {% elif license.license_type == 'lifetime' %}
+                  <span class="lic-chip-soft lic-chip-soft-purple">
+                    <i class="bi bi-infinity"></i> לצמיתות — ללא תפוגה
+                  </span>
+                {% else %}—{% endif %}
+              </span>
+              <button type="button" class="lic-ed-btn lic-ed-btn-primary"
+                      onclick="licEditStart(this)" title="ערוך תפוגה">
+                <i class="bi bi-pencil-square"></i>
+                <span>ערוך</span>
+              </button>
+            </span>
+          </dd>
+        </dl>
+
+        {# Hidden form used by the inline editor. Populated via JS on save. #}
+        <form id="licEditForm" method="post"
+              action="/admin/licenses/{{ license.serial_key }}/edit"
+              style="display: none;"></form>
+      </div>
+    </section>
+
+    {# Card 2: Customer info #}
+    {% if license.customer_first_name or license.customer_last_name
+         or license.customer_name or license.customer_phone
+         or license.customer_email or license.notes %}
+    <section class="lic-card">
+      <header class="lic-card-head">
+        <div class="lic-card-head-icon lic-card-head-icon-green">
+          <i class="bi bi-person-fill"></i>
+        </div>
+        <h2 class="lic-card-title">פרטי לקוח</h2>
+      </header>
+      <div class="lic-card-body">
+        <dl class="lic-grid">
+          {% if license.customer_first_name or license.customer_last_name %}
+            <dt>שם</dt>
+            <dd>
+              {{ license.customer_first_name or '' }}
+              {{ license.customer_last_name or '' }}
+            </dd>
+          {% elif license.customer_name %}
+            <dt>שם</dt>
+            <dd>{{ license.customer_name }}</dd>
+          {% endif %}
+
+          {% if license.customer_phone %}
+            <dt>טלפון</dt>
+            <dd dir="ltr" style="text-align: right;">
+              {{ license.customer_phone }}
+              <button type="button" class="lic-copy copy-btn"
+                      data-copy-text="{{ license.customer_phone }}" title="העתק">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </dd>
+          {% endif %}
+
+          {% if license.customer_email %}
+            <dt>אימייל</dt>
+            <dd dir="ltr" style="text-align: right;">
+              {{ license.customer_email }}
+              <button type="button" class="lic-copy copy-btn"
+                      data-copy-text="{{ license.customer_email }}" title="העתק">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            </dd>
+          {% endif %}
+
+          {% if license.notes %}
+            <dt>הערות</dt>
+            <dd><div class="lic-notes">{{ license.notes }}</div></dd>
+          {% endif %}
+        </dl>
+      </div>
+    </section>
+    {% endif %}
+
+    {# Card 3: Validation #}
+    <section class="lic-card">
+      <header class="lic-card-head">
+        <div class="lic-card-head-icon lic-card-head-icon-purple">
+          <i class="bi bi-shield-check"></i>
+        </div>
+        <h2 class="lic-card-title">אימות ותוקף</h2>
+      </header>
+      <div class="lic-card-body">
+        <dl class="lic-grid">
+          <dt>סטטוס אימות</dt>
+          <dd>
+            {% if license.validation_status == 'success' %}
+              <span class="lic-chip lic-chip-ok">
+                <i class="bi bi-check-circle-fill"></i> הצליח
+              </span>
+            {% elif license.validation_status == 'offline' %}
+              <span class="lic-chip lic-chip-warn">
+                <i class="bi bi-wifi-off"></i> אין חיבור
+              </span>
+            {% elif license.validation_status in ['failed', 'expired', 'disabled'] %}
+              <span class="lic-chip lic-chip-danger">
+                <i class="bi bi-x-circle-fill"></i> {{ license.validation_status }}
+              </span>
+            {% elif license.validation_status %}
+              <span class="lic-chip lic-chip-neutral">{{ license.validation_status }}</span>
+            {% else %}
+              <span class="lic-muted">—</span>
+            {% endif %}
+          </dd>
+
+          <dt>הודעת אימות</dt>
+          <dd>
+            {% if license.validation_message %}
+              {{ license.validation_message }}
+            {% else %}<span class="lic-muted">—</span>{% endif %}
+          </dd>
+
+          <dt>ולידציה אחרונה</dt>
+          <dd>
+            {% if license.last_validation_at %}
+              {{ license.last_validation_at|localdt }}
+            {% else %}<span class="lic-muted">—</span>{% endif %}
+          </dd>
+
+          <dt>אימות הבא (עד)</dt>
+          <dd>
+            {% if license.next_validation_due_at %}
+              {{ license.next_validation_due_at|localdt }}
+            {% else %}<span class="lic-muted">—</span>{% endif %}
+          </dd>
+        </dl>
+      </div>
+    </section>
+
+  </div>
+
+  {# ── Right column ─────────────────────────────────────────── #}
+  <aside class="lic-col-side">
+
+    {# Card 4: Machine / activations #}
+    <section class="lic-card">
+      <header class="lic-card-head">
+        <div class="lic-card-head-icon lic-card-head-icon-indigo">
+          <i class="bi bi-laptop"></i>
+        </div>
+        <h2 class="lic-card-title">מחשבים</h2>
+        <span class="lic-machines-count" title="מספר מחשבים שונים שבהם הופעל הסיריאל">
+          {{ unique_machines_count }} מחשב{% if unique_machines_count != 1 %}ים{% endif %}
+        </span>
+      </header>
+      <div class="lic-card-body lic-card-body-flush">
+        {% if license.machine_id or license.public_ip %}
+          <div class="lic-machine-now">
+            <div class="lic-machine-now-head">
+              <span class="lic-machine-now-badge">
+                <i class="bi bi-broadcast"></i> מחשב פעיל כרגע
+              </span>
+            </div>
+            {% if license.machine_id %}
+              <div class="lic-ip-row">
+                <div class="lic-ip-label">
+                  <i class="bi bi-router"></i>
+                  IP פרטי (מקומי)
+                </div>
+                <div class="lic-ip-value">
+                  <code>{{ license.machine_id }}</code>
+                  <button type="button" class="lic-copy copy-btn"
+                          data-copy-text="{{ license.machine_id }}" title="העתק">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if license.client_public_ip %}
+              <div class="lic-ip-row">
+                <div class="lic-ip-label">
+                  <i class="bi bi-globe"></i>
+                  IP ציבורי (אינטרנט)
+                </div>
+                <div class="lic-ip-value lic-ip-value-public">
+                  <code>{{ license.client_public_ip }}</code>
+                  <button type="button" class="lic-copy copy-btn"
+                          data-copy-text="{{ license.client_public_ip }}" title="העתק">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if license.hostname %}
+              <div class="lic-ip-row">
+                <div class="lic-ip-label">
+                  <i class="bi bi-pc-display"></i>
+                  שם מחשב (Hostname)
+                </div>
+                <div class="lic-ip-stamp">
+                  {{ license.hostname }}
+                </div>
+              </div>
+            {% endif %}
+
+            {% if license.hardware_id %}
+              <div class="lic-ip-row">
+                <div class="lic-ip-label">
+                  <i class="bi bi-cpu"></i>
+                  מזהה רישוי (HWID)
+                </div>
+                <div class="lic-ip-value lic-ip-value-hwid">
+                  <code>{{ license.hardware_id }}</code>
+                  <button type="button" class="lic-copy copy-btn"
+                          data-copy-text="{{ license.hardware_id }}" title="העתק">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+
+            {% if license.activated_at %}
+              <div class="lic-ip-row">
+                <div class="lic-ip-label">
+                  <i class="bi bi-calendar-check"></i>
+                  זמן הפעלה ראשונה
+                </div>
+                <div class="lic-ip-stamp">
+                  {{ license.activated_at|localdt }}
+                </div>
+              </div>
+            {% endif %}
+
+            {% if license.last_seen_at %}
+              <div class="lic-ip-row">
+                <div class="lic-ip-label">
+                  <i class="bi bi-clock-history"></i>
+                  נראה לאחרונה
+                </div>
+                <div class="lic-ip-stamp">
+                  {{ license.last_seen_at|localdt }}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="lic-machine-none">
+            <i class="bi bi-dash-circle"></i>
+            <span>הרישיון עדיין לא הופעל במחשב</span>
+          </div>
+        {% endif %}
+
+        {% set past_activations = activations|rejectattr('machine_id',
+               'equalto', current_machine)|list
+               if current_machine else activations %}
+
+        {% if past_activations %}
+          <div class="lic-act-list">
+            <div class="lic-act-heading">
+              היסטוריית מחשבים קודמים ({{ past_activations|length }})
+            </div>
+            {% for a in past_activations %}
+              <div class="lic-act-item lic-act-item-past">
+                <div class="lic-act-top">
+                  <div class="lic-act-ips">
+                    <span class="lic-act-ip-chip lic-act-ip-chip-priv"
+                          title="IP פרטי">
+                      <i class="bi bi-router"></i>
+                      <code>{{ a.machine_id or '—' }}</code>
+                    </span>
+                    {% if a.ip %}
+                      <span class="lic-act-ip-chip lic-act-ip-chip-pub"
+                            title="IP ציבורי">
+                        <i class="bi bi-globe"></i>
+                        <code>{{ a.ip }}</code>
+                      </span>
+                    {% endif %}
+                  </div>
+                  <span class="lic-past-badge">
+                    <i class="bi bi-archive"></i> קודם
+                  </span>
+                </div>
+                <div class="lic-act-meta">
+                  <span><i class="bi bi-plus-circle"></i> הופעל: {{ a.activated_at|localdt }}</span>
+                  <span><i class="bi bi-eye"></i> נראה לאחרונה: {{ a.last_seen_at|localdt }}</span>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {# ──────────────────────────────────────────────────────────
+           Machines whose license was MIGRATED AWAY from this serial
+           — pulled from ``machine_history``.  These rows are kept
+           even after the activation table is reset, so they're the
+           authoritative "ever connected to this license" list.
+           Filtered against ``past_activations`` to avoid showing
+           the same machine twice when both sources happen to know
+           about it.
+           ────────────────────────────────────────────────────────── #}
+        {% if migrated_machines %}
+          {% set _past_mids = past_activations|map(attribute='machine_id')|list %}
+          {% set _mig_only = migrated_machines
+              |rejectattr('machine_id', 'in', _past_mids)|list %}
+          {% if _mig_only %}
+            <div class="lic-act-list">
+              <div class="lic-act-heading">
+                מחשבים שהרישיון הוסר מהם ({{ _mig_only|length }})
+              </div>
+              {% for m in _mig_only %}
+                <div class="lic-act-item lic-act-item-past">
+                  <div class="lic-act-top">
+                    <div class="lic-act-ips">
+                      <span class="lic-act-ip-chip lic-act-ip-chip-priv"
+                            title="מזהה מחשב">
+                        <i class="bi bi-router"></i>
+                        <code>{{ m.machine_id or '—' }}</code>
+                      </span>
+                    </div>
+                    <span class="lic-past-badge">
+                      <i class="bi bi-arrow-left-right"></i> הועבר
+                    </span>
+                  </div>
+                  <div class="lic-act-meta">
+                    <span><i class="bi bi-clock-history"></i>
+                      תועד: {{ m.recorded_at|localdt }}
+                    </span>
+                    <span><i class="bi bi-info-circle"></i>
+                      סיבה: {{ m.reason or '—' }}
+                    </span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </section>
+  </aside>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Events log — full width below
+   ══════════════════════════════════════════════════════════════════ #}
+<section class="lic-card lic-events-card">
+  <header class="lic-card-head">
+    <div class="lic-card-head-icon lic-card-head-icon-amber">
+      <i class="bi bi-journal-text"></i>
+    </div>
+    <div class="lic-card-head-text">
+      <h2 class="lic-card-title">יומן אירועים ({{ events|length }})</h2>
+    </div>
+    <a href="/admin/events?serial_key={{ license.serial_key }}" class="lic-card-head-link">
+      הצג הכל <i class="bi bi-chevron-left"></i>
+    </a>
+  </header>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 lic-events-table">
+      <thead>
+        <tr>
+          <th>זמן</th>
+          <th>סוג</th>
+          <th>הודעה</th>
+          <th>Actor</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for ev in events %}
+        <tr>
+          <td class="small text-muted" style="white-space:nowrap;">{{ ev.created_at|localdt }}</td>
+          <td><span class="event-badge event-{{ ev.event_type|default('unknown') }}">{{ ev.event_type }}</span></td>
+          <td class="small">{{ ev.message or '—' }}</td>
+          <td class="small text-muted">{{ ev.actor or '—' }}</td>
+          <td class="small text-muted"><code class="mono-small">{{ ev.ip or '—' }}</code></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-center text-muted py-4">אין אירועים.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{# ══════════════════════════════════════════════════════════════════
+   Modals — Disable, Reset, Delete, Extend
+   ══════════════════════════════════════════════════════════════════ #}
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Action modals — minimal, clean, true pop-ups with overlay
+     ═══════════════════════════════════════════════════════════════ -->
+
+<!-- Disable Modal -->
+<div class="modal fade" id="disableModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content lm-box"
+          method="post" action="/admin/licenses/{{ license.serial_key }}/disable">
+      <div class="lm-head">
+        <h3 class="lm-title">השבתת רישיון</h3>
+        <button type="button" class="lm-x" data-bs-dismiss="modal" aria-label="סגור">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="lm-body">
+        <p class="lm-desc">הרישיון יושבת והלקוח לא יוכל להשתמש בו. פעולה זו הפיכה.</p>
+        <label class="lm-label" for="disableReasonInput">סיבה (אופציונלי)</label>
+        <input type="text" id="disableReasonInput" name="reason"
+               class="lm-input" placeholder="למשל: תשלום לא התקבל">
+      </div>
+      <div class="lm-foot">
+        <button type="button" class="lm-btn lm-btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="lm-btn lm-btn-warn">השבת רישיון</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Reset Modal -->
+<div class="modal fade" id="resetModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content lm-box"
+          method="post" action="/admin/licenses/{{ license.serial_key }}/reset">
+      <div class="lm-head">
+        <h3 class="lm-title">איפוס מכונה</h3>
+        <button type="button" class="lm-x" data-bs-dismiss="modal" aria-label="סגור">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="lm-body">
+        <p class="lm-desc">
+          הפעולה תנתק את הרישיון מהמחשב הנוכחי.
+          הלקוח יוכל להפעיל אותו מחדש במחשב אחר.
+        </p>
+        {% if license.machine_id %}
+          <div class="lm-kv">
+            <span class="lm-kv-key">IP נוכחי</span>
+            <code class="lm-kv-val">{{ license.machine_id }}</code>
+          </div>
+        {% endif %}
+      </div>
+      <div class="lm-foot">
+        <button type="button" class="lm-btn lm-btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="lm-btn lm-btn-amber">אפס מכונה</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content lm-box"
+          method="post" action="/admin/licenses/{{ license.serial_key }}/delete">
+      <div class="lm-head">
+        <h3 class="lm-title lm-title-danger">מחיקת רישיון לצמיתות</h3>
+        <button type="button" class="lm-x" data-bs-dismiss="modal" aria-label="סגור">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="lm-body">
+        <p class="lm-desc">
+          <strong class="lm-danger-strong">אזהרה:</strong>
+          הפעולה מוחקת את הרישיון לצמיתות יחד עם כל היסטוריית ההפעלות שלו
+          ו<strong>לא ניתנת לביטול</strong>.
+        </p>
+        <div class="lm-kv">
+          <span class="lm-kv-key">מפתח</span>
+          <code class="lm-kv-val">{{ license.serial_key }}</code>
+        </div>
+        <p class="lm-tip">
+          לחסימה זמנית העדף <strong>השבתה</strong> במקום מחיקה.
+        </p>
+        <label class="lm-label" for="deleteConfirmInput">
+          הקלד <code class="lm-ic">מחק</code> כדי לאשר
+        </label>
+        <input type="text" class="lm-input" id="deleteConfirmInput"
+               autocomplete="off" placeholder="הקלד: מחק">
+      </div>
+      <div class="lm-foot">
+        <button type="button" class="lm-btn lm-btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="lm-btn lm-btn-danger"
+                id="deleteConfirmBtn" disabled>
+          מחק לצמיתות
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal (manual field editor) -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <form class="modal-content lm-box"
+          method="post" action="/admin/licenses/{{ license.serial_key }}/edit">
+      <div class="lm-head">
+        <h3 class="lm-title">עריכה ידנית של הרישיון</h3>
+        <button type="button" class="lm-x" data-bs-dismiss="modal" aria-label="סגור">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="lm-body">
+        <p class="lm-desc">
+          ניתן לעדכן ידנית את תאריכי הרישיון ופרטי הלקוח.
+          שינוי תאריך התפוגה ישפיע על הולידציה של התוכנה בצד הלקוח.
+        </p>
+
+        <div class="lm-edit-grid">
+          <div class="lm-edit-field">
+            <label class="lm-label" for="edit_created_at">
+              <i class="bi bi-calendar-plus-fill"></i>
+              תאריך יצירה
+            </label>
+            <input type="datetime-local" id="edit_created_at" name="created_at"
+                   class="lm-input lm-input-num" dir="ltr" required
+                   value="{{ license.created_at[:16] if license.created_at else '' }}">
+          </div>
+
+          <div class="lm-edit-field">
+            <label class="lm-label" for="edit_activated_at">
+              <i class="bi bi-calendar-check-fill"></i>
+              תאריך הפעלה
+            </label>
+            <input type="datetime-local" id="edit_activated_at" name="activated_at"
+                   class="lm-input lm-input-num" dir="ltr"
+                   value="{{ license.activated_at[:16] if license.activated_at else '' }}">
+            <span class="lm-fld-help">השאר ריק כדי לאפס</span>
+          </div>
+
+          <div class="lm-edit-field lm-edit-field-wide">
+            <label class="lm-label" for="edit_expires_at">
+              <i class="bi bi-calendar-x-fill"></i>
+              תאריך תפוגה
+            </label>
+            <input type="datetime-local" id="edit_expires_at" name="expires_at"
+                   class="lm-input lm-input-num" dir="ltr"
+                   value="{{ license.expires_at[:16] if license.expires_at else '' }}">
+            <span class="lm-fld-help">השאר ריק עבור רישיון לצמיתות</span>
+          </div>
+        </div>
+
+        <div class="lm-edit-divider">
+          <span>פרטי לקוח</span>
+        </div>
+
+        <div class="lm-edit-grid">
+          <div class="lm-edit-field">
+            <label class="lm-label" for="edit_first_name">שם פרטי</label>
+            <input type="text" id="edit_first_name" name="customer_first_name"
+                   class="lm-input"
+                   value="{{ license.customer_first_name or '' }}">
+          </div>
+
+          <div class="lm-edit-field">
+            <label class="lm-label" for="edit_last_name">שם משפחה</label>
+            <input type="text" id="edit_last_name" name="customer_last_name"
+                   class="lm-input"
+                   value="{{ license.customer_last_name or '' }}">
+          </div>
+
+          <div class="lm-edit-field">
+            <label class="lm-label" for="edit_phone">טלפון</label>
+            <input type="tel" id="edit_phone" name="customer_phone"
+                   class="lm-input" dir="ltr"
+                   value="{{ license.customer_phone or '' }}">
+          </div>
+
+          <div class="lm-edit-field">
+            <label class="lm-label" for="edit_email">אימייל</label>
+            <input type="email" id="edit_email" name="customer_email"
+                   class="lm-input" dir="ltr"
+                   value="{{ license.customer_email or '' }}">
+          </div>
+
+          <div class="lm-edit-field lm-edit-field-wide">
+            <label class="lm-label" for="edit_notes">הערות</label>
+            <textarea id="edit_notes" name="notes" class="lm-input lm-textarea"
+                      rows="2">{{ license.notes or '' }}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="lm-foot">
+        <button type="button" class="lm-btn lm-btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="lm-btn lm-btn-primary">שמור שינויים</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Extend Modal -->
+<div class="modal fade" id="extendModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content lm-box"
+          method="post" action="/admin/licenses/{{ license.serial_key }}/extend"
+          id="extendForm">
+      <div class="lm-head">
+        <h3 class="lm-title">הארכת תוקף</h3>
+        <button type="button" class="lm-x" data-bs-dismiss="modal" aria-label="סגור">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+      <div class="lm-body">
+        {% if license.expires_at %}
+          <div class="lm-kv">
+            <span class="lm-kv-key">תפוגה נוכחית</span>
+            <span class="lm-kv-val">{{ license.expires_at|localdt }}</span>
+          </div>
+        {% endif %}
+
+        <label class="lm-label">בחר משך להוספה</label>
+        <div class="lm-days" id="extendDaysGroup">
+          {% for d in [30, 90, 180, 365] %}
+            <label class="lm-day">
+              <input type="radio" name="days_preset" value="{{ d }}"
+                     {% if d == 365 %}checked{% endif %}>
+              <span>{{ d }}</span>
+            </label>
+          {% endfor %}
+          <label class="lm-day">
+            <input type="radio" name="days_preset" value="custom">
+            <span>אחר</span>
+          </label>
+        </div>
+
+        <label class="lm-label" for="extendDaysInput">מספר ימים</label>
+        <input type="number" name="days" id="extendDaysInput"
+               class="lm-input lm-input-num" dir="ltr"
+               min="1" max="3650" value="365" required>
+      </div>
+      <div class="lm-foot">
+        <button type="button" class="lm-btn lm-btn-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="lm-btn lm-btn-primary">הארך רישיון</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  var input = document.getElementById('deleteConfirmInput');
+  var btn   = document.getElementById('deleteConfirmBtn');
+  if (!input || !btn) return;
+  function update() { btn.disabled = (input.value.trim() !== 'מחק'); }
+  input.addEventListener('input', update);
+  var modal = document.getElementById('deleteModal');
+  if (modal) {
+    modal.addEventListener('hidden.bs.modal', function() {
+      input.value = ''; update();
+    });
+  }
+})();
+</script>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   Inline editor for the three date fields on the "פרטי הרישיון" card.
+   Clicking the pencil swaps the display span for a datetime-local
+   input with inline Save / Cancel buttons.  On save, the value is
+   posted to /admin/licenses/{serial}/edit and the page reloads.
+   ══════════════════════════════════════════════════════════════════ */
+function licEditStart(btn) {
+  var wrap = btn.closest('.lic-editable');
+  if (!wrap) return;
+  document.querySelectorAll('.lic-editable.is-editing').forEach(function(w) {
+    if (w !== wrap) licEditCancel(w);
+  });
+
+  var field   = wrap.getAttribute('data-field');
+  var raw     = wrap.getAttribute('data-raw') || '';
+  var kind    = wrap.getAttribute('data-kind') || '';
+  var display = wrap.querySelector('.lic-ed-display');
+  var editBtn = wrap.querySelector('.lic-ed-btn');
+
+  // Convert the stored UTC ISO timestamp into the LOCAL datetime-local
+  // value the browser input expects (YYYY-MM-DDTHH:MM in the user's
+  // time-zone).  Storing UTC + showing local is the correct layered
+  // design — it avoids the admin typing "23:00" and seeing "02:00"
+  // back because of a silent TZ mismatch.
+  var value = '';
+  if (raw) {
+    try {
+      var dt = new Date(raw);
+      if (!isNaN(dt.getTime())) {
+        function pad(n){ return (n<10?'0':'')+n; }
+        value = dt.getFullYear() + '-' + pad(dt.getMonth()+1) + '-' +
+                pad(dt.getDate()) + 'T' + pad(dt.getHours()) + ':' +
+                pad(dt.getMinutes());
+      }
+    } catch (e) {
+      // Fallback — naive string slice (old behaviour).
+      var normalized = raw.replace(' ', 'T');
+      value = normalized.substring(0, 16);
+    }
+  }
+
+  // Build the editor.  When we're editing the expiry of a lifetime
+  // license, the admin has to pick which paid kind it becomes
+  // (yearly / trial) — a lifetime license cannot simply "have an
+  // expiry date" because the underlying license_type controls whether
+  // validate() treats the row as time-bounded or not.
+  var kindPickerHtml = '';
+  if (field === 'expires_at' && kind === 'lifetime') {
+    kindPickerHtml =
+      '<div class="lic-ed-kind-row">' +
+      '  <span class="lic-ed-kind-label">סוג מנוי:</span>' +
+      '  <label class="lic-ed-kind-opt">' +
+      '    <input type="radio" name="kind_' + wrap.id + '" value="yearly" checked>' +
+      '    <span><i class="bi bi-calendar-event"></i> תקופתי</span>' +
+      '  </label>' +
+      '  <label class="lic-ed-kind-opt">' +
+      '    <input type="radio" name="kind_' + wrap.id + '" value="trial_14_days">' +
+      '    <span><i class="bi bi-hourglass-split"></i> ניסיון</span>' +
+      '  </label>' +
+      '</div>';
+  }
+
+  var editor = document.createElement('div');
+  editor.className = 'lic-ed-editor';
+  editor.innerHTML =
+    '<div class="lic-ed-row">' +
+    '  <input type="datetime-local" class="lic-ed-input" dir="ltr" value="' + value + '">' +
+    '  <button type="button" class="lic-ed-save" title="שמור">' +
+    '    <i class="bi bi-check-lg"></i>' +
+    '  </button>' +
+    '  <button type="button" class="lic-ed-cancel" title="בטל">' +
+    '    <i class="bi bi-x-lg"></i>' +
+    '  </button>' +
+    (field === 'expires_at' ?
+      '  <button type="button" class="lic-ed-lifetime" title="הפוך לצמיתות">' +
+      '    <i class="bi bi-infinity"></i> לצמיתות' +
+      '  </button>' : '') +
+    '</div>' + kindPickerHtml;
+
+  wrap.classList.add('is-editing');
+  if (display) display.style.display = 'none';
+  if (editBtn) editBtn.style.display = 'none';
+  wrap.appendChild(editor);
+
+  var input       = editor.querySelector('.lic-ed-input');
+  var saveBtn     = editor.querySelector('.lic-ed-save');
+  var cancelBtn   = editor.querySelector('.lic-ed-cancel');
+  var lifetimeBtn = editor.querySelector('.lic-ed-lifetime');
+
+  if (input) {
+    input.focus();
+    input.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); licEditSave(wrap); }
+      if (ev.key === 'Escape') { ev.preventDefault(); licEditCancel(wrap); }
+    });
+  }
+  if (saveBtn)     saveBtn.addEventListener('click', function() { licEditSave(wrap); });
+  if (cancelBtn)   cancelBtn.addEventListener('click', function() { licEditCancel(wrap); });
+  if (lifetimeBtn) lifetimeBtn.addEventListener('click', function() {
+    if (input) input.value = '';
+    // Tell the save routine that the admin explicitly wants lifetime.
+    wrap.setAttribute('data-to-lifetime', '1');
+    licEditSave(wrap);
+  });
+}
+
+function licEditSave(wrap) {
+  var field = wrap.getAttribute('data-field');
+  var kind  = wrap.getAttribute('data-kind') || '';
+  var toLifetime = wrap.getAttribute('data-to-lifetime') === '1';
+  var input = wrap.querySelector('.lic-ed-input');
+  if (!field || !input) return;
+
+  var form = document.getElementById('licEditForm');
+  if (!form) {
+    console.error('licEditForm not found');
+    return;
+  }
+  var url = form.getAttribute('action');
+  if (!url) {
+    console.error('edit form has no action URL');
+    return;
+  }
+
+  var saveBtn = wrap.querySelector('.lic-ed-save') ||
+                wrap.querySelector('.lic-ed-lifetime');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+  }
+
+  // Convert the LOCAL datetime-local value into a UTC ISO string so
+  // the server persists time-zone-aware timestamps and round-trips
+  // cleanly back to local display.
+  var rawInput = input.value || '';
+  var isoValue = '';
+  if (rawInput) {
+    try {
+      var d = new Date(rawInput);            // interpreted in local TZ
+      if (!isNaN(d.getTime())) isoValue = d.toISOString();
+    } catch (e) { isoValue = rawInput; }
+  }
+
+  var fd = new FormData();
+  fd.append(field, isoValue);
+
+  if (toLifetime) {
+    fd.set(field, '');
+    fd.append('license_type', 'lifetime');
+  } else if (field === 'expires_at' && kind === 'lifetime') {
+    var picked = wrap.querySelector('input[type="radio"]:checked');
+    var newKind = picked ? picked.value : 'yearly';
+    fd.append('license_type', newKind);
+  }
+
+  // Visible debug — what we're actually sending.
+  var debugParts = [];
+  fd.forEach(function(v, k) { debugParts.push(k + '=' + JSON.stringify(v)); });
+  console.log('[edit] POST', url, '→', debugParts.join(', '));
+
+  fetch(url, {
+    method: 'POST',
+    body: fd,
+    credentials: 'same-origin',
+    redirect: 'follow',
+    cache: 'no-store',
+  }).then(function(resp) {
+    console.log('[edit] response status=', resp.status, 'redirected=', resp.redirected);
+    if (resp.ok || resp.redirected) {
+      // Hard navigate with a fresh query param to dodge caches.
+      var u = new URL(window.location.href);
+      u.searchParams.set('_saved', Date.now());
+      window.location.href = u.toString();
+      return;
+    }
+    return resp.text().then(function(t) {
+      throw new Error('status=' + resp.status + ' body=' + t.substring(0,200));
+    });
+  }).catch(function(err) {
+    console.error('[edit] save failed:', err);
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="bi bi-check-lg"></i>';
+    }
+    var editor = wrap.querySelector('.lic-ed-editor');
+    if (editor && !editor.querySelector('.lic-ed-err')) {
+      var msg = document.createElement('span');
+      msg.className = 'lic-ed-err';
+      msg.textContent = 'השמירה נכשלה: ' + (err && err.message ? err.message : err) +
+                        '. בדוק שהשרת פעיל (הפעל מחדש את \"פתח אתר ניהול.bat\")' +
+                        ' ורענן עם Ctrl+F5.';
+      editor.appendChild(msg);
+    }
+  });
+}
+
+function licEditCancel(wrap) {
+  var editor = wrap.querySelector('.lic-ed-editor');
+  var display = wrap.querySelector('.lic-ed-display');
+  var editBtn = wrap.querySelector('.lic-ed-btn');
+  if (editor) editor.parentNode.removeChild(editor);
+  if (display) display.style.display = '';
+  if (editBtn) editBtn.style.display = '';
+  wrap.classList.remove('is-editing');
+}
+</script>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   License detail page — modern, flat, RTL-aware.
+   All rules scoped under ``.lic-*`` so they don't leak out.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Header ───────────────────────────────────────────────────── */
+.lic-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.lic-header-main { min-width: 0; flex: 1 1 360px; }
+
+.lic-back {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 13px; color: #6b7a94;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+.lic-back:hover { color: #2E8BFF; }
+
+.lic-title-row {
+  display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap;
+}
+.lic-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0E1B3A;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+}
+.lic-subtitle {
+  margin: 8px 0 0; padding: 0;
+  font-size: 13.5px; color: #4a5a78;
+  display: flex; flex-wrap: wrap; gap: 6px 16px;
+}
+.lic-subtitle-item {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.lic-subtitle-item i { color: #7a8aa7; font-size: 12px; }
+
+/* ── Header actions ───────────────────────────────────────────── */
+.lic-header-actions {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  align-items: flex-start;
+}
+.lic-btn {
+  height: 38px; padding: 0 14px;
+  background: #ffffff;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 9px;
+  color: #4a5a78;
+  font-size: 13.5px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  transition: all .12s;
+  font-family: inherit;
+}
+.lic-btn:hover  { background: #f6f8fc; border-color: #b9c4d6; color: #2c3a58; }
+.lic-btn i { font-size: 13px; }
+.lic-btn-ghost { }
+.lic-btn-primary {
+  background: #EAF3FF; border-color: #BFD9FF; color: #1a56c4;
+}
+.lic-btn-primary:hover { background: #D7E7FF; border-color: #8FB8F0; color: #0e3f8e; }
+.lic-btn-ok {
+  background: #E4F7E9; border-color: #BFE6CB; color: #1a7f37;
+}
+.lic-btn-ok:hover { background: #CFEED8; border-color: #8FD5A1; color: #0f5e25; }
+.lic-btn-warn {
+  background: #FFF4E5; border-color: #F5CDA0; color: #9c5a00;
+}
+.lic-btn-warn:hover { background: #FFE7C7; border-color: #E5A85C; color: #6b3d00; }
+.lic-btn-danger {
+  background: #ffffff; border-color: #E5A9A1; color: #b92d13;
+}
+.lic-btn-danger:hover { background: #FCE9E4; border-color: #D07B6E; color: #8a1e05; }
+
+/* ── Disabled banner ──────────────────────────────────────────── */
+.lic-banner {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+.lic-banner i { font-size: 18px; }
+.lic-banner-danger {
+  background: #FCE9E4; color: #8a1e05;
+  border: 1px solid #E8A89F;
+}
+.lic-banner-sub {
+  margin-top: 4px; font-size: 12.5px; opacity: 0.9;
+}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+.lic-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+@media (max-width: 992px) {
+  .lic-layout { grid-template-columns: 1fr; }
+}
+.lic-col-main,
+.lic-col-side {
+  display: flex; flex-direction: column; gap: 18px;
+  min-width: 0;
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.lic-card {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.04),
+              0 8px 24px rgba(18,28,50,.03);
+  overflow: hidden;
+}
+.lic-card-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eef1f7;
+  background: #fafcff;
+}
+.lic-card-head-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.lic-card-head-icon-blue   { background: #EAF0FF; color: #2E8BFF; }
+.lic-card-head-icon-green  { background: #E4F7E9; color: #1a7f37; }
+.lic-card-head-icon-purple { background: #F1E8FF; color: #7B4FD6; }
+.lic-card-head-icon-indigo { background: #E8EBFF; color: #4F5EDB; }
+.lic-card-head-icon-amber  { background: #FFF3E0; color: #C57A00; }
+.lic-card-title {
+  margin: 0; font-size: 15.5px; font-weight: 700; color: #1a2746;
+  flex: 1;
+}
+.lic-card-head-link {
+  font-size: 13px; color: #6b7a94; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 2px;
+}
+.lic-card-head-link:hover { color: #2E8BFF; }
+
+.lic-card-body { padding: 16px 20px; }
+.lic-card-body-flush { padding: 0; }
+
+/* ── Definition grid (key-value pairs) ────────────────────────── */
+.lic-grid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px 18px;
+  margin: 0;
+  font-size: 14px;
+}
+.lic-grid dt {
+  color: #7a8aa7;
+  font-weight: 500;
+  padding-top: 2px;
+}
+.lic-grid dd {
+  margin: 0;
+  color: #1a2746;
+  font-weight: 500;
+  min-width: 0;
+  word-break: break-word;
+}
+.lic-muted { color: #a8b3c7; }
+
+/* Chips / pills inside grid */
+.lic-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  line-height: 1.7;
+}
+.lic-chip i { font-size: 10px; }
+.lic-chip-ok     { background: #E4F7E9; color: #1a7f37; }
+.lic-chip-warn   { background: #FFF4E5; color: #9c5a00; }
+.lic-chip-danger { background: #FCE9E4; color: #8a1e05; }
+.lic-chip-neutral{ background: #F1F4F9; color: #4a5a78; }
+
+.lic-chip-soft {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-right: 8px;
+  padding: 2px 10px; border-radius: 999px;
+  background: #F1F4F9; color: #4a5a78;
+  font-size: 12px; font-weight: 600;
+  line-height: 1.7;
+}
+.lic-chip-soft-purple { background: #F1E8FF; color: #5d39a8; }
+
+/* Status pills — big, bold, at-a-glance */
+.lic-status-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 13.5px; font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.lic-status-pill i { font-size: 13px; }
+.lic-status-active {
+  background: #E4F7E9;
+  color: #1a7f37;
+  border: 1px solid #BFE6CB;
+}
+.lic-status-expired {
+  background: #FFF4E5;
+  color: #9c5a00;
+  border: 1px solid #F5CDA0;
+}
+.lic-status-disabled {
+  background: #FCE9E4;
+  color: #8a1e05;
+  border: 1px solid #E8A89F;
+}
+.lic-status-unused {
+  background: #F1F2F6;
+  color: #6b7a94;
+  border: 1px solid #d7dce5;
+}
+
+/* Serial-key box */
+.lic-key {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #f7f9fc;
+  border: 1.5px dashed #c9d3e5;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono','Cascadia Mono','Consolas',monospace;
+  font-size: 13.5px; font-weight: 700;
+  color: #0e1b3a;
+  letter-spacing: 0.3px;
+  word-break: break-all;
+}
+
+/* Copy button */
+.lic-copy {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  background: transparent;
+  border: 1px solid #dbe1ec;
+  border-radius: 7px;
+  color: #6b7a94;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all .12s;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.lic-copy:hover {
+  background: #EAF3FF; border-color: #2E8BFF; color: #2E8BFF;
+}
+
+/* Notes block */
+.lic-notes {
+  background: #f7f9fc;
+  border: 1px solid #e4e9f2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px; color: #2c3a58;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+/* ── Machine count badge (header) ─────────────────────────────── */
+.lic-machines-count {
+  display: inline-flex; align-items: center;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #E8EBFF 0%, #D8DDFF 100%);
+  color: #4F5EDB;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin-right: auto;
+}
+
+/* ── Machine / activations ────────────────────────────────────── */
+.lic-machine-now {
+  padding: 14px 18px 16px;
+  border-bottom: 1px solid #eef1f7;
+  display: flex; flex-direction: column; gap: 12px;
+  background: linear-gradient(180deg, #fafcff 0%, #ffffff 100%);
+}
+
+/* "Active now" header badge */
+.lic-machine-now-head {
+  margin-bottom: 2px;
+}
+.lic-machine-now-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px;
+  background: #E4F7E9;
+  color: #1a7f37;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.lic-machine-now-badge i {
+  font-size: 10px;
+  animation: lic-pulse 2s ease-in-out infinite;
+}
+@keyframes lic-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+.lic-ip-row {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.lic-ip-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: #7a8aa7; font-weight: 500;
+}
+.lic-ip-label i { color: #a8b3c7; font-size: 13px; }
+.lic-ip-value {
+  display: flex; align-items: center; gap: 6px;
+}
+.lic-ip-value code {
+  flex: 1;
+  padding: 7px 12px;
+  background: #EAF3FF;
+  color: #1a56c4;
+  border: 1px solid #CCE0FF;
+  border-radius: 8px;
+  font-size: 13.5px; font-weight: 700;
+  font-family: 'JetBrains Mono','Cascadia Mono','Consolas',monospace;
+  letter-spacing: 0.3px;
+  direction: ltr; text-align: right;
+}
+.lic-ip-value-public code {
+  background: #F1E8FF;
+  color: #5d39a8;
+  border-color: #E0CFF7;
+}
+.lic-ip-value-hwid code {
+  background: #FFF4E5;
+  color: #8a5800;
+  border-color: #F5CDA0;
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+.lic-ip-stamp {
+  padding: 6px 12px;
+  background: #fafcff;
+  border: 1px solid #e4e9f2;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1a2746;
+  font-weight: 500;
+  direction: ltr;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lic-machine-none {
+  padding: 24px 20px;
+  text-align: center;
+  color: #8a96ae;
+  font-size: 13.5px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.lic-machine-none i { font-size: 22px; color: #c1cadd; }
+
+.lic-act-list {
+  padding: 12px 14px 14px;
+}
+.lic-act-heading {
+  font-size: 11.5px; font-weight: 700;
+  color: #7a8aa7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.lic-act-item {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fafcff;
+  border: 1px solid #eef1f7;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.lic-act-item:last-child { margin-bottom: 0; }
+.lic-act-item-past {
+  background: #f7f7fa;
+  border-color: #e8e9ef;
+  opacity: 0.92;
+}
+
+/* "קודם" chip on past activations */
+.lic-past-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px;
+  background: #eef0f6;
+  color: #6b7a94;
+  border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+}
+.lic-past-badge i { font-size: 9px; }
+.lic-act-top {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.lic-act-ips {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.lic-act-ip-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px; font-weight: 600;
+}
+.lic-act-ip-chip i { font-size: 10px; }
+.lic-act-ip-chip code {
+  background: transparent; padding: 0; font-size: 11.5px;
+  font-family: 'JetBrains Mono','Cascadia Mono','Consolas',monospace;
+}
+.lic-act-ip-chip-priv { background: #EAF3FF; color: #1a56c4; }
+.lic-act-ip-chip-pub  { background: #F1E8FF; color: #5d39a8; }
+
+.lic-act-meta {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  color: #6b7a94; font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.lic-act-meta i { font-size: 10px; color: #a8b3c7; margin-left: 2px; }
+
+/* ── Events table ─────────────────────────────────────────────── */
+.lic-events-card .lic-card-head-text { flex: 1; }
+.lic-events-table {
+  font-size: 13.5px;
+}
+.lic-events-table thead th {
+  background: #fafcff;
+  color: #6b7a94;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #eef1f7;
+}
+.lic-events-table tbody td { padding: 12px 16px; }
+
+/* ════════════════════════════════════════════════════════════════
+   Modals — minimal, airy, single-card dialogs.
+   ════════════════════════════════════════════════════════════════ */
+
+.modal .lm-box {
+  background: #ffffff;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(14, 27, 58, 0.25);
+  overflow: hidden;
+}
+
+.lm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px 14px;
+}
+.lm-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0E1B3A;
+}
+.lm-title-danger { color: #C73A1D; }
+
+.lm-x {
+  width: 30px; height: 30px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #8a96ae;
+  font-size: 20px; line-height: 1;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .12s, color .12s;
+}
+.lm-x:hover { background: #f1f4f9; color: #1a2746; }
+
+.lm-body {
+  padding: 4px 22px 18px;
+}
+.lm-desc {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  color: #4a5a78;
+  line-height: 1.6;
+}
+.lm-danger-strong { color: #C73A1D; }
+
+.lm-tip {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: #6b7a94;
+  padding: 8px 12px;
+  background: #f7f9fc;
+  border-radius: 8px;
+}
+.lm-tip strong { color: #0E1B3A; }
+
+/* Key-value row inside modal body */
+.lm-kv {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: #fafcff;
+  border: 1px solid #e4e9f2;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+}
+.lm-kv-key {
+  color: #7a8aa7; font-weight: 500; font-size: 12.5px;
+  white-space: nowrap;
+}
+.lm-kv-val {
+  color: #0e1b3a; font-weight: 700;
+  background: transparent; padding: 0;
+  font-family: 'JetBrains Mono','Cascadia Mono','Consolas',monospace;
+}
+
+/* Inline highlighted code (e.g. the word "מחק") */
+.lm-ic {
+  background: #FCE9E4; color: #C73A1D;
+  padding: 1px 7px; border-radius: 5px;
+  font-size: 12.5px; font-weight: 700;
+  font-family: 'JetBrains Mono','Cascadia Mono','Consolas',monospace;
+}
+
+/* Labels */
+.lm-label {
+  display: block;
+  font-size: 13px; font-weight: 600;
+  color: #2c3a58;
+  margin: 10px 0 6px;
+}
+
+/* Input */
+.lm-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  font-size: 14px;
+  color: #1a2746;
+  background: #ffffff;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 9px;
+  outline: none;
+  transition: border-color .12s, box-shadow .12s;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.lm-input:hover  { border-color: #b9c4d6; }
+.lm-input:focus  {
+  border-color: #2E8BFF;
+  box-shadow: 0 0 0 3px rgba(46,139,255,.15);
+}
+.lm-input::placeholder { color: #a8b3c7; }
+.lm-input-num {
+  text-align: center; letter-spacing: 0.5px; font-weight: 600;
+}
+
+/* Day pills */
+.lm-days {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.lm-day { cursor: pointer; margin: 0; }
+.lm-day input { position: absolute; opacity: 0; pointer-events: none; }
+.lm-day span {
+  display: flex; align-items: center; justify-content: center;
+  height: 38px;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 13px; font-weight: 600;
+  color: #4a5a78;
+  transition: all .12s;
+}
+.lm-day:hover span { border-color: #93b4ff; color: #1a56c4; }
+.lm-day input:checked + span {
+  border-color: #2E8BFF;
+  background: #EAF3FF;
+  color: #1a56c4;
+}
+
+/* Footer */
+.lm-foot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 14px 22px 18px;
+  border-top: 1px solid #eef1f7;
+  background: #fbfcfe;
+}
+.lm-btn {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+  font-family: inherit;
+  color: #ffffff;
+  min-width: 110px;
+}
+.lm-btn-secondary {
+  background: #ffffff;
+  border-color: #dbe1ec;
+  color: #4a5a78;
+}
+.lm-btn-secondary:hover {
+  background: #f4f7fb;
+  border-color: #b9c4d6;
+  color: #1a2746;
+}
+.lm-btn-primary {
+  background: #2E8BFF;
+  border-color: #2E8BFF;
+}
+.lm-btn-primary:hover {
+  background: #1E76E6;
+  border-color: #1E76E6;
+}
+.lm-btn-warn {
+  background: #E89A1A;
+  border-color: #E89A1A;
+}
+.lm-btn-warn:hover {
+  background: #D08411;
+  border-color: #D08411;
+}
+.lm-btn-amber {
+  background: #E89A1A;
+  border-color: #E89A1A;
+}
+.lm-btn-amber:hover {
+  background: #D08411;
+  border-color: #D08411;
+}
+.lm-btn-danger {
+  background: #C73A1D;
+  border-color: #C73A1D;
+}
+.lm-btn-danger:hover:not(:disabled) {
+  background: #A82A10;
+  border-color: #A82A10;
+}
+.lm-btn-danger:disabled {
+  background: #e0c5c0;
+  border-color: #e0c5c0;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+/* Edit modal — wide 2-column grid */
+#editModal .modal-dialog { max-width: 640px; }
+
+.lm-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-bottom: 6px;
+}
+@media (max-width: 560px) {
+  .lm-edit-grid { grid-template-columns: 1fr; }
+}
+.lm-edit-field { display: flex; flex-direction: column; }
+.lm-edit-field-wide { grid-column: 1 / -1; }
+.lm-fld-help {
+  font-size: 11.5px; color: #8a96ae;
+  margin-top: 4px; line-height: 1.3;
+}
+
+.lm-edit-divider {
+  position: relative;
+  text-align: center;
+  margin: 16px 0 12px;
+}
+.lm-edit-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%; right: 0; left: 0;
+  height: 1px; background: #eef1f7;
+}
+.lm-edit-divider span {
+  position: relative;
+  display: inline-block;
+  padding: 0 12px;
+  background: #ffffff;
+  font-size: 12px; font-weight: 700;
+  color: #7a8aa7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lm-textarea {
+  height: auto;
+  min-height: 60px;
+  padding: 10px 13px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Inline date editor (pencil next to each date)
+   ════════════════════════════════════════════════════════════════ */
+
+.lic-editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.lic-ed-display { flex: 0 0 auto; }
+
+.lic-ed-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid #dbe1ec;
+  border-radius: 6px;
+  color: #6b7a94;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all .12s;
+  font-family: inherit;
+  line-height: 1.2;
+}
+.lic-ed-btn:hover {
+  background: #EAF3FF;
+  border-color: #2E8BFF;
+  color: #2E8BFF;
+}
+.lic-ed-btn-primary {
+  padding: 4px 10px;
+  background: #EAF3FF;
+  border-color: #BFD9FF;
+  color: #1a56c4;
+  font-weight: 600;
+}
+.lic-ed-btn-primary:hover {
+  background: #2E8BFF;
+  border-color: #2E8BFF;
+  color: #ffffff;
+}
+
+/* Editor row shown after clicking the pencil */
+.lic-ed-editor {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.lic-ed-input {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #1a2746;
+  background: #ffffff;
+  border: 1.5px solid #2E8BFF;
+  border-radius: 7px;
+  outline: none;
+  font-family: inherit;
+  box-shadow: 0 0 0 3px rgba(46,139,255,.12);
+}
+.lic-ed-save,
+.lic-ed-cancel,
+.lic-ed-lifetime {
+  height: 34px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 0 10px;
+  border: 1.5px solid transparent;
+  border-radius: 7px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .12s;
+}
+.lic-ed-save {
+  background: #1a7f37;
+  border-color: #1a7f37;
+  color: #ffffff;
+}
+.lic-ed-save:hover {
+  background: #15682d; border-color: #15682d;
+}
+.lic-ed-cancel {
+  background: #ffffff;
+  border-color: #dbe1ec;
+  color: #4a5a78;
+}
+.lic-ed-cancel:hover {
+  background: #f4f7fb;
+  border-color: #b9c4d6;
+  color: #1a2746;
+}
+.lic-ed-lifetime {
+  background: #F1E8FF;
+  border-color: #E0CFF7;
+  color: #5d39a8;
+}
+.lic-ed-lifetime:hover {
+  background: #5d39a8;
+  border-color: #5d39a8;
+  color: #ffffff;
+}
+
+.lic-ed-err {
+  flex: 1 0 100%;
+  font-size: 12px;
+  color: #b92d13;
+  background: #FCE9E4;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+/* Inline date + kind-picker editor — one row for controls, optional
+   second row for the yearly/trial picker when converting a lifetime
+   license. */
+.lic-ed-editor {
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  flex-wrap: wrap;
+}
+.lic-ed-row {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.lic-ed-kind-row {
+  display: flex; gap: 8px; align-items: center;
+  padding: 8px 10px;
+  background: #F7F9FC;
+  border: 1px solid #e4e9f2;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.lic-ed-kind-label {
+  color: #7a8aa7; font-weight: 600;
+}
+.lic-ed-kind-opt {
+  cursor: pointer; margin: 0;
+  display: inline-flex;
+}
+.lic-ed-kind-opt input {
+  position: absolute; opacity: 0; pointer-events: none;
+}
+.lic-ed-kind-opt span {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #4a5a78;
+  font-weight: 600;
+  transition: all .12s;
+}
+.lic-ed-kind-opt span i { font-size: 11px; color: #7a8aa7; }
+.lic-ed-kind-opt:hover span {
+  border-color: #93b4ff;
+}
+.lic-ed-kind-opt input:checked + span {
+  border-color: #2E8BFF;
+  background: #EAF3FF;
+  color: #1a56c4;
+}
+.lic-ed-kind-opt input:checked + span i { color: #2E8BFF; }
+</style>
+{% endblock %}

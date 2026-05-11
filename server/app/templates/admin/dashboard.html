@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">לוח בקרה</h1>
+    <p class="page-sub">סקירה כללית של המערכת</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/generator" class="btn btn-primary">
+      <i class="bi bi-plus-lg ms-1"></i> צור רישיון חדש
+    </a>
+    <form method="POST" action="/admin/reset-all"
+          class="d-inline-block ms-2"
+          onsubmit="return confirm('פעולה הרסנית!\n\nכל הרישיונות, ההיסטוריה, האירועים וההפעלות יימחקו לצמיתות.\nתוכניות מנויי ומשתמשי ניהול יישמרו.\n\nלהמשיך?');">
+      <button type="submit" class="btn btn-danger">
+        <i class="bi bi-trash3-fill ms-1"></i> אפס הכול
+      </button>
+    </form>
+  </div>
+</div>
+
+{% if request.query_params.get('reset') == 'ok' %}
+<div class="alert alert-success" role="alert">
+  <i class="bi bi-check-circle-fill ms-1"></i>
+  כל הרישיונות וההיסטוריה אופסו בהצלחה.
+</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+<div class="alert alert-danger" role="alert">
+  <i class="bi bi-exclamation-triangle-fill ms-1"></i>
+  {{ request.query_params.get('error') }}
+</div>
+{% endif %}
+
+<div class="stats-grid">
+  <div class="stat-card stat-blue">
+    <div class="stat-label">סה"כ רישיונות</div>
+    <div class="stat-value">{{ stats.total|default(0) }}</div>
+    <div class="stat-icon"><i class="bi bi-collection-fill"></i></div>
+  </div>
+  <div class="stat-card stat-green">
+    <div class="stat-label">פעילים</div>
+    <div class="stat-value">{{ stats.active|default(0) }}</div>
+    <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+  </div>
+  <div class="stat-card stat-amber">
+    <div class="stat-label">ניסיון (Trial)</div>
+    <div class="stat-value">{{ stats.trials_total|default(0) }}</div>
+    <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+  </div>
+  <div class="stat-card stat-indigo">
+    <div class="stat-label">שנתי</div>
+    <div class="stat-value">{{ stats.by_type.yearly|default(0) }}</div>
+    <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
+  </div>
+  <div class="stat-card stat-purple">
+    <div class="stat-label">לכל החיים</div>
+    <div class="stat-value">{{ stats.by_type.lifetime|default(0) }}</div>
+    <div class="stat-icon"><i class="bi bi-infinity"></i></div>
+  </div>
+  <div class="stat-card stat-red">
+    <div class="stat-label">מושבתים</div>
+    <div class="stat-value">{{ stats.disabled|default(0) }}</div>
+    <div class="stat-icon"><i class="bi bi-x-octagon-fill"></i></div>
+  </div>
+</div>
+
+<div class="mini-stats">
+  <div class="mini-stat">
+    <span class="mini-stat-label">הפעלות 24ש</span>
+    <span class="mini-stat-value">{{ stats.activations_24h|default(0) }}</span>
+  </div>
+  <div class="mini-stat">
+    <span class="mini-stat-label">הפעלות 7 ימים</span>
+    <span class="mini-stat-value">{{ stats.activations_7d|default(0) }}</span>
+  </div>
+  <div class="mini-stat">
+    <span class="mini-stat-label">הפעלות 30 ימים</span>
+    <span class="mini-stat-value">{{ stats.activations_30d|default(0) }}</span>
+  </div>
+  <div class="mini-stat">
+    <span class="mini-stat-label">אירועים 24ש</span>
+    <span class="mini-stat-value">{{ stats.events_24h|default(0) }}</span>
+  </div>
+  <div class="mini-stat">
+    <span class="mini-stat-label">לא הופעלו</span>
+    <span class="mini-stat-value">{{ stats.unused|default(0) }}</span>
+  </div>
+  <div class="mini-stat">
+    <span class="mini-stat-label">פגו תוקף</span>
+    <span class="mini-stat-value">{{ stats.expired|default(0) }}</span>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title mb-0">רישיונות אחרונים</h2>
+        <a href="/admin/licenses" class="small">הצג הכל <i class="bi bi-chevron-left"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>מפתח</th>
+              <th>סוג</th>
+              <th>סטטוס</th>
+              <th>לקוח</th>
+              <th>נוצר</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for lic in recent_licenses %}
+            <tr>
+              <td>
+                <a href="/admin/licenses/{{ lic.serial_key }}" class="mono-key">{{ lic.serial_key }}</a>
+              </td>
+              <td>{% include "admin/_type_badge.html" %}</td>
+              <td>{% include "admin/_status_badge.html" %}</td>
+              <td class="text-truncate" style="max-width: 150px;">{{ lic.customer_name or '—' }}</td>
+              <td class="text-muted small">{{ lic.created_at|localdate }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-4">אין רישיונות עדיין.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-6">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title mb-0">אירועים אחרונים</h2>
+        <a href="/admin/events" class="small">הצג הכל <i class="bi bi-chevron-left"></i></a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>זמן</th>
+              <th>סוג</th>
+              <th>מפתח</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for ev in recent_events %}
+            <tr>
+              <td class="text-muted small" style="white-space:nowrap;">{{ ev.created_at|localdt }}</td>
+              <td>
+                <span class="event-badge event-{{ ev.event_type|default('unknown') }}">{{ ev.event_type|default('—') }}</span>
+              </td>
+              <td>
+                {% if ev.serial_key %}
+                  <a href="/admin/licenses/{{ ev.serial_key }}" class="mono-key small">{{ ev.serial_key }}</a>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-center text-muted py-4">אין אירועים עדיין.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

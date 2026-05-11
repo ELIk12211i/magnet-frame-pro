@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}לקוחות{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">לקוחות</h1>
+    <p class="page-sub">סה״כ {{ total|default(0) }} לקוחות ייחודיים — מצטבר לפי כתובת אימייל</p>
+  </div>
+</div>
+
+<div class="card filter-card">
+  <div class="card-body">
+    <form method="get" action="/admin/customers" class="row g-2 align-items-end">
+      <div class="col-md-10">
+        <label class="form-label small">חיפוש</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control"
+                 value="{{ filters.q or '' }}"
+                 placeholder="שם, אימייל, טלפון, ת.ז, שם עסק, ח.פ או מפתח רישיון…">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel"></i> סינון
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>לקוח</th>
+          <th>פרטי קשר</th>
+          <th>ת.ז / עסק</th>
+          <th>פעילות</th>
+          <th>סך שולם</th>
+          <th>רישיון פעיל</th>
+          <th class="text-end">פעולות</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for c in items %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ c.name or '—' }}</div>
+            {% if c.first_seen %}
+              <div class="small text-muted">
+                <i class="bi bi-calendar-event"></i>
+                הצטרף: <time class="js-local-date" datetime="{{ c.first_seen }}">{{ c.first_seen[:10] }}</time>
+              </div>
+            {% endif %}
+          </td>
+          <td class="small">
+            {% if c.email %}
+              <div dir="ltr"><i class="bi bi-envelope text-muted"></i> {{ c.email }}</div>
+            {% endif %}
+            {% if c.phone %}
+              <div dir="ltr"><i class="bi bi-telephone text-muted"></i> {{ c.phone }}</div>
+            {% endif %}
+            {% if not c.email and not c.phone %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="small">
+            {% if c.id_number %}
+              <div><i class="bi bi-person-vcard text-muted"></i> ת.ז: <span class="mono-small">{{ c.id_number }}</span></div>
+            {% endif %}
+            {% if c.business_name %}
+              <div><i class="bi bi-building text-muted"></i> {{ c.business_name }}</div>
+            {% endif %}
+            {% if c.business_id %}
+              <div><i class="bi bi-receipt text-muted"></i> ח.פ: <span class="mono-small">{{ c.business_id }}</span></div>
+            {% endif %}
+            {% if not c.id_number and not c.business_name and not c.business_id %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="small">
+            <div><span class="badge bg-secondary">{{ c.orders_count }}</span> הזמנות</div>
+            <div><span class="badge bg-info text-dark">{{ c.licenses_count }}</span> רישיונות</div>
+            {% if c.last_seen %}
+              <div class="text-muted mt-1">
+                פעילות אחרונה: <time class="js-local-date" datetime="{{ c.last_seen }}">{{ c.last_seen[:10] }}</time>
+              </div>
+            {% endif %}
+          </td>
+          <td class="small">
+            {% if c.total_paid and c.total_paid > 0 %}
+              <span class="fw-semibold">{{ '%.2f' % (c.total_paid / 100) }} ₪</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if c.active_license_serial %}
+              <a href="/admin/licenses/{{ c.active_license_serial }}" class="mono-key">{{ c.active_license_serial }}</a>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="/admin/customers/{{ c.email or c.phone }}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> פרטים
+            </a>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-5">
+          לא נמצאו לקוחות תואמים.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages and pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="small text-muted">
+      עמוד {{ page }} מתוך {{ pages }} · סה״כ {{ total }}
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {%- set base_q = '&q=' ~ (filters.q or '') ~ '&limit=' ~ (limit or 25) -%}
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page - 1 }}{{ base_q }}"><i class="bi bi-chevron-right"></i></a>
+        </li>
+        {% for p in range(1, pages + 1) %}
+          {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}{{ base_q }}">{{ p }}</a>
+            </li>
+          {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if page >= pages %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page + 1 }}{{ base_q }}"><i class="bi bi-chevron-left"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

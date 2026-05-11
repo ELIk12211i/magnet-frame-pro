@@ -1,0 +1,38 @@
+# Secrets — NEVER commit
+.env
+.env.*
+!.env.example
+
+# SQLite state
+licenses.db
+licenses.db-journal
+licenses.db-wal
+licenses.db-shm
+*.sqlite
+*.sqlite-journal
+
+# Python build artefacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מפתח הרישיון שלך — Magnet Frame Pro</title>
+</head>
+<body style="margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif; background:#f5f7fa; color:#1a2746;">
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa; padding:32px 16px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.08);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background:linear-gradient(135deg,#2E8BFF 0%,#1a6ad5 100%); padding:32px 24px; text-align:center;">
+                            <h1 style="margin:0; color:#ffffff; font-size:26px; font-weight:700;">תודה על הרכישה!</h1>
+                            <p style="margin:8px 0 0 0; color:#e6f0ff; font-size:16px;">Magnet Frame Pro</p>
+                        </td>
+                    </tr>
+
+                    <!-- Body -->
+                    <tr>
+                        <td style="padding:32px 32px 24px 32px;">
+                            <p style="margin:0 0 16px 0; font-size:17px; line-height:1.6;">
+                                שלום <strong>{{customer_name}}</strong>,
+                            </p>
+                            <p style="margin:0 0 20px 0; font-size:15px; line-height:1.7; color:#334155;">
+                                קיבלנו את התשלום שלך — תודה רבה!<br>
+                                מפתח הרישיון שלך מוכן ומצורף כאן למטה.
+                            </p>
+
+                            <!-- License key box -->
+                            <div style="background:#f7f9fc; border:2px dashed #2E8BFF; border-radius:10px; padding:20px; text-align:center; margin:20px 0;">
+                                <div style="font-size:12px; color:#6b7280; margin-bottom:8px; letter-spacing:0.5px;">מפתח הרישיון שלך</div>
+                                <div style="font-family: 'Courier New', Consolas, monospace; font-size:22px; font-weight:700; color:#1a2746; letter-spacing:1.5px; direction:ltr; unicode-bidi:embed;">
+                                    {{serial_key}}
+                                </div>
+                            </div>
+
+                            <!-- Plan details -->
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0; border-collapse:collapse;">
+                                <tr>
+                                    <td style="padding:10px 0; border-bottom:1px solid #e4e9f2; font-size:14px; color:#6b7280;">תוכנית</td>
+                                    <td style="padding:10px 0; border-bottom:1px solid #e4e9f2; font-size:14px; color:#1a2746; font-weight:600; text-align:left;">{{plan_name}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:10px 0; border-bottom:1px solid #e4e9f2; font-size:14px; color:#6b7280;">בתוקף עד</td>
+                                    <td style="padding:10px 0; border-bottom:1px solid #e4e9f2; font-size:14px; color:#1a2746; font-weight:600; text-align:left; direction:ltr; unicode-bidi:embed;">{{expires_at}}</td>
+                                </tr>
+                            </table>
+
+                            <!-- Instructions -->
+                            <h3 style="margin:24px 0 12px 0; font-size:17px; color:#1a2746;">איך להפעיל את המפתח</h3>
+                            <ol style="margin:0; padding:0 22px 0 0; font-size:14px; line-height:1.9; color:#334155;">
+                                <li>פתחו את התוכנה <strong>Magnet Frame Pro</strong></li>
+                                <li>עברו ל-<strong>הגדרות ← רישיון</strong></li>
+                                <li>העתיקו את המפתח מההודעה הזו והדביקו בשדה המתאים</li>
+                                <li>לחצו על <strong>"אשר ורשום"</strong> — המערכת תאמת את המפתח אוטומטית</li>
+                            </ol>
+                            <p style="margin:18px 0 0 0; padding:12px 16px; background:#fff7e6; border-right:4px solid #f59e0b; border-radius:6px; font-size:13px; color:#78350f;">
+                                <strong>חשוב:</strong> המפתח קשור למחשב הראשון שבו תפעילו אותו. אם תרצו להעביר רישיון למחשב אחר — פנו אלינו.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background:#f7f9fc; padding:24px 32px; border-top:1px solid #e4e9f2; text-align:center;">
+                            <p style="margin:0 0 8px 0; font-size:13px; color:#6b7280;">
+                                זקוקים לעזרה? כתבו אלינו ל-
+                                <a href="mailto:{{support_email}}" style="color:#2E8BFF; text-decoration:none;">{{support_email}}</a>
+                            </p>
+                            <p style="margin:0; font-size:12px; color:#94a3b8;">
+                                © Magnet Frame Pro — כל הזכויות שמורות
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

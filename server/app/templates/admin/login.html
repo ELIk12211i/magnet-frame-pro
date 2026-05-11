@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content_auth %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+      <i class="bi bi-shield-lock-fill auth-icon"></i>
+      <h1 class="auth-title">License Manager</h1>
+      <p class="auth-sub">התחברות למערכת הניהול</p>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" action="/admin/login" novalidate>
+      <div class="mb-3">
+        <label for="username" class="form-label">שם משתמש</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input id="username" name="username" type="text"
+                 class="form-control" value="{{ username or '' }}"
+                 autocomplete="username" required autofocus>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">סיסמה</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-key"></i></span>
+          <input id="password" name="password" type="password"
+                 class="form-control" autocomplete="current-password" required>
+        </div>
+      </div>
+      <input type="hidden" name="next" value="{{ next or '' }}">
+      <button type="submit" class="btn btn-primary w-100 btn-lg">
+        <i class="bi bi-box-arrow-in-right ms-1"></i> התחבר
+      </button>
+    </form>
+
+    <div class="auth-foot">
+      <small class="text-muted">מערכת ניהול רישיונות · Magnet Frame Pro</small>
+    </div>
+  </div>
+</div>
+{% endblock %}

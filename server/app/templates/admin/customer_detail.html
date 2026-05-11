@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+{% block title %}לקוח — {{ customer.name or customer.email }}{% endblock %}
+
+{% block content %}
+{# ══════════════════════════════════════════════════════════════════
+   Header
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">
+      <a href="/admin/customers" class="ld-back" title="חזרה לרשימה">
+        <i class="bi bi-arrow-right"></i>
+      </a>
+      פרופיל לקוח
+    </h1>
+    <p class="page-sub">
+      כל הפרטים שהלקוח הזין, ההזמנות, הרישיונות והאירועים — במקום אחד
+    </p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/customers" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-right ms-1"></i> חזרה לרשימה
+    </a>
+    {% if customer.email %}
+      <a href="mailto:{{ customer.email }}" class="btn btn-outline-primary">
+        <i class="bi bi-envelope ms-1"></i> שלח מייל
+      </a>
+    {% endif %}
+    {% if customer.phone %}
+      <a href="tel:{{ customer.phone }}" class="btn btn-outline-success">
+        <i class="bi bi-telephone ms-1"></i> חייג
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Identity card
+   ══════════════════════════════════════════════════════════════════ #}
+<section class="ld-identity">
+  <div class="ld-avatar">
+    <i class="bi bi-person-fill"></i>
+  </div>
+  <div class="ld-identity-main">
+    <h2 class="ld-name">
+      {{ customer.name or 'ללא שם' }}
+      {% set has_active = false %}
+      {% for l in customer.licenses %}{% if l.status == 'active' %}{% set has_active = true %}{% endif %}{% endfor %}
+      {% if has_active %}
+        <span class="ld-chip is-active">
+          <i class="bi bi-circle-fill"></i> לקוח פעיל
+        </span>
+      {% elif customer.licenses %}
+        <span class="ld-chip is-unknown">
+          <i class="bi bi-dash-circle"></i> לקוח עם רישיון לא פעיל
+        </span>
+      {% else %}
+        <span class="ld-chip is-unknown">
+          <i class="bi bi-dash-circle"></i> ללא רישיון פעיל
+        </span>
+      {% endif %}
+    </h2>
+    <div class="ld-contact-row">
+      {% if customer.email %}
+        <a href="mailto:{{ customer.email }}" class="ld-contact" dir="ltr">
+          <i class="bi bi-envelope-fill"></i>
+          {{ customer.email }}
+        </a>
+      {% endif %}
+      {% if customer.phone %}
+        <a href="tel:{{ customer.phone }}" class="ld-contact" dir="ltr">
+          <i class="bi bi-telephone-fill"></i>
+          {{ customer.phone }}
+        </a>
+      {% endif %}
+      {% if customer.first_seen %}
+        <span class="ld-contact">
+          <i class="bi bi-calendar-event"></i>
+          הצטרף:
+          <time class="js-local-date" datetime="{{ customer.first_seen }}">
+            {{ customer.first_seen[:10] }}
+          </time>
+        </span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{# ══════════════════════════════════════════════════════════════════
+   Quick stats
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="row g-3 mt-3">
+  <div class="col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="small text-muted">סך הזמנות</div>
+        <div class="display-6 fw-bold">{{ customer.orders|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="small text-muted">סך רישיונות</div>
+        <div class="display-6 fw-bold">{{ customer.licenses|length }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="small text-muted">סך שולם</div>
+        <div class="display-6 fw-bold">
+          {% if customer.total_paid and customer.total_paid > 0 %}
+            {{ '%.0f' % (customer.total_paid / 100) }} ₪
+          {% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card stat-card h-100">
+      <div class="card-body">
+        <div class="small text-muted">פעילות אחרונה</div>
+        <div class="fw-semibold mt-2">
+          {% if customer.last_seen %}
+            <time class="js-local-dt" datetime="{{ customer.last_seen }}">{{ customer.last_seen[:16] }}</time>
+          {% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Two-column layout — contact + business
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="ld-grid mt-3">
+
+  {# ── Contact details ────────────────────────────────────── #}
+  <section class="ld-card">
+    <header class="ld-card-head">
+      <div class="ld-card-head-icon is-contact">
+        <i class="bi bi-person-lines-fill"></i>
+      </div>
+      <div>
+        <h3 class="ld-card-title">פרטי התקשרות</h3>
+        <p class="ld-card-sub">המידע שהלקוח הזין בטופס הרכישה באתר</p>
+      </div>
+    </header>
+    <dl class="ld-dl">
+      <dt>שם מלא</dt>
+      <dd>{{ customer.name or '—' }}</dd>
+
+      <dt>כתובת אימייל</dt>
+      <dd>
+        {% if customer.email %}
+          <a href="mailto:{{ customer.email }}" dir="ltr">{{ customer.email }}</a>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+
+      <dt>מספר טלפון</dt>
+      <dd>
+        {% if customer.phone %}
+          <a href="tel:{{ customer.phone }}" dir="ltr">{{ customer.phone }}</a>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+
+      <dt>תעודת זהות (ת.ז)</dt>
+      <dd>
+        {% if customer.id_number %}
+          <span class="mono-small" dir="ltr">{{ customer.id_number }}</span>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+
+      <dt>הצטרף לראשונה</dt>
+      <dd>
+        {% if customer.first_seen %}
+          <time class="js-local-dt" datetime="{{ customer.first_seen }}">{{ customer.first_seen[:16] }}</time>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+    </dl>
+  </section>
+
+  {# ── Business / invoicing ───────────────────────────────── #}
+  <section class="ld-card">
+    <header class="ld-card-head">
+      <div class="ld-card-head-icon is-machine">
+        <i class="bi bi-building"></i>
+      </div>
+      <div>
+        <h3 class="ld-card-title">פרטי עסק / חשבונית</h3>
+        <p class="ld-card-sub">לצורך הנפקת חשבונית מס</p>
+      </div>
+    </header>
+    <dl class="ld-dl">
+      <dt>שם העסק</dt>
+      <dd>
+        {% if customer.business_name %}
+          {{ customer.business_name }}
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+
+      <dt>ח.פ / ע.מ</dt>
+      <dd>
+        {% if customer.business_id %}
+          <span class="mono-small" dir="ltr">{{ customer.business_id }}</span>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+
+      <dt>סך שולם בפועל</dt>
+      <dd>
+        {% if customer.total_paid and customer.total_paid > 0 %}
+          <strong>{{ '%.2f' % (customer.total_paid / 100) }} ₪</strong>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+
+      <dt>פעילות אחרונה</dt>
+      <dd>
+        {% if customer.last_seen %}
+          <time class="js-local-dt" datetime="{{ customer.last_seen }}">{{ customer.last_seen[:16] }}</time>
+        {% else %}<span class="ld-muted">—</span>{% endif %}
+      </dd>
+    </dl>
+  </section>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Orders table
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="h5 mb-0">
+      <i class="bi bi-receipt-cutoff ms-1"></i>
+      היסטוריית הזמנות
+      <span class="badge bg-secondary ms-2">{{ customer.orders|length }}</span>
+    </h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>הזמנה</th>
+          <th>תאריך</th>
+          <th>סכום</th>
+          <th>סטטוס</th>
+          <th>מפתח רישיון</th>
+          <th>ספק</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in customer.orders %}
+          <tr>
+            <td><span class="mono-small">#{{ '%06d' % o.id }}</span></td>
+            <td class="small text-muted">
+              <time class="js-local-dt" datetime="{{ o.created_at }}">{{ (o.created_at or '')[:16] }}</time>
+            </td>
+            <td class="small">
+              {% if o.amount_cents and o.amount_cents > 0 %}
+                {{ '%.2f' % (o.amount_cents / 100) }} {{ o.currency or 'ILS' }}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td>
+              {% set badge_cls = 'secondary' %}
+              {% if o.status == 'paid' %}{% set badge_cls = 'success' %}{% endif %}
+              {% if o.status == 'pending' %}{% set badge_cls = 'warning text-dark' %}{% endif %}
+              {% if o.status == 'failed' %}{% set badge_cls = 'danger' %}{% endif %}
+              {% if o.status == 'refunded' %}{% set badge_cls = 'info text-dark' %}{% endif %}
+              <span class="badge bg-{{ badge_cls }}">{{ o.status or 'unknown' }}</span>
+            </td>
+            <td>
+              {% if o.license_serial %}
+                <a href="/admin/licenses/{{ o.license_serial }}" class="mono-key">{{ o.license_serial }}</a>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="small text-muted">{{ o.provider or '—' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">אין הזמנות.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Licenses table
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="card mt-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="h5 mb-0">
+      <i class="bi bi-key-fill ms-1"></i>
+      רישיונות
+      <span class="badge bg-secondary ms-2">{{ customer.licenses|length }}</span>
+    </h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>מפתח</th>
+          <th>תוכנית</th>
+          <th>סטטוס</th>
+          <th>הופעל</th>
+          <th>פג תוקף</th>
+          <th>מחשב</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in customer.licenses %}
+          <tr>
+            <td>
+              <a href="/admin/licenses/{{ l.serial_key }}" class="mono-key">{{ l.serial_key }}</a>
+            </td>
+            <td class="small">
+              {{ l.plan_name or l.license_type or '—' }}
+              {% if l.plan_days %}
+                <div class="small text-muted">{{ l.plan_days }} ימים</div>
+              {% endif %}
+            </td>
+            <td>
+              {% set lbc = 'secondary' %}
+              {% if l.status == 'active' %}{% set lbc = 'success' %}{% endif %}
+              {% if l.status == 'unused' %}{% set lbc = 'info text-dark' %}{% endif %}
+              {% if l.status == 'expired' %}{% set lbc = 'warning text-dark' %}{% endif %}
+              {% if l.status == 'disabled' %}{% set lbc = 'danger' %}{% endif %}
+              <span class="badge bg-{{ lbc }}">{{ l.status or 'unknown' }}</span>
+            </td>
+            <td class="small text-muted">
+              {% if l.activated_at %}
+                <time class="js-local-dt" datetime="{{ l.activated_at }}">{{ l.activated_at[:16] }}</time>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if l.expires_at %}
+                <time class="js-local-date" datetime="{{ l.expires_at }}">{{ l.expires_at[:10] }}</time>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="small">
+              {% if l.hostname or l.hardware_id %}
+                {% if l.hostname %}<div>{{ l.hostname }}</div>{% endif %}
+                {% if l.hardware_id %}<div class="mono-small text-muted">{{ l.hardware_id }}</div>{% endif %}
+                {% if l.client_public_ip %}<div class="text-muted" dir="ltr">{{ l.client_public_ip }}</div>{% endif %}
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">אין רישיונות.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Events
+   ══════════════════════════════════════════════════════════════════ #}
+{% if customer.events %}
+<div class="card mt-4 mb-4">
+  <div class="card-header">
+    <h3 class="h5 mb-0">
+      <i class="bi bi-journal-text ms-1"></i>
+      אירועים אחרונים
+      <span class="badge bg-secondary ms-2">{{ customer.events|length }}</span>
+    </h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>תאריך</th>
+          <th>סוג</th>
+          <th>מפתח</th>
+          <th>הודעה</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in customer.events %}
+          <tr>
+            <td class="small text-muted">
+              <time class="js-local-dt" datetime="{{ e.created_at }}">{{ (e.created_at or '')[:16] }}</time>
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ e.event_type }}</span></td>
+            <td>
+              {% if e.serial_key %}
+                <a href="/admin/licenses/{{ e.serial_key }}" class="mono-small">{{ e.serial_key }}</a>
+              {% else %}—{% endif %}
+            </td>
+            <td class="small">{{ e.message or '—' }}</td>
+            <td class="small text-muted" dir="ltr">{{ e.ip or '—' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

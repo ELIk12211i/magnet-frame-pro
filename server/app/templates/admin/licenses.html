@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}Licenses{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">כל הרישיונות</h1>
+    <p class="page-sub">סה"כ {{ total|default(0) }} רישיונות</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/generator" class="btn btn-primary">
+      <i class="bi bi-plus-lg ms-1"></i> רישיון חדש
+    </a>
+  </div>
+</div>
+
+<div class="card filter-card">
+  <div class="card-body">
+    <form method="get" action="/admin/licenses" class="row g-2 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label small">חיפוש</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control"
+                 value="{{ filters.q or '' }}"
+                 placeholder="מפתח, שם לקוח, אימייל, machine id...">
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">סטטוס</label>
+        <select name="status" class="form-select">
+          <option value="">הכל</option>
+          {% for s in ['active', 'unused', 'disabled', 'expired', 'reset'] %}
+            <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">סוג</label>
+        <select name="type" class="form-select">
+          <option value="">הכל</option>
+          <option value="yearly" {% if filters.type == 'yearly' %}selected{% endif %}>yearly</option>
+          <option value="lifetime" {% if filters.type == 'lifetime' %}selected{% endif %}>lifetime</option>
+          <option value="trial_14_days" {% if filters.type == 'trial_14_days' %}selected{% endif %}>trial_14_days</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 licenses-table">
+      <thead>
+        <tr>
+          <th>מפתח</th>
+          <th>לקוח</th>
+          <th>סוג</th>
+          <th>סטטוס</th>
+          <th>IP של מחשב</th>
+          <th>הופעל</th>
+          <th>תפוגה</th>
+          <th>אימות אחרון</th>
+          <th>אימות הבא</th>
+          <th class="text-center">פעולות</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for lic in items %}
+        <tr>
+          <td>
+            <a href="/admin/licenses/{{ lic.serial_key }}" class="mono-key">{{ lic.serial_key }}</a>
+          </td>
+          <td class="text-truncate" style="max-width: 180px;">
+            {% if lic.customer_name %}{{ lic.customer_name }}{% else %}<span class="text-muted">—</span>{% endif %}
+            {% if lic.customer_email %}<div class="small text-muted">{{ lic.customer_email }}</div>{% endif %}
+          </td>
+          <td>{% include "admin/_type_badge.html" %}</td>
+          <td>{% include "admin/_status_badge.html" %}</td>
+          <td>
+            {% if lic.machine_id %}
+              <span class="mono-small" title="{{ lic.machine_id }}">{{ lic.machine_id }}</span>
+              <button type="button" class="btn btn-link btn-sm p-0 copy-btn"
+                      data-copy-text="{{ lic.machine_id }}" title="העתק">
+                <i class="bi bi-clipboard"></i>
+              </button>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="small text-muted">{{ lic.activated_at|localdate }}</td>
+          <td class="small text-muted">
+            {% if lic.expires_at %}{{ lic.expires_at|localdate }}
+            {% elif lic.license_type == 'lifetime' %}<span class="text-muted">∞</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="small">
+            {% if lic.last_validation_at %}
+              <div class="text-muted">{{ lic.last_validation_at|localdt }}</div>
+              {% if lic.validation_status %}
+                <span class="badge bg-{{ 'success' if lic.validation_status == 'success' else 'warning text-dark' if lic.validation_status in ['offline','unused',''] else 'danger' }}">
+                  {{ lic.validation_status }}
+                </span>
+              {% endif %}
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="small text-muted">
+            {% if lic.next_validation_due_at %}
+              {{ lic.next_validation_due_at|localdt }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-center">
+            <div class="btn-group btn-group-sm" role="group">
+              <a href="/admin/licenses/{{ lic.serial_key }}" class="btn btn-outline-primary">
+                <i class="bi bi-eye"></i> הצג
+              </a>
+              <button type="button"
+                      class="btn btn-outline-danger delete-license-btn"
+                      data-bs-toggle="modal"
+                      data-bs-target="#listDeleteModal"
+                      data-serial="{{ lic.serial_key }}"
+                      title="מחק רישיון">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10" class="text-center text-muted py-5">
+          לא נמצאו רישיונות תואמים.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages and pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="small text-muted">
+      עמוד {{ page }} מתוך {{ pages }} · סה"כ {{ total }}
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {%- set base_q = '&q=' ~ (filters.q or '') ~ '&status=' ~ (filters.status or '') ~ '&type=' ~ (filters.type or '') ~ '&limit=' ~ (limit or 20) -%}
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page - 1 }}{{ base_q }}"><i class="bi bi-chevron-right"></i></a>
+        </li>
+        {% for p in range(1, pages + 1) %}
+          {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}{{ base_q }}">{{ p }}</a>
+            </li>
+          {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if page >= pages %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page + 1 }}{{ base_q }}"><i class="bi bi-chevron-left"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Shared delete-license modal (used by the trash button on every row) -->
+<div class="modal fade" id="listDeleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" id="listDeleteForm" action="">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-trash text-danger ms-1"></i> מחיקת רישיון</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger small mb-3">
+          <strong>אזהרה:</strong> פעולה זו מוחקת את הרישיון לצמיתות
+          ולא ניתנת לביטול.
+        </div>
+        <p class="mb-2">יימחק הרישיון
+          <code class="mono-key" id="listDeleteSerial"></code>
+          יחד עם היסטוריית ההפעלות שלו.
+        </p>
+        <label class="form-label mt-2">כדי לאשר, הקלד <code>מחק</code> כאן:</label>
+        <input type="text" class="form-control" id="listDeleteConfirmInput"
+               autocomplete="off" placeholder="מחק">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ביטול</button>
+        <button type="submit" class="btn btn-danger" id="listDeleteConfirmBtn" disabled>
+          <i class="bi bi-trash ms-1"></i> מחק לצמיתות
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  var modal  = document.getElementById('listDeleteModal');
+  var form   = document.getElementById('listDeleteForm');
+  var label  = document.getElementById('listDeleteSerial');
+  var input  = document.getElementById('listDeleteConfirmInput');
+  var btn    = document.getElementById('listDeleteConfirmBtn');
+  if (!modal || !form) return;
+
+  modal.addEventListener('show.bs.modal', function(ev) {
+    var trigger = ev.relatedTarget;
+    var serial = trigger ? trigger.getAttribute('data-serial') : '';
+    if (serial) {
+      form.action = '/admin/licenses/' + encodeURIComponent(serial) + '/delete';
+      if (label) label.textContent = serial;
+    }
+    if (input) input.value = '';
+    if (btn) btn.disabled = true;
+  });
+
+  if (input && btn) {
+    input.addEventListener('input', function() {
+      btn.disabled = (input.value.trim() !== 'מחק');
+    });
+  }
+})();
+</script>
+{% endblock %}

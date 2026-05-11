@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Events{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">יומן אירועים</h1>
+    <p class="page-sub">סה"כ {{ total|default(0) }} אירועים</p>
+  </div>
+</div>
+
+<div class="card filter-card">
+  <div class="card-body">
+    <form method="get" action="/admin/events" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small">סוג אירוע</label>
+        <select name="event_type" class="form-select form-select-sm">
+          <option value="">הכל</option>
+          {% set event_types = [
+            'activation_success', 'activation_failed', 'activation_machine_mismatch', 'activation_already_used',
+            'validation_success', 'validation_failed', 'validation_expired',
+            'trial_started', 'trial_already_used', 'trial_expired',
+            'yearly_expired', 'switched_to_demo',
+            'license_created', 'license_disabled', 'license_enabled', 'license_reset', 'license_extended',
+            'disabled_license', 'reset_machine',
+            'admin_login', 'admin_login_failed', 'admin_logout'
+          ] %}
+          {% for et in event_types %}
+            <option value="{{ et }}" {% if filters.event_type == et %}selected{% endif %}>{{ et }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">מפתח רישיון</label>
+        <input type="text" name="serial_key" class="form-control form-control-sm"
+               value="{{ filters.serial_key or '' }}" placeholder="XXXX-XXXXX-XXXXX-XXXX">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">IP של מחשב</label>
+        <input type="text" name="machine_id" class="form-control form-control-sm"
+               value="{{ filters.machine_id or '' }}" placeholder="...">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">מתאריך</label>
+        <input type="date" name="since" class="form-control form-control-sm"
+               value="{{ filters.since or '' }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small">עד תאריך</label>
+        <input type="date" name="until" class="form-control form-control-sm"
+               value="{{ filters.until or '' }}">
+      </div>
+      <div class="col-12 d-flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel ms-1"></i> סנן
+        </button>
+        <a href="/admin/events" class="btn btn-outline-secondary btn-sm">
+          נקה
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="table-responsive">
+    <table class="table table-hover table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th>זמן</th>
+          <th>סוג</th>
+          <th>מפתח</th>
+          <th>Machine</th>
+          <th>הודעה</th>
+          <th>Actor</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for ev in items %}
+        <tr>
+          <td class="small text-muted" style="white-space:nowrap;">
+            {{ ev.created_at|localdt }}
+          </td>
+          <td><span class="event-badge event-{{ ev.event_type|default('unknown') }}">{{ ev.event_type }}</span></td>
+          <td>
+            {% if ev.serial_key %}
+              <a href="/admin/licenses/{{ ev.serial_key }}" class="mono-key small">{{ ev.serial_key }}</a>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if ev.machine_id %}
+              <code class="mono-small" title="{{ ev.machine_id }}">{{ ev.machine_id }}</code>
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="small">{{ ev.message or '—' }}</td>
+          <td class="small text-muted">{{ ev.actor or '—' }}</td>
+          <td class="small text-muted"><code class="mono-small">{{ ev.ip or '—' }}</code></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-center text-muted py-5">לא נמצאו אירועים.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages and pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="small text-muted">
+      עמוד {{ page }} מתוך {{ pages }} · סה"כ {{ total }}
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {%- set base_q = '&serial_key=' ~ (filters.serial_key or '') ~ '&machine_id=' ~ (filters.machine_id or '') ~ '&event_type=' ~ (filters.event_type or '') ~ '&since=' ~ (filters.since or '') ~ '&until=' ~ (filters.until or '') ~ '&limit=' ~ (limit or 50) -%}
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page - 1 }}{{ base_q }}"><i class="bi bi-chevron-right"></i></a>
+        </li>
+        {% for p in range(1, pages + 1) %}
+          {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}{{ base_q }}">{{ p }}</a>
+            </li>
+          {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if page >= pages %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page + 1 }}{{ base_q }}"><i class="bi bi-chevron-left"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

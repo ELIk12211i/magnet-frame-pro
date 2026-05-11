@@ -1,0 +1,10 @@
+{%- set _t = (lic.license_type or '') | lower -%}
+{%- if _t in ('yearly',) -%}
+  <span class="type-badge type-yearly"><i class="bi bi-calendar-event"></i> תקופתי</span>
+{%- elif _t == 'lifetime' -%}
+  <span class="type-badge type-lifetime"><i class="bi bi-infinity"></i> לצמיתות</span>
+{%- elif _t in ('trial', 'trial_14_days') -%}
+  <span class="type-badge type-trial"><i class="bi bi-hourglass-split"></i> ניסיון</span>
+{%- else -%}
+  <span class="type-badge type-other">{{ lic.license_type or '—' }}</span>
+{%- endif -%}

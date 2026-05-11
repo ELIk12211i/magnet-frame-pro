@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+{% block title %}משתמשים חדשים{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">משתמשים חדשים</h1>
+    <p class="page-sub">רשימת כל המשתמשים שהזינו פרטים והפעילו תקופת ניסיון מהתוכנה</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/licenses" class="btn btn-outline-secondary">
+      <i class="bi bi-collection ms-1"></i> כל הרישיונות
+    </a>
+  </div>
+</div>
+
+{# ── Alerts ────────────────────────────────────────────────────── #}
+{% if error %}
+  <div class="alert alert-danger leads-alert">
+    <i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}
+  </div>
+{% endif %}
+{% if success %}
+  <div class="alert alert-success leads-alert">
+    <i class="bi bi-check-circle-fill ms-1"></i> {{ success }}
+  </div>
+{% endif %}
+
+{# ── Stats ─────────────────────────────────────────────────────── #}
+<div class="leads-stats">
+  <div class="leads-stat">
+    <div class="leads-stat-icon is-total">
+      <i class="bi bi-person-plus-fill"></i>
+    </div>
+    <div>
+      <div class="leads-stat-value">{{ leads|length }}</div>
+      <div class="leads-stat-label">סך כל המשתמשים</div>
+    </div>
+  </div>
+  <div class="leads-stat">
+    <div class="leads-stat-icon is-active">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div>
+      <div class="leads-stat-value">
+        {{ leads|selectattr('license_status', 'equalto', 'active')|list|length }}
+      </div>
+      <div class="leads-stat-label">עם רישיון פעיל</div>
+    </div>
+  </div>
+  <div class="leads-stat">
+    <div class="leads-stat-icon is-with-phone">
+      <i class="bi bi-telephone-fill"></i>
+    </div>
+    <div>
+      <div class="leads-stat-value">
+        {{ leads|selectattr('phone')|list|length }}
+      </div>
+      <div class="leads-stat-label">עם מספר טלפון</div>
+    </div>
+  </div>
+</div>
+
+{# ── Table ────────────────────────────────────────────────────── #}
+<section class="leads-card">
+  <header class="leads-card-head">
+    <div class="leads-card-head-icon">
+      <i class="bi bi-person-lines-fill"></i>
+    </div>
+    <div class="leads-card-head-text">
+      <h2 class="leads-card-title">רשימה מלאה</h2>
+      <p class="leads-card-sub">
+        ממוין לפי תאריך — המשתמשים החדשים ביותר בראש הטבלה
+      </p>
+    </div>
+  </header>
+
+  {% if leads %}
+    <div class="leads-table-wrap">
+      <table class="leads-table">
+        <thead>
+          <tr>
+            <th style="width: 26%;">שם ויצירת קשר</th>
+            <th style="width: 18%;">מפתח ניסיון</th>
+            <th style="width: 14%;">תפוגה</th>
+            <th style="width: 12%;">סטטוס</th>
+            <th style="width: 14%;">תאריך הפעלה</th>
+            <th style="width: 8%;">כתובת IP</th>
+            <th style="width: 8%;">פעולות</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ld in leads %}
+            <tr>
+              <td>
+                <div class="leads-name">
+                  <i class="bi bi-person-fill"></i>
+                  <a href="/admin/leads/{{ ld.id }}" class="leads-name-link">
+                    {% if ld.name %}
+                      <strong>{{ ld.name }}</strong>
+                    {% else %}
+                      <span class="leads-muted">— ללא שם —</span>
+                    {% endif %}
+                  </a>
+                </div>
+                {% if ld.phone %}
+                  <div class="leads-phone">
+                    <i class="bi bi-telephone"></i>
+                    <a href="tel:{{ ld.phone }}" dir="ltr">{{ ld.phone }}</a>
+                  </div>
+                {% else %}
+                  <div class="leads-phone leads-muted">
+                    <i class="bi bi-telephone"></i> —
+                  </div>
+                {% endif %}
+              </td>
+              <td>
+                {% if ld.serial_key %}
+                  <a href="/admin/licenses/{{ ld.serial_key }}"
+                     class="leads-serial" dir="ltr">
+                    {{ ld.serial_key }}
+                  </a>
+                {% else %}
+                  <span class="leads-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if ld.expires_at %}
+                  <time class="js-local-date leads-date"
+                        datetime="{{ ld.expires_at }}">
+                    {{ ld.expires_at[:10] }}
+                  </time>
+                {% else %}
+                  <span class="leads-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if ld.license_status == 'active' %}
+                  <span class="leads-chip is-active">
+                    <i class="bi bi-circle-fill"></i> פעיל
+                  </span>
+                {% elif ld.license_status == 'expired' %}
+                  <span class="leads-chip is-expired">
+                    <i class="bi bi-x-circle-fill"></i> פג
+                  </span>
+                {% elif ld.license_status == 'disabled' %}
+                  <span class="leads-chip is-disabled">
+                    <i class="bi bi-pause-circle-fill"></i> מושבת
+                  </span>
+                {% else %}
+                  <span class="leads-chip is-unknown">
+                    <i class="bi bi-question-circle"></i>
+                    {{ ld.license_status or '—' }}
+                  </span>
+                {% endif %}
+              </td>
+              <td>
+                <time class="js-local-dt leads-date"
+                      datetime="{{ ld.created_at }}">
+                  {{ ld.created_at[:16] if ld.created_at else '—' }}
+                </time>
+              </td>
+              <td>
+                <span class="leads-ip" dir="ltr">{{ ld.ip or '—' }}</span>
+              </td>
+              <td>
+                <form method="post" action="/admin/leads/{{ ld.id }}/delete"
+                      class="d-inline"
+                      onsubmit="return confirm('למחוק את הרשומה של {{ ld.name or ld.machine_id }}?');">
+                  <button type="submit" class="leads-icon-btn is-danger"
+                          title="מחק רשומה">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="leads-empty">
+      <div class="leads-empty-icon">
+        <i class="bi bi-inbox"></i>
+      </div>
+      <h3 class="leads-empty-title">אין משתמשים חדשים עדיין</h3>
+      <p class="leads-empty-sub">
+        כל משתמש שיפעיל תקופת ניסיון מהתוכנה יופיע כאן אוטומטית.
+      </p>
+    </div>
+  {% endif %}
+</section>
+
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   Leads page — same visual language as the plans page, table-first
+   ══════════════════════════════════════════════════════════════════ */
+
+.leads-alert { border-radius: 10px; margin-bottom: 14px; }
+
+/* Stats row */
+.leads-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 720px) {
+  .leads-stats { grid-template-columns: 1fr; }
+}
+.leads-stat {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.03);
+}
+.leads-stat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.leads-stat-icon.is-total      { background: #EAF0FF; color: #2E8BFF; }
+.leads-stat-icon.is-active     { background: #E4F7E9; color: #1a7f37; }
+.leads-stat-icon.is-with-phone { background: #FFF3E0; color: #C57A00; }
+.leads-stat-value {
+  font-size: 22px; font-weight: 800; color: #1a2746; line-height: 1;
+}
+.leads-stat-label {
+  font-size: 13px; color: #6b7a94; margin-top: 4px;
+}
+
+/* Card */
+.leads-card {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.04),
+              0 8px 24px rgba(18,28,50,.03);
+}
+.leads-card-head {
+  display: flex; gap: 12px; align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eef1f7;
+  margin-bottom: 18px;
+}
+.leads-card-head-icon {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, #E8F0FF 0%, #D7E4FF 100%);
+  color: #2E8BFF;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; flex-shrink: 0;
+}
+.leads-card-title {
+  margin: 0; font-size: 17px; font-weight: 700;
+  color: #1a2746; letter-spacing: -0.01em;
+}
+.leads-card-sub {
+  margin: 2px 0 0; font-size: 13px; color: #6b7a94;
+}
+
+/* Table */
+.leads-table-wrap { overflow-x: auto; }
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.leads-table thead th {
+  text-align: right;
+  padding: 10px 12px;
+  font-weight: 700;
+  color: #4a5a78;
+  background: #f6f8fc;
+  border-bottom: 1px solid #e4e9f2;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.leads-table tbody td {
+  padding: 12px;
+  border-bottom: 1px solid #eef1f7;
+  vertical-align: top;
+  color: #1a2746;
+}
+.leads-table tbody tr:hover {
+  background: #fafcff;
+}
+.leads-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.leads-name {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px;
+}
+.leads-name i { color: #2E8BFF; font-size: 14px; }
+.leads-name-link {
+  color: inherit; text-decoration: none;
+  padding: 2px 4px; border-radius: 6px;
+  transition: background .12s, color .12s;
+}
+.leads-name-link:hover {
+  color: #1a56c4; background: #EAF0FF;
+  text-decoration: none;
+}
+.leads-phone {
+  margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #4a5a78;
+}
+.leads-phone i { color: #7a8aa7; font-size: 13px; }
+.leads-phone a { color: #1a56c4; text-decoration: none; }
+.leads-phone a:hover { text-decoration: underline; }
+
+.leads-serial {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: #1a56c4;
+  text-decoration: none;
+  padding: 3px 8px;
+  background: #EAF0FF;
+  border-radius: 6px;
+  display: inline-block;
+}
+.leads-serial:hover { background: #D7E4FF; text-decoration: none; }
+
+.leads-date {
+  font-size: 12.5px;
+  color: #4a5a78;
+  white-space: nowrap;
+}
+.leads-ip {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #6b7a94;
+}
+.leads-muted { color: #a8b3c7; font-size: 12.5px; }
+
+/* Chips */
+.leads-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 600;
+  line-height: 1.8;
+  white-space: nowrap;
+}
+.leads-chip i { font-size: 9px; }
+.leads-chip.is-active   { background: #E4F7E9; color: #1a7f37; }
+.leads-chip.is-expired  { background: #FCE9E4; color: #C73A1D; }
+.leads-chip.is-disabled { background: #F1F2F6; color: #6b7a94; }
+.leads-chip.is-unknown  { background: #FFF3E0; color: #9c5a00; }
+
+/* Action buttons */
+.leads-icon-btn {
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #ffffff;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 9px;
+  color: #4a5a78;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all .12s;
+}
+.leads-icon-btn:hover {
+  border-color: #b9c4d6; background: #f6f8fc;
+}
+.leads-icon-btn.is-danger:hover {
+  border-color: #C73A1D; color: #C73A1D; background: #FCE9E4;
+}
+
+/* Empty state */
+.leads-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: #6b7a94;
+}
+.leads-empty-icon {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: #f1f4f9; color: #a8b3c7;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 14px;
+}
+.leads-empty-title {
+  margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #1a2746;
+}
+.leads-empty-sub {
+  margin: 0; font-size: 13.5px; color: #6b7a94;
+}
+</style>
+{% endblock %}

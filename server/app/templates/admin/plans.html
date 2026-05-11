@@ -1,0 +1,873 @@
+{% extends "base.html" %}
+{% block title %}Subscription Plans{% endblock %}
+
+{% block content %}
+{# ══════════════════════════════════════════════════════════════════
+   Page header
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">תכניות מנוי</h1>
+    <p class="page-sub">ניהול קטלוג התכניות שמוצגות בעת יצירת רישיון</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/generator" class="btn btn-outline-secondary">
+      <i class="bi bi-key ms-1"></i> חזרה ליצירת רישיון
+    </a>
+  </div>
+</div>
+
+{# ── Alerts ────────────────────────────────────────────────────── #}
+{% if error %}
+  <div class="alert alert-danger plans-alert">
+    <i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}
+  </div>
+{% endif %}
+{% if success %}
+  <div class="alert alert-success plans-alert">
+    <i class="bi bi-check-circle-fill ms-1"></i> {{ success }}
+  </div>
+{% endif %}
+
+{# ══════════════════════════════════════════════════════════════════
+   Stats strip — at-a-glance summary above the catalogue
+   ══════════════════════════════════════════════════════════════════ #}
+{% set active_count = plans|selectattr('is_active')|list|length %}
+{% set disabled_count = plans|rejectattr('is_active')|list|length %}
+<div class="plans-stats">
+  <div class="plans-stat">
+    <div class="plans-stat-icon plans-stat-icon-total">
+      <i class="bi bi-collection-fill"></i>
+    </div>
+    <div>
+      <div class="plans-stat-value">{{ plans|length }}</div>
+      <div class="plans-stat-label">סך תכניות</div>
+    </div>
+  </div>
+  <div class="plans-stat">
+    <div class="plans-stat-icon plans-stat-icon-active">
+      <i class="bi bi-check-circle-fill"></i>
+    </div>
+    <div>
+      <div class="plans-stat-value">{{ active_count }}</div>
+      <div class="plans-stat-label">פעילות</div>
+    </div>
+  </div>
+  <div class="plans-stat">
+    <div class="plans-stat-icon plans-stat-icon-disabled">
+      <i class="bi bi-pause-circle-fill"></i>
+    </div>
+    <div>
+      <div class="plans-stat-value">{{ disabled_count }}</div>
+      <div class="plans-stat-label">מושבתות</div>
+    </div>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Main layout — catalogue on one side, new-plan form on the other
+   ══════════════════════════════════════════════════════════════════ #}
+<div class="plans-layout">
+
+  {# ── Catalogue ────────────────────────────────────────────── #}
+  <section class="plans-card">
+    <header class="plans-card-head">
+      <div class="plans-card-head-icon">
+        <i class="bi bi-diagram-3-fill"></i>
+      </div>
+      <div class="plans-card-head-text">
+        <h2 class="plans-card-title">קטלוג התכניות</h2>
+        <p class="plans-card-sub">
+          הפעל / השבת או מחק תכנית. שינויים נכנסים לתוקף מיידית.
+        </p>
+      </div>
+    </header>
+
+    {% if plans %}
+      <div class="plans-list">
+        {% for p in plans %}
+          <article class="plans-item {% if not p.is_active %}is-disabled{% endif %}">
+            <div class="plans-item-icon
+                        {% if p.license_type == 'lifetime' %}is-lifetime
+                        {% elif p.license_type == 'trial_14_days' %}is-trial
+                        {% else %}is-yearly{% endif %}">
+              {% if p.license_type == 'lifetime' %}
+                <i class="bi bi-infinity"></i>
+              {% elif p.license_type == 'trial_14_days' %}
+                <i class="bi bi-hourglass-split"></i>
+              {% else %}
+                <i class="bi bi-calendar-event"></i>
+              {% endif %}
+            </div>
+
+            <div class="plans-item-main">
+              <div class="plans-item-name">
+                {{ p.name }}
+                {% if p.is_system %}
+                  <span class="plans-chip plans-chip-system" title="תכנית מערכת קבועה — ניתנת לעריכה אך לא למחיקה">
+                    <i class="bi bi-shield-lock-fill"></i> קבוע
+                  </span>
+                {% endif %}
+              </div>
+              <div class="plans-item-meta">
+                {% if p.license_type == 'lifetime' %}
+                  <span class="plans-chip plans-chip-lifetime">
+                    <i class="bi bi-infinity"></i> לצמיתות
+                  </span>
+                {% elif p.license_type == 'trial_14_days' %}
+                  <span class="plans-chip plans-chip-trial">
+                    <i class="bi bi-hourglass-split"></i> ניסיון
+                  </span>
+                  <span class="plans-chip plans-chip-days">{{ p.days }} ימים</span>
+                {% else %}
+                  <span class="plans-chip plans-chip-yearly">
+                    <i class="bi bi-calendar-event"></i> תקופתי
+                  </span>
+                  <span class="plans-chip plans-chip-days">{{ p.days }} ימים</span>
+                {% endif %}
+                {% if p.is_active %}
+                  <span class="plans-chip plans-chip-active">
+                    <i class="bi bi-circle-fill"></i> פעיל
+                  </span>
+                {% else %}
+                  <span class="plans-chip plans-chip-inactive">
+                    <i class="bi bi-pause-fill"></i> מושבת
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="plans-item-actions">
+              <button type="button"
+                      class="plans-icon-btn is-edit"
+                      title="ערוך"
+                      data-action="edit-plan"
+                      data-plan-id="{{ p.id }}"
+                      data-plan-name="{{ p.name }}"
+                      data-plan-days="{{ p.days if p.days is not none else '' }}"
+                      data-plan-type="{{ p.license_type }}"
+                      data-plan-sort="{{ p.sort_order }}"
+                      data-plan-system="{{ '1' if p.is_system else '0' }}">
+                <i class="bi bi-pencil-fill"></i>
+              </button>
+              <form method="post" action="/admin/plans/{{ p.id }}/toggle"
+                    class="d-inline">
+                <button type="submit"
+                        class="plans-icon-btn {% if p.is_active %}is-warn{% else %}is-ok{% endif %}"
+                        title="{% if p.is_active %}השבת{% else %}הפעל{% endif %}">
+                  <i class="bi {% if p.is_active %}bi-pause-fill{% else %}bi-play-fill{% endif %}"></i>
+                </button>
+              </form>
+              {% if p.is_system %}
+                <button type="button"
+                        class="plans-icon-btn is-locked"
+                        disabled
+                        title="תכנית מערכת — לא ניתן למחוק">
+                  <i class="bi bi-shield-lock"></i>
+                </button>
+              {% else %}
+                <form method="post" action="/admin/plans/{{ p.id }}/delete"
+                      class="d-inline"
+                      onsubmit="return confirm('למחוק את התכנית ''{{ p.name }}''?\nפעולה זו אינה ניתנת לביטול.');">
+                  <button type="submit" class="plans-icon-btn is-danger"
+                          title="מחק">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="plans-empty">
+        <div class="plans-empty-icon">
+          <i class="bi bi-inbox"></i>
+        </div>
+        <h3 class="plans-empty-title">אין תכניות עדיין</h3>
+        <p class="plans-empty-sub">
+          צור את התכנית הראשונה בטופס שבצד — היא תופיע כאן מיד.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+
+  {# ── New-plan form ────────────────────────────────────────── #}
+  <aside class="plans-form-card">
+    <header class="plans-card-head">
+      <div class="plans-card-head-icon plans-card-head-icon-plus">
+        <i class="bi bi-plus-lg"></i>
+      </div>
+      <div class="plans-card-head-text">
+        <h2 class="plans-card-title">תכנית חדשה</h2>
+        <p class="plans-card-sub">הוסף תכנית לקטלוג</p>
+      </div>
+    </header>
+
+    <form method="post" action="/admin/plans" class="plans-form" id="plansForm">
+
+      <div class="plans-field">
+        <label for="plan_name" class="plans-label">
+          <i class="bi bi-tag"></i>
+          שם התכנית
+        </label>
+        <input type="text" id="plan_name" name="name" class="plans-input"
+               placeholder="למשל: פרימיום / 3 חודשים"
+               required maxlength="100">
+        <span class="plans-help">שם קצר וברור שיוצג בגנרטור</span>
+      </div>
+
+      <div class="plans-field">
+        <label for="plan_type" class="plans-label">
+          <i class="bi bi-award"></i>
+          סוג הרישיון
+        </label>
+        <div class="plans-type-radio">
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="yearly" checked>
+            <span class="plans-type-inner">
+              <i class="bi bi-calendar-event"></i>
+              <span>תקופתי</span>
+            </span>
+          </label>
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="lifetime">
+            <span class="plans-type-inner">
+              <i class="bi bi-infinity"></i>
+              <span>לצמיתות</span>
+            </span>
+          </label>
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="trial_14_days">
+            <span class="plans-type-inner">
+              <i class="bi bi-hourglass-split"></i>
+              <span>ניסיון</span>
+            </span>
+          </label>
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="custom">
+            <span class="plans-type-inner">
+              <i class="bi bi-pencil-square"></i>
+              <span>מותאם</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      {# Custom-type free-text input — visible only when "מותאם" picked #}
+      <div class="plans-field" id="customTypeField" style="display:none;">
+        <label class="plans-label" for="custom_type">
+          <i class="bi bi-tag-fill"></i>
+          שם סוג הרישיון (יוצג ללקוח)
+        </label>
+        <input type="text" id="custom_type" name="custom_type"
+               class="plans-input"
+               placeholder="למשל: רבעוני / VIP / ארגוני / חבילת פרימיום"
+               maxlength="80">
+        <span class="plans-help">
+          הטקסט הזה יופיע ללקוח כסוג הרישיון.
+          התנהגות התכנית זהה לתקופתי (ימים + תוקף).
+        </span>
+      </div>
+
+      <div class="plans-field" id="plansDaysField">
+        <label for="plan_days" class="plans-label">
+          <i class="bi bi-calendar-range"></i>
+          משך תוקף (ימים)
+        </label>
+        <input type="number" id="plan_days" name="days" class="plans-input plans-input-num"
+               dir="ltr" min="1" max="36500" placeholder="למשל: 90">
+        <span class="plans-help" id="plansDaysHelp">
+          בחר את תוקף הרישיון בימים (1–36500)
+        </span>
+      </div>
+
+      <div class="plans-field">
+        <label for="plan_sort" class="plans-label">
+          <i class="bi bi-arrow-down-up"></i>
+          סדר תצוגה
+        </label>
+        <input type="number" id="plan_sort" name="sort_order"
+               class="plans-input plans-input-num" dir="ltr"
+               value="50">
+        <span class="plans-help">ערך נמוך יותר = מוקדם יותר ברשימה</span>
+      </div>
+
+      <button type="submit" class="plans-btn-primary">
+        <i class="bi bi-save"></i>
+        <span>שמור תכנית</span>
+      </button>
+    </form>
+  </aside>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Edit-plan modal  (hidden by default — shown via JS when the pencil
+   icon on a row is clicked).  The same modal serves every plan; the
+   JS layer fills in the current values before opening it.
+   ══════════════════════════════════════════════════════════════════ #}
+<div id="editPlanBackdrop" class="plan-modal-backdrop" hidden>
+  <div class="plan-modal" role="dialog" aria-modal="true" aria-labelledby="editPlanTitle">
+    <header class="plan-modal-head">
+      <div class="plans-card-head-icon plans-card-head-icon-plus">
+        <i class="bi bi-pencil-square"></i>
+      </div>
+      <div class="plans-card-head-text">
+        <h2 id="editPlanTitle" class="plans-card-title">עריכת תכנית</h2>
+        <p id="editPlanSub" class="plans-card-sub">שנה את פרטי התכנית</p>
+      </div>
+      <button type="button" class="plan-modal-close" id="editPlanClose" title="סגור">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </header>
+
+    <form id="editPlanForm" method="post" class="plans-form">
+
+      <div class="plans-field">
+        <label class="plans-label" for="editPlanName">
+          <i class="bi bi-tag"></i>
+          שם התכנית
+        </label>
+        <input type="text" id="editPlanName" name="name" class="plans-input"
+               maxlength="100">
+        <span class="plans-help" id="editPlanNameHelp">
+          שם קצר וברור שיוצג בגנרטור
+        </span>
+      </div>
+
+      <div class="plans-field">
+        <label class="plans-label">
+          <i class="bi bi-award"></i>
+          סוג הרישיון
+        </label>
+        <div class="plans-type-radio">
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="yearly">
+            <span class="plans-type-inner">
+              <i class="bi bi-calendar-event"></i><span>תקופתי</span>
+            </span>
+          </label>
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="lifetime">
+            <span class="plans-type-inner">
+              <i class="bi bi-infinity"></i><span>לצמיתות</span>
+            </span>
+          </label>
+          <label class="plans-type-opt">
+            <input type="radio" name="license_type" value="trial_14_days">
+            <span class="plans-type-inner">
+              <i class="bi bi-hourglass-split"></i><span>ניסיון</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="plans-field" id="editPlanDaysField">
+        <label class="plans-label" for="editPlanDays">
+          <i class="bi bi-calendar-range"></i>
+          משך תוקף (ימים)
+        </label>
+        <input type="number" id="editPlanDays" name="days"
+               class="plans-input plans-input-num" dir="ltr"
+               min="1" max="36500">
+        <span class="plans-help">בחר את תוקף הרישיון בימים (1–36500)</span>
+      </div>
+
+      <div class="plans-field">
+        <label class="plans-label" for="editPlanSort">
+          <i class="bi bi-arrow-down-up"></i>
+          סדר תצוגה
+        </label>
+        <input type="number" id="editPlanSort" name="sort_order"
+               class="plans-input plans-input-num" dir="ltr">
+        <span class="plans-help">ערך נמוך יותר = מוקדם יותר ברשימה</span>
+      </div>
+
+      <div class="plan-modal-actions">
+        <button type="button" id="editPlanCancel" class="plans-btn-secondary">
+          ביטול
+        </button>
+        <button type="submit" class="plans-btn-primary">
+          <i class="bi bi-save"></i>
+          <span>שמור שינויים</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Interactions — hide the days field when "lifetime" is picked
+   ══════════════════════════════════════════════════════════════════ #}
+<script>
+(function() {
+  var form       = document.getElementById('plansForm');
+  var daysField  = document.getElementById('plansDaysField');
+  var daysInput  = document.getElementById('plan_days');
+  var typeRadios = form ? form.querySelectorAll('input[name="license_type"]') : [];
+  if (!form || !daysField || !daysInput || !typeRadios.length) return;
+
+  function currentType() {
+    for (var i = 0; i < typeRadios.length; i++) {
+      if (typeRadios[i].checked) return typeRadios[i].value;
+    }
+    return 'yearly';
+  }
+  function sync() {
+    var t = currentType();
+    if (t === 'lifetime') {
+      daysField.style.display = 'none';
+      daysInput.required = false;
+      daysInput.value = '';
+    } else {
+      daysField.style.display = '';
+      daysInput.required = true;
+      // Prefill sensible defaults for trial / yearly.
+      if (!daysInput.value) {
+        daysInput.value = (t === 'trial_14_days') ? '14' : '365';
+      }
+    }
+  }
+  typeRadios.forEach(function(r) { r.addEventListener('change', sync); });
+  sync();
+})();
+
+/* ══════════════════════════════════════════════════════════════════
+   Edit-plan modal — open / populate / close / sync days field
+   ══════════════════════════════════════════════════════════════════ */
+(function() {
+  var backdrop     = document.getElementById('editPlanBackdrop');
+  var form         = document.getElementById('editPlanForm');
+  var closeBtn     = document.getElementById('editPlanClose');
+  var cancelBtn    = document.getElementById('editPlanCancel');
+  var subTitle     = document.getElementById('editPlanSub');
+  var nameInput    = document.getElementById('editPlanName');
+  var nameHelp     = document.getElementById('editPlanNameHelp');
+  var daysInput    = document.getElementById('editPlanDays');
+  var daysField    = document.getElementById('editPlanDaysField');
+  var sortInput    = document.getElementById('editPlanSort');
+  if (!backdrop || !form) return;
+
+  var typeRadios = form.querySelectorAll('input[name="license_type"]');
+
+  function openModal(data) {
+    form.action = '/admin/plans/' + data.id + '/edit';
+    subTitle.textContent = 'עריכת תכנית: ' + data.name;
+
+    nameInput.value = data.name || '';
+    daysInput.value = data.days || '';
+    sortInput.value = data.sort || '0';
+
+    // Select the matching license-type radio.
+    typeRadios.forEach(function(r) {
+      r.checked = (r.value === data.type);
+    });
+
+    // All plan fields — including the name — are freely editable.
+    // System plans stay identified by their ``is_system`` flag +
+    // ``license_type``, so renaming them doesn't break the desktop
+    // client's lookup.
+    nameInput.readOnly = false;
+    nameInput.classList.remove('is-locked-input');
+    var isSystem = (data.system === '1');
+    nameHelp.textContent = isSystem
+      ? 'תכנית מערכת — ניתן לערוך את כל השדות, כולל השם.'
+      : 'שם קצר וברור שיוצג בגנרטור';
+
+    syncDaysField();
+    backdrop.hidden = false;
+    setTimeout(function() { nameInput.focus(); }, 50);
+  }
+
+  function closeModal() { backdrop.hidden = true; }
+
+  function currentType() {
+    for (var i = 0; i < typeRadios.length; i++) {
+      if (typeRadios[i].checked) return typeRadios[i].value;
+    }
+    return 'yearly';
+  }
+  function syncDaysField() {
+    if (currentType() === 'lifetime') {
+      daysField.style.display = 'none';
+      daysInput.required = false;
+    } else {
+      daysField.style.display = '';
+      daysInput.required = true;
+    }
+  }
+  typeRadios.forEach(function(r) {
+    r.addEventListener('change', syncDaysField);
+  });
+
+  // Wire every "edit" button in the plans list.
+  document.querySelectorAll('[data-action="edit-plan"]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      openModal({
+        id:     btn.getAttribute('data-plan-id'),
+        name:   btn.getAttribute('data-plan-name'),
+        days:   btn.getAttribute('data-plan-days'),
+        type:   btn.getAttribute('data-plan-type'),
+        sort:   btn.getAttribute('data-plan-sort'),
+        system: btn.getAttribute('data-plan-system'),
+      });
+    });
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', function(e) {
+    if (e.target === backdrop) closeModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !backdrop.hidden) closeModal();
+  });
+})();
+</script>
+<style>
+/* Locked text input (system-plan name) */
+.is-locked-input {
+  background: #f4f7fa !important;
+  color: #6b7a94 !important;
+  cursor: not-allowed;
+}
+</style>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   Subscription plans — modern, flat, RTL-aware layout.
+   All rules scoped under ``.plans-*`` so nothing leaks out.
+   ════════════════════════════════════════════════════════════════ */
+
+.plans-alert { border-radius: 10px; margin-bottom: 14px; }
+
+/* ── Stats strip ──────────────────────────────────────────────── */
+.plans-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+@media (max-width: 720px) {
+  .plans-stats { grid-template-columns: 1fr; }
+}
+.plans-stat {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.03);
+}
+.plans-stat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.plans-stat-icon-total    { background: #EAF0FF; color: #2E8BFF; }
+.plans-stat-icon-active   { background: #E4F7E9; color: #1a7f37; }
+.plans-stat-icon-disabled { background: #F1F2F6; color: #6b7a94; }
+.plans-stat-value {
+  font-size: 22px; font-weight: 800; color: #1a2746;
+  line-height: 1;
+}
+.plans-stat-label {
+  font-size: 13px; color: #6b7a94; margin-top: 4px;
+}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+.plans-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 992px) {
+  .plans-layout { grid-template-columns: 1fr; }
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.plans-card,
+.plans-form-card {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.04),
+              0 8px 24px rgba(18,28,50,.03);
+}
+.plans-card-head {
+  display: flex; gap: 12px; align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eef1f7;
+  margin-bottom: 18px;
+}
+.plans-card-head-icon {
+  width: 42px; height: 42px; border-radius: 12px;
+  background: linear-gradient(135deg, #E8F0FF 0%, #D7E4FF 100%);
+  color: #2E8BFF;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; flex-shrink: 0;
+}
+.plans-card-head-icon-plus {
+  background: linear-gradient(135deg, #E4F7E9 0%, #CCEFD3 100%);
+  color: #1a7f37;
+}
+.plans-card-title {
+  margin: 0; font-size: 17px; font-weight: 700;
+  color: #1a2746; letter-spacing: -0.01em;
+}
+.plans-card-sub {
+  margin: 2px 0 0; font-size: 13px; color: #6b7a94;
+}
+
+/* ── Plans list (catalogue) ───────────────────────────────────── */
+.plans-list {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.plans-item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: #fbfcfe;
+  border: 1px solid #e7ecf3;
+  border-radius: 12px;
+  transition: background .12s, border-color .12s;
+}
+.plans-item:hover {
+  background: #f4f7fb;
+  border-color: #d3dbe9;
+}
+.plans-item.is-disabled {
+  opacity: 0.65;
+  background: #f7f8fb;
+}
+
+.plans-item-icon {
+  width: 44px; height: 44px; border-radius: 11px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.plans-item-icon.is-yearly   { background: #E8F0FF; color: #2E8BFF; }
+.plans-item-icon.is-trial    { background: #FFF3E0; color: #C57A00; }
+.plans-item-icon.is-lifetime { background: #F1E8FF; color: #7B4FD6; }
+
+.plans-item-name {
+  font-size: 15.5px; font-weight: 700; color: #1a2746;
+  margin-bottom: 4px;
+}
+.plans-item-meta {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+/* Chips */
+.plans-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 600;
+  line-height: 1.8;
+  white-space: nowrap;
+}
+.plans-chip i { font-size: 9px; }
+.plans-chip-yearly   { background: #E8F0FF; color: #1a56c4; }
+.plans-chip-trial    { background: #FFF3E0; color: #9c5a00; }
+.plans-chip-lifetime { background: #F1E8FF; color: #5d39a8; }
+.plans-chip-days     { background: #F1F4F9; color: #4a5a78; }
+.plans-chip-active   { background: #E4F7E9; color: #1a7f37; }
+.plans-chip-active i { color: #1a7f37; }
+.plans-chip-inactive { background: #F1F2F6; color: #6b7a94; }
+.plans-chip-system   { background: #FEF3C7; color: #92400E; margin-inline-start: 8px; }
+.plans-chip-system i { color: #92400E; }
+
+/* Action icons */
+.plans-item-actions { display: flex; gap: 6px; }
+.plans-icon-btn {
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #ffffff;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 9px;
+  color: #4a5a78;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all .12s;
+}
+.plans-icon-btn:hover {
+  border-color: #b9c4d6;
+  background: #f6f8fc;
+}
+.plans-icon-btn.is-warn:hover {
+  border-color: #E89A1A; color: #E89A1A; background: #FFF7E6;
+}
+.plans-icon-btn.is-ok:hover {
+  border-color: #1a7f37; color: #1a7f37; background: #E4F7E9;
+}
+.plans-icon-btn.is-danger:hover {
+  border-color: #C73A1D; color: #C73A1D; background: #FCE9E4;
+}
+.plans-icon-btn.is-locked {
+  border-color: #e4d5a5; color: #92400E; background: #FEF3C7;
+  cursor: not-allowed;
+}
+.plans-icon-btn.is-locked:hover {
+  border-color: #e4d5a5; color: #92400E; background: #FEF3C7;
+}
+.plans-icon-btn.is-edit:hover {
+  border-color: #2E8BFF; color: #2E8BFF; background: #EAF3FF;
+}
+
+/* ── Edit-plan modal ─────────────────────────────────────────── */
+.plan-modal-backdrop {
+  position: fixed; inset: 0; z-index: 1050;
+  background: rgba(18, 28, 50, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.plan-modal-backdrop[hidden] { display: none; }
+.plan-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  width: 100%; max-width: 480px;
+  box-shadow: 0 20px 60px rgba(18,28,50,0.25);
+  max-height: 90vh; overflow-y: auto;
+}
+.plan-modal-head {
+  display: flex; gap: 12px; align-items: center;
+  padding-bottom: 16px; border-bottom: 1px solid #eef1f7;
+  margin-bottom: 18px;
+}
+.plan-modal-close {
+  margin-inline-start: auto;
+  background: transparent; border: none; color: #6b7a94;
+  font-size: 18px; cursor: pointer; padding: 4px 8px;
+  border-radius: 8px;
+}
+.plan-modal-close:hover { background: #f1f4f9; color: #1a2746; }
+.plan-modal-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  margin-top: 8px;
+}
+.plans-btn-secondary {
+  height: 44px; padding: 0 18px;
+  background: #ffffff; color: #4a5a78;
+  border: 1.5px solid #dbe1ec; border-radius: 10px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+}
+.plans-btn-secondary:hover {
+  border-color: #b9c4d6; background: #f6f8fc;
+}
+
+/* Empty state */
+.plans-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: #6b7a94;
+}
+.plans-empty-icon {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: #f1f4f9; color: #a8b3c7;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px;
+  margin: 0 auto 14px;
+}
+.plans-empty-title {
+  margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #1a2746;
+}
+.plans-empty-sub {
+  margin: 0; font-size: 13.5px; color: #6b7a94;
+}
+
+/* ── Form (new plan) ─────────────────────────────────────────── */
+.plans-form { display: flex; flex-direction: column; gap: 16px; }
+
+.plans-field { display: flex; flex-direction: column; }
+.plans-label {
+  font-size: 13px; font-weight: 600; color: #2c3a58;
+  margin-bottom: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.plans-label i { color: #7a8aa7; font-size: 14px; }
+.plans-input {
+  height: 42px;
+  padding: 0 13px;
+  font-size: 14.5px;
+  color: #1a2746;
+  background: #fbfcfe;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color .12s, box-shadow .12s, background .12s;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.plans-input:hover  { border-color: #b9c4d6; }
+.plans-input:focus  {
+  border-color: #2E8BFF; background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(46,139,255,.15);
+}
+.plans-input::placeholder { color: #a8b3c7; }
+.plans-input-num { text-align: center; letter-spacing: 0.5px; }
+
+.plans-help {
+  font-size: 11.5px; color: #8a96ae;
+  margin-top: 5px; line-height: 1.4;
+}
+
+/* Type-picker pills */
+.plans-type-radio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.plans-type-opt { cursor: pointer; margin: 0; }
+.plans-type-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.plans-type-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 12px 6px;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 10px;
+  background: #fbfcfe;
+  font-size: 12.5px; color: #4a5a78; font-weight: 600;
+  transition: all .12s;
+}
+.plans-type-inner i { font-size: 16px; color: #7a8aa7; }
+.plans-type-opt:hover .plans-type-inner {
+  border-color: #93b4ff;
+}
+.plans-type-opt input:checked + .plans-type-inner {
+  border-color: #2E8BFF;
+  background: #EAF3FF;
+  color: #1a56c4;
+}
+.plans-type-opt input:checked + .plans-type-inner i { color: #2E8BFF; }
+
+/* Primary button */
+.plans-btn-primary {
+  height: 44px;
+  padding: 0 22px;
+  background: linear-gradient(180deg, #3D97FF 0%, #2E8BFF 100%);
+  color: #ffffff;
+  border: 1.5px solid #2E8BFF;
+  border-radius: 10px;
+  font-size: 14.5px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(46,139,255,.3);
+  transition: all .12s;
+  margin-top: 4px;
+  font-family: inherit;
+}
+.plans-btn-primary:hover {
+  background: linear-gradient(180deg, #2E8BFF 0%, #1E76E6 100%);
+  box-shadow: 0 4px 10px rgba(46,139,255,.35);
+  transform: translateY(-1px);
+}
+.plans-btn-primary:active { transform: translateY(0); }
+</style>
+{% endblock %}

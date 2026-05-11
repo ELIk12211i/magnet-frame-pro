@@ -1,0 +1,45 @@
+# ============================================================
+# Magnet Frame PRO — git ignore (WHITELIST mode)
+# ============================================================
+# Strategy: ignore EVERYTHING in the repo root, then explicitly
+# allow only the files Railway needs:
+#   - server/  (FastAPI app)
+#   - site/    (marketing + checkout HTML)
+#   - DEPLOY.md
+#   - .gitignore (this file)
+#   - אתר רכישה.bat / אתר ניהול.bat (local launchers)
+#
+# Everything else (PyQt5 desktop app, assets, archive, etc.)
+# stays out of the repo.
+# ============================================================
+
+# --- Step 1: ignore everything in root by default ---
+/*
+
+# --- Step 2: allow the web stack ---
+!/.gitignore
+!/DEPLOY.md
+!/server/
+!/site/
+!/אתר רכישה.bat
+!/אתר ניהול.bat
+
+# --- Step 3: inside server/, still skip sensitive files ---
+server/.env
+server/.env.local
+server/.env.production
+server/licenses.db
+server/licenses.db-shm
+server/licenses.db-wal
+server/data/*.db
+server/data/*.db-*
+server/__pycache__/
+server/**/__pycache__/
+server/**/*.pyc
+server/**/*.pyo
+
+# --- Step 4: inside site/, skip legacy + build artefacts ---
+site/index.legacy.html
+site/_build/
+site/magnet-frame-pro-SITE.html
+site/_logo.txt

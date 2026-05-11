@@ -1,0 +1,3203 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A0B14">
+<meta name="description" content="Magnet Frame PRO — התוכנה המקצועית והמתקדמת ביותר לצלמי מגנטים באירועים. עיבוד AI, מסגרות מקצועיות, הדפסה ישירה.">
+<title>Magnet Frame PRO — התוכנה המקצועית לצלמי מגנטים</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Rubik:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.344.0/umd/lucide.min.js" defer></script>
+<style>
+/* ============================================================
+   AGENT #1 — DARK THEME CORE: Design Tokens
+   ============================================================ */
+:root {
+  /* Brand */
+  --brand-purple: #8B5CF6;
+  --brand-purple-bright: #A78BFA;
+  --brand-purple-deep: #6D28D9;
+  --brand-magenta: #EC4899;
+  --brand-magenta-deep: #BE185D;
+  --brand-cyan: #06B6D4;
+  --brand-cyan-bright: #22D3EE;
+  --brand-gold: #F59E0B;
+
+  /* Backgrounds */
+  --bg-0: #06070D;
+  --bg-1: #0B0D17;
+  --bg-2: #111425;
+  --bg-3: #161A2D;
+  --bg-4: #1D2238;
+  --bg-glass: rgba(20, 24, 41, 0.65);
+  --bg-glass-strong: rgba(15, 17, 30, 0.85);
+
+  /* Text */
+  --fg-1: #F8FAFC;
+  --fg-2: #CBD5E1;
+  --fg-3: #94A3B8;
+  --fg-4: #64748B;
+
+  /* Lines */
+  --line-1: rgba(255, 255, 255, 0.06);
+  --line-2: rgba(255, 255, 255, 0.10);
+  --line-3: rgba(255, 255, 255, 0.16);
+  --line-purple: rgba(139, 92, 246, 0.35);
+
+  /* Gradients */
+  --grad-primary: linear-gradient(135deg, #8B5CF6 0%, #EC4899 50%, #F472B6 100%);
+  --grad-primary-hover: linear-gradient(135deg, #A78BFA 0%, #F472B6 50%, #FBA4D3 100%);
+  --grad-cyan: linear-gradient(135deg, #22D3EE 0%, #8B5CF6 100%);
+  --grad-gold: linear-gradient(135deg, #FCD34D 0%, #F59E0B 50%, #EF4444 100%);
+  --grad-text: linear-gradient(135deg, #A78BFA 0%, #F472B6 50%, #22D3EE 100%);
+  --grad-mesh:
+    radial-gradient(circle at 15% 10%, rgba(139, 92, 246, 0.22) 0%, transparent 45%),
+    radial-gradient(circle at 85% 25%, rgba(236, 72, 153, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(6, 182, 212, 0.12) 0%, transparent 50%);
+
+  /* Shadows / Glows */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-card-hover: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(139, 92, 246, 0.35) inset;
+  --shadow-glow-purple: 0 12px 40px -8px rgba(139, 92, 246, 0.6);
+  --shadow-glow-magenta: 0 12px 40px -8px rgba(236, 72, 153, 0.55);
+  --shadow-glow-cyan: 0 12px 40px -8px rgba(6, 182, 212, 0.5);
+
+  /* Status */
+  --success: #10B981;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  --info: #3B82F6;
+
+  /* Radius */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 28px;
+  --r-pill: 999px;
+
+  /* Transitions */
+  --t-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow: 450ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --container: 1280px;
+}
+
+/* Reset */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+*:focus-visible { outline: 2px solid var(--brand-purple-bright); outline-offset: 3px; border-radius: var(--r-sm); }
+html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: 'Heebo', system-ui, -apple-system, sans-serif;
+  background: var(--bg-1);
+  background-image: var(--grad-mesh);
+  background-attachment: fixed;
+  color: var(--fg-2);
+  line-height: 1.65;
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+::selection { background: var(--brand-purple); color: white; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-0); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--brand-purple), var(--brand-magenta));
+  border-radius: 10px;
+  border: 2px solid var(--bg-0);
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--brand-purple-bright), #F472B6); }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Rubik', 'Heebo', sans-serif;
+  color: var(--fg-1);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+img { max-width: 100%; height: auto; display: block; }
+
+.gradient-text {
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Pages */
+.page { display: none; animation: pageFadeIn 0.5s ease both; }
+.page.active { display: block; }
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.75rem;
+  border-radius: var(--r-md);
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: all var(--t-base);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--grad-primary);
+  color: white;
+  box-shadow: var(--shadow-glow-purple);
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: var(--grad-primary);
+  filter: blur(22px) saturate(1.4);
+  opacity: 0;
+  transition: opacity var(--t-base);
+  z-index: -1;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 50px -10px rgba(139, 92, 246, 0.75);
+}
+.btn-primary:hover::after { opacity: 0.7; }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--fg-1);
+  border: 1px solid var(--line-2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--line-purple);
+  transform: translateY(-2px);
+}
+.btn-lg { padding: 1.1rem 2.25rem; font-size: 1.05rem; border-radius: var(--r-lg); }
+.btn-sm { padding: 0.6rem 1.1rem; font-size: 0.85rem; }
+.btn-block { width: 100%; justify-content: center; }
+
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   AGENT #1 — NAVBAR
+   ============================================================ */
+.navbar {
+  position: fixed; top: 0; right: 0; left: 0;
+  z-index: 1000;
+  background: rgba(11, 13, 23, 0.7);
+  backdrop-filter: blur(24px) saturate(1.3);
+  -webkit-backdrop-filter: blur(24px) saturate(1.3);
+  border-bottom: 1px solid var(--line-1);
+  transition: all var(--t-base);
+}
+.navbar.scrolled {
+  background: rgba(7, 8, 15, 0.92);
+  border-bottom-color: var(--line-2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.nav-container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1.5rem;
+}
+.logo {
+  display: flex; align-items: center; cursor: pointer;
+  transition: transform var(--t-base);
+}
+.logo:hover { transform: scale(1.03); }
+.logo-img { height: 42px; width: auto; filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.35)); }
+.nav-links {
+  display: flex; gap: 2.25rem; list-style: none;
+}
+.nav-links a {
+  color: var(--fg-3);
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: color var(--t-base);
+  position: relative;
+  padding: 0.25rem 0;
+}
+.nav-links a:hover { color: var(--fg-1); }
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; right: 0;
+  width: 0; height: 2px;
+  background: var(--grad-primary);
+  border-radius: 2px;
+  transition: width var(--t-base);
+}
+.nav-links a:hover::after { width: 100%; }
+.nav-cta { display: flex; gap: 0.75rem; align-items: center; }
+.mobile-toggle {
+  display: none;
+  width: 44px; height: 44px;
+  align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  color: var(--fg-1);
+}
+@media (max-width: 968px) {
+  .nav-links { display: none; }
+  .nav-cta .btn-ghost { display: none; }
+  .mobile-toggle { display: inline-flex; }
+}
+.mobile-menu {
+  display: none;
+  position: fixed; top: 70px; right: 0; left: 0;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--line-2);
+  padding: 1.5rem;
+  z-index: 999;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a {
+  color: var(--fg-2);
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: var(--r-md);
+  transition: all var(--t-base);
+}
+.mobile-menu a:hover { background: rgba(255, 255, 255, 0.05); color: var(--fg-1); }
+
+/* ============================================================
+   AGENT #2 — HERO
+   ============================================================ */
+.hero {
+  padding: 9rem 0 5rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 1200px; height: 800px;
+  background: radial-gradient(ellipse at center, rgba(139, 92, 246, 0.25) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-grid {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: 4rem;
+  align-items: center;
+}
+@media (max-width: 968px) {
+  .hero { padding: 7rem 0 3rem; }
+  .hero-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: var(--r-pill);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand-purple-bright);
+  margin-bottom: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+.hero-eyebrow .pulse-dot {
+  width: 8px; height: 8px;
+  background: #10B981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+.hero-title {
+  font-size: clamp(2.4rem, 5.5vw, 4.2rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem;
+}
+.hero-title .accent { background: var(--grad-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-subtitle {
+  font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+  color: var(--fg-3);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  max-width: 540px;
+}
+.hero-ctas {
+  display: flex; gap: 1rem; flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+}
+.hero-trust {
+  display: flex; flex-wrap: wrap; gap: 1.5rem 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-1);
+}
+.trust-stat {
+  display: flex; flex-direction: column; gap: 0.15rem;
+}
+.trust-stat .num {
+  font-size: 1.75rem; font-weight: 800;
+  background: var(--grad-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Rubik', sans-serif;
+  line-height: 1;
+}
+.trust-stat .lbl {
+  font-size: 0.82rem; color: var(--fg-4);
+}
+
+/* Hero mockup */
+.hero-mockup {
+  position: relative;
+  perspective: 1500px;
+}
+.mockup-frame {
+  background: linear-gradient(135deg, var(--bg-3) 0%, var(--bg-2) 100%);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--line-2);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(139, 92, 246, 0.2) inset,
+    0 0 80px rgba(139, 92, 246, 0.25);
+  overflow: hidden;
+  transform: rotateY(-6deg) rotateX(3deg);
+  transition: transform var(--t-slow);
+  animation: floatSlow 6s ease-in-out infinite;
+}
+@keyframes floatSlow {
+  0%, 100% { transform: rotateY(-6deg) rotateX(3deg) translateY(0); }
+  50%      { transform: rotateY(-6deg) rotateX(3deg) translateY(-12px); }
+}
+.mockup-frame:hover { transform: rotateY(-3deg) rotateX(1deg); }
+.mockup-real { padding: 0; aspect-ratio: 16 / 10; }
+.mockup-real img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: var(--r-xl); }
+/* Titlebar */
+.mockup-titlebar {
+  padding: 0.55rem 0.85rem;
+  background: rgba(0, 0, 0, 0.45);
+  border-bottom: 1px solid var(--line-1);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.mt-dots { display: flex; gap: 0.4rem; }
+.mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mockup-dot:nth-child(1) { background: #FF5F57; }
+.mockup-dot:nth-child(2) { background: #FEBC2E; }
+.mockup-dot:nth-child(3) { background: #28C840; }
+.mt-brand {
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--brand-purple-bright);
+  letter-spacing: 0.08em;
+}
+
+/* App body: sidebar (right) | preview (center) | edit panel (left) */
+.mockup-app {
+  display: grid;
+  grid-template-columns: 78px 1fr 96px;
+  gap: 0.55rem;
+  padding: 0.7rem;
+}
+
+/* Right thumbnail sidebar */
+.mockup-side {
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.thumb {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+.thumb.selected { box-shadow: 0 0 0 2px var(--brand-purple-bright); }
+.thumb-1 { background: linear-gradient(135deg, #FCD34D, #F59E0B); }
+.thumb-2 { background: linear-gradient(135deg, #FBA4D3, #EC4899); }
+.thumb-3 { background: linear-gradient(135deg, #93C5FD, #06B6D4); }
+.thumb-4 { background: linear-gradient(135deg, #86EFAC, #10B981); }
+
+/* Center preview */
+.mockup-preview {
+  background: linear-gradient(135deg, #2A1F3D, #14102A);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+}
+.preview-img {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 35% 40%, rgba(236, 72, 153, 0.45) 0%, transparent 45%),
+    radial-gradient(circle at 65% 45%, rgba(139, 92, 246, 0.40) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, rgba(245, 158, 11, 0.20) 0%, transparent 50%),
+    linear-gradient(135deg, #3D2A4F, #1A1430);
+}
+.face-marker {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4), 0 0 12px rgba(16, 185, 129, 0.7);
+  animation: pulseDot 2.5s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4), 0 0 12px rgba(16, 185, 129, 0.7); }
+  50%      { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.15), 0 0 18px rgba(16, 185, 129, 0.9); }
+}
+
+/* Left edit panel */
+.mockup-edit {
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 6px;
+  padding: 0.55rem 0.5rem;
+  display: flex; flex-direction: column; gap: 0.32rem;
+}
+.edit-tabs {
+  display: flex; gap: 0.2rem; justify-content: center;
+  border-bottom: 1px solid var(--line-1);
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.2rem;
+}
+.edit-tabs .tab {
+  font-size: 0.52rem;
+  font-weight: 700;
+  padding: 0.14rem 0.4rem;
+  border-radius: 4px;
+  color: var(--fg-4);
+}
+.edit-tabs .tab.active {
+  background: rgba(139, 92, 246, 0.28);
+  color: var(--brand-purple-bright);
+}
+.edit-row {
+  display: flex; align-items: center; gap: 0.3rem;
+}
+.erl {
+  font-size: 0.55rem;
+  color: var(--fg-3);
+  min-width: 30px;
+  text-align: right;
+  white-space: nowrap;
+}
+.ers {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.erf {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand-purple), var(--brand-magenta));
+  border-radius: 2px;
+}
+.edit-action {
+  margin-top: 0.3rem;
+  background: linear-gradient(135deg, var(--brand-purple), var(--brand-magenta));
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.32rem;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px -2px rgba(139, 92, 246, 0.5);
+}
+
+/* Bottom thumbnail strip */
+.mockup-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  padding: 0.5rem 0.7rem 0.7rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--line-1);
+}
+.strip-thumb {
+  aspect-ratio: 16/10;
+  border-radius: 4px;
+  position: relative;
+}
+.strip-thumb.active { box-shadow: 0 0 0 2px var(--brand-purple-bright); }
+.strip-thumb .badge {
+  position: absolute;
+  bottom: 3px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+.strip-thumb.s-a { background: linear-gradient(135deg, #FCD34D, #F59E0B); }
+.strip-thumb.s-b { background: linear-gradient(135deg, #FBA4D3, #EC4899); }
+.strip-thumb.s-c { background: linear-gradient(135deg, #C4B5FD, #8B5CF6); }
+.strip-thumb.s-d { background: linear-gradient(135deg, #93C5FD, #06B6D4); }
+
+.mockup-pill {
+  position: absolute;
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  padding: 0.7rem 1rem;
+  display: flex; align-items: center; gap: 0.75rem;
+  box-shadow: var(--shadow-card);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.mockup-pill .pill-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.mockup-pill .pill-icon.violet { background: rgba(139, 92, 246, 0.18); color: var(--brand-purple-bright); }
+.mockup-pill .pill-icon.pink { background: rgba(236, 72, 153, 0.18); color: #F472B6; }
+.mockup-pill .pill-icon.cyan { background: rgba(6, 182, 212, 0.18); color: var(--brand-cyan-bright); }
+.mockup-pill strong { color: var(--fg-1); display: block; font-weight: 700; }
+.mockup-pill span { color: var(--fg-4); font-size: 0.75rem; }
+.mockup-pill-1 { top: 15%; left: -1.5rem; animation: float1 5s ease-in-out infinite; }
+.mockup-pill-2 { bottom: 12%; right: -1.5rem; animation: float1 5s ease-in-out infinite -2.5s; }
+@keyframes float1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ============================================================
+   AGENT #1 — SECTION HEADERS (shared)
+   ============================================================ */
+.section { padding: 6rem 0; position: relative; }
+.section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 3.5rem;
+}
+.section-eyebrow {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--r-pill);
+  color: var(--brand-purple-bright);
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  letter-spacing: 0.02em;
+}
+.section-title {
+  font-size: clamp(1.9rem, 3.5vw, 2.9rem);
+  font-weight: 800;
+  margin-bottom: 0.85rem;
+  line-height: 1.15;
+}
+.section-subtitle {
+  font-size: 1.1rem;
+  color: var(--fg-3);
+  line-height: 1.65;
+}
+
+/* ============================================================
+   AGENT #3 — FEATURES
+   ============================================================ */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  position: relative;
+  padding: 2rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-xl);
+  transition: all var(--t-base);
+  overflow: hidden;
+  isolation: isolate;
+}
+.feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(139, 92, 246, 0.12) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity var(--t-base);
+  z-index: -1;
+}
+.feature-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--line-purple);
+  box-shadow: var(--shadow-card-hover);
+}
+.feature-card:hover::before { opacity: 1; }
+.feature-icon {
+  width: 56px; height: 56px;
+  border-radius: var(--r-md);
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.06) 100%);
+  color: var(--brand-purple-bright);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  box-shadow: 0 0 24px -8px rgba(139, 92, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.feature-icon svg { width: 28px; height: 28px; stroke-width: 2; }
+.feature-card:nth-child(2n) .feature-icon {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.22) 0%, rgba(236, 72, 153, 0.06) 100%);
+  color: #F472B6;
+  border-color: rgba(236, 72, 153, 0.28);
+  box-shadow: 0 0 24px -8px rgba(236, 72, 153, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.feature-card:nth-child(3n) .feature-icon {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.06) 100%);
+  color: var(--brand-cyan-bright);
+  border-color: rgba(6, 182, 212, 0.28);
+  box-shadow: 0 0 24px -8px rgba(6, 182, 212, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.feature-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fg-1);
+  margin-bottom: 0.5rem;
+}
+.feature-desc {
+  font-size: 0.95rem;
+  color: var(--fg-3);
+  line-height: 1.6;
+}
+
+/* ============================================================
+   AGENT #3 — HOW IT WORKS
+   ============================================================ */
+.how-bg { background: linear-gradient(180deg, transparent 0%, rgba(139, 92, 246, 0.04) 50%, transparent 100%); }
+.how-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  position: relative;
+}
+.how-step {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-xl);
+  position: relative;
+  transition: all var(--t-base);
+}
+.how-step:hover { transform: translateY(-4px); border-color: var(--line-purple); }
+.how-step .step-num {
+  position: absolute;
+  top: -22px; right: 50%;
+  transform: translateX(50%);
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  color: white;
+  font-weight: 800;
+  font-size: 1.05rem;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Rubik', sans-serif;
+  box-shadow: var(--shadow-glow-purple);
+}
+.how-step h3 {
+  font-size: 1.15rem;
+  margin: 1rem 0 0.5rem;
+}
+.how-step p {
+  font-size: 0.93rem;
+  color: var(--fg-3);
+}
+.how-emoji {
+  width: 56px; height: 56px;
+  margin: 0.5rem auto 0;
+  border-radius: var(--r-md);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.06) 100%);
+  color: var(--brand-purple-bright);
+  border: 1px solid rgba(139, 92, 246, 0.28);
+  box-shadow: 0 0 24px -8px rgba(139, 92, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.how-emoji svg { width: 32px; height: 32px; }
+.how-step:nth-child(2) .how-emoji {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.22) 0%, rgba(236, 72, 153, 0.06) 100%);
+  color: #F472B6;
+  border-color: rgba(236, 72, 153, 0.28);
+  box-shadow: 0 0 24px -8px rgba(236, 72, 153, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.how-step:nth-child(3) .how-emoji {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.22) 0%, rgba(6, 182, 212, 0.06) 100%);
+  color: var(--brand-cyan-bright);
+  border-color: rgba(6, 182, 212, 0.28);
+  box-shadow: 0 0 24px -8px rgba(6, 182, 212, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.how-step:nth-child(4) .how-emoji {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.06) 100%);
+  color: #FCD34D;
+  border-color: rgba(245, 158, 11, 0.28);
+  box-shadow: 0 0 24px -8px rgba(245, 158, 11, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ============================================================
+   AGENT #4 — PRICING
+   ============================================================ */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  max-width: 920px;
+  margin: 0 auto;
+}
+.pricing-card {
+  position: relative;
+  padding: 2.5rem 2rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-2xl);
+  transition: all var(--t-base);
+}
+.pricing-card.featured {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.12) 0%, rgba(15, 17, 30, 0.85) 60%);
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  box-shadow: 0 30px 80px -20px rgba(139, 92, 246, 0.45);
+  transform: scale(1.02);
+  margin-top: 16px;
+}
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--r-2xl);
+  padding: 1px;
+  background: var(--grad-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--t-base);
+  pointer-events: none;
+}
+.pricing-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-card-hover); }
+.pricing-card.featured:hover { transform: translateY(-8px) scale(1.02); }
+.pricing-card:hover::before { opacity: 1; }
+.pricing-card.featured::before { opacity: 1; }
+
+.pricing-badge {
+  position: absolute;
+  top: -14px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--grad-gold);
+  color: #1A1A2E;
+  font-weight: 800;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--r-pill);
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.5);
+  white-space: nowrap;
+  z-index: 2;
+}
+.pricing-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--fg-1);
+  margin-bottom: 0.3rem;
+}
+.pricing-desc {
+  font-size: 0.9rem;
+  color: var(--fg-3);
+  margin-bottom: 1.75rem;
+}
+.price {
+  display: flex; align-items: baseline; gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+.price-amount {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--fg-1);
+  font-family: 'Rubik', sans-serif;
+  line-height: 1;
+  background: var(--grad-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.price-currency { font-size: 1.25rem; color: var(--fg-2); font-weight: 700; }
+.price-period { font-size: 0.95rem; color: var(--fg-4); margin-inline-start: 0.35rem; }
+.price-save {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--brand-cyan-bright);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+.pricing-features {
+  list-style: none;
+  margin: 1.75rem 0 2rem;
+  display: flex; flex-direction: column; gap: 0.65rem;
+}
+.pricing-features li {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--fg-2);
+}
+.pricing-features li::before {
+  content: '✓';
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(16, 185, 129, 0.16);
+  color: #34D399;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.8rem;
+  margin-top: 1px;
+}
+.pricing-features li strong { color: var(--fg-1); }
+.pricing-btn { display: block; }
+
+.payment-strip {
+  margin-top: 3rem;
+  text-align: center;
+}
+.payment-strip-title {
+  font-size: 0.9rem;
+  color: var(--fg-4);
+  margin-bottom: 1rem;
+}
+.payment-icons {
+  display: flex; justify-content: center; flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.payment-chip {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fg-2);
+  backdrop-filter: blur(10px);
+}
+.payment-chip.bit { background: linear-gradient(135deg, #1E40AF, #3B82F6); color: white; border: none; }
+.payment-chip.paybox { background: linear-gradient(135deg, #047857, #10B981); color: white; border: none; }
+
+/* ============================================================
+   AGENT #7 — FAQ
+   ============================================================ */
+.faq-list {
+  max-width: 820px;
+  margin: 0 auto;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.faq-item {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: all var(--t-base);
+}
+.faq-item:hover { border-color: var(--line-2); }
+.faq-item.open { border-color: var(--line-purple); background: rgba(139, 92, 246, 0.06); }
+.faq-q {
+  width: 100%;
+  padding: 1.25rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
+  text-align: right;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg-1);
+  transition: color var(--t-base);
+}
+.faq-q .chev {
+  flex-shrink: 0;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(139, 92, 246, 0.12);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform var(--t-base);
+}
+.faq-item.open .faq-q .chev { transform: rotate(180deg); background: var(--brand-purple); color: white; }
+.faq-a {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--t-slow), padding var(--t-slow);
+  color: var(--fg-3);
+  padding: 0 1.5rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.faq-item.open .faq-a {
+  max-height: 400px;
+  padding: 0 1.5rem 1.5rem;
+}
+
+/* ============================================================
+   AGENT #7 — CTA / CONTACT
+   ============================================================ */
+.cta-section {
+  position: relative;
+  padding: 6rem 0;
+  text-align: center;
+  overflow: hidden;
+}
+.cta-card {
+  position: relative;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 4rem 2.5rem;
+  border-radius: var(--r-2xl);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(236, 72, 153, 0.08));
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 30px 80px -20px rgba(139, 92, 246, 0.4);
+  overflow: hidden;
+}
+.cta-card::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background: conic-gradient(from 0deg, transparent, rgba(139, 92, 246, 0.3), transparent, rgba(236, 72, 153, 0.3), transparent);
+  animation: rotate 12s linear infinite;
+  z-index: -1;
+}
+.cta-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: var(--r-2xl);
+  background: var(--bg-1);
+  z-index: -1;
+}
+@keyframes rotate { to { transform: rotate(360deg); } }
+.cta-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.7rem);
+  font-weight: 900;
+  margin-bottom: 1rem;
+  line-height: 1.15;
+}
+.cta-subtitle {
+  font-size: 1.1rem;
+  color: var(--fg-3);
+  margin-bottom: 2.5rem;
+}
+.cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+/* ============================================================
+   AGENT #7 — FOOTER
+   ============================================================ */
+.footer {
+  background: var(--bg-0);
+  border-top: 1px solid var(--line-1);
+  padding: 4rem 0 2rem;
+  color: var(--fg-3);
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+@media (max-width: 768px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+}
+.footer-brand p { font-size: 0.9rem; margin-top: 1rem; line-height: 1.7; }
+.footer-col h4 {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-4);
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.65rem; }
+.footer-col a {
+  color: var(--fg-3);
+  font-size: 0.93rem;
+  transition: color var(--t-base);
+  cursor: pointer;
+}
+.footer-col a:hover { color: var(--brand-purple-bright); }
+.footer-bottom {
+  padding-top: 2rem;
+  border-top: 1px solid var(--line-1);
+  display: flex; justify-content: space-between; flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--fg-4);
+}
+
+/* ============================================================
+   AGENT #5 — CHECKOUT WIZARD
+   ============================================================ */
+.checkout-wrap {
+  padding: 7rem 0 5rem;
+  position: relative;
+}
+.checkout-header { text-align: center; margin-bottom: 2.5rem; }
+.checkout-header h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  margin-bottom: 0.5rem;
+}
+.checkout-header p { color: var(--fg-3); font-size: 1.05rem; }
+
+.stepper {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0;
+  max-width: 600px;
+  margin: 0 auto 2.5rem;
+}
+.stepper-item {
+  display: flex; align-items: center; gap: 0.65rem;
+  font-size: 0.9rem;
+  color: var(--fg-4);
+  transition: color var(--t-base);
+}
+.stepper-item.active { color: var(--fg-1); }
+.stepper-item.done { color: var(--brand-purple-bright); }
+.stepper-bubble {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all var(--t-base);
+}
+.stepper-item.active .stepper-bubble {
+  background: var(--grad-primary);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--shadow-glow-purple);
+}
+.stepper-item.done .stepper-bubble {
+  background: var(--brand-purple);
+  color: white;
+  border-color: transparent;
+}
+.stepper-line {
+  width: 60px; height: 2px;
+  background: var(--line-2);
+  margin: 0 0.5rem;
+  transition: background var(--t-base);
+}
+.stepper-line.done { background: var(--brand-purple); }
+
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 2rem;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+@media (max-width: 968px) {
+  .checkout-grid { grid-template-columns: 1fr; }
+  .checkout-summary { order: -1; }
+}
+
+.checkout-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-xl);
+  padding: 2rem;
+}
+.checkout-card h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.checkout-card h2 .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: 'Rubik', sans-serif;
+  flex-shrink: 0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+.form-group { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.form-group label .req { color: var(--brand-magenta); }
+.form-input {
+  padding: 0.85rem 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  color: var(--fg-1);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all var(--t-base);
+  width: 100%;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--brand-purple-bright);
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+.form-input::placeholder { color: var(--fg-4); }
+.form-help { font-size: 0.78rem; color: var(--fg-4); }
+
+.plan-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+@media (max-width: 480px) { .plan-pick { grid-template-columns: 1fr; } }
+.plan-option {
+  position: relative;
+  cursor: pointer;
+  padding: 1.1rem 1rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1.5px solid var(--line-2);
+  border-radius: var(--r-md);
+  transition: all var(--t-base);
+}
+.plan-option:hover { border-color: var(--line-3); background: rgba(0, 0, 0, 0.35); }
+.plan-option.selected {
+  border-color: var(--brand-purple-bright);
+  background: rgba(139, 92, 246, 0.12);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+.plan-option .po-title { font-weight: 700; color: var(--fg-1); display: flex; align-items: center; gap: 0.4rem; }
+.plan-option .po-price { font-size: 1.2rem; font-weight: 800; color: var(--fg-1); font-family: 'Rubik', sans-serif; margin-top: 0.3rem; }
+.plan-option .po-price small { font-size: 0.8rem; color: var(--fg-3); font-weight: 500; }
+.plan-option.selected .po-price { background: var(--grad-text); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.plan-option.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 0.6rem; left: 0.6rem;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--brand-purple);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.checkout-summary {
+  position: sticky; top: 100px;
+  align-self: start;
+}
+.summary-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-xl);
+  padding: 1.75rem;
+}
+.summary-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.summary-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.65rem 0;
+  font-size: 0.95rem;
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--line-1);
+}
+.summary-row:last-of-type { border: none; }
+.summary-row.total {
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--line-2);
+  border-bottom: none;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--fg-1);
+}
+.summary-row.total .v {
+  background: var(--grad-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.summary-features {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-1);
+  list-style: none;
+  display: flex; flex-direction: column; gap: 0.5rem;
+}
+.summary-features li {
+  font-size: 0.85rem;
+  color: var(--fg-3);
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.summary-features li::before { content: '✓'; color: var(--success); font-weight: 800; }
+
+.checkout-error {
+  display: none;
+  margin: 1.25rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: var(--r-md);
+  background: rgba(239, 68, 68, 0.1);
+  color: #FCA5A5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  font-weight: 500;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.security-strip {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: var(--r-md);
+  display: flex; align-items: center; gap: 0.7rem;
+  font-size: 0.85rem;
+  color: var(--fg-2);
+}
+.security-strip .ico {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   AGENT #6 — SUCCESS PAGE
+   ============================================================ */
+.success-wrap {
+  padding: 8rem 0 5rem;
+  position: relative;
+  text-align: center;
+}
+.success-burst {
+  width: 110px; height: 110px;
+  margin: 0 auto 1.5rem;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 3.5rem;
+  position: relative;
+  box-shadow:
+    0 30px 80px -10px rgba(139, 92, 246, 0.7),
+    0 0 0 8px rgba(139, 92, 246, 0.1),
+    0 0 0 16px rgba(139, 92, 246, 0.05);
+  animation: burstIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes burstIn {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.success-burst::before, .success-burst::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  opacity: 0.4;
+  z-index: -1;
+  animation: pulse-ring 2.5s ease-out infinite;
+}
+.success-burst::after { animation-delay: 1.25s; }
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+.success-title {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 900;
+  margin-bottom: 0.6rem;
+}
+.success-subtitle {
+  font-size: 1.05rem;
+  color: var(--fg-3);
+  margin-bottom: 2.5rem;
+  max-width: 580px;
+  margin-inline: auto;
+}
+
+.license-card {
+  max-width: 640px;
+  margin: 0 auto 2rem;
+  padding: 2.5rem 2rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--line-purple);
+  border-radius: var(--r-2xl);
+  position: relative;
+  box-shadow: var(--shadow-glow-purple);
+  text-align: center;
+}
+.license-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--r-2xl);
+  padding: 1.5px;
+  background: var(--grad-primary);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+.license-label {
+  font-size: 0.85rem;
+  color: var(--fg-4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.license-key {
+  font-family: 'Rubik', 'Courier New', monospace;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: var(--grad-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1.25rem;
+  word-break: break-all;
+  user-select: all;
+}
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.7rem 1.4rem;
+  background: rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: var(--r-md);
+  color: var(--fg-1);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all var(--t-base);
+}
+.copy-btn:hover { background: rgba(139, 92, 246, 0.3); border-color: var(--brand-purple-bright); }
+.copy-btn.copied {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.details-grid {
+  max-width: 640px;
+  margin: 2rem auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  text-align: right;
+}
+.detail-row {
+  padding: 1rem 1.25rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-md);
+}
+.detail-label {
+  font-size: 0.78rem;
+  color: var(--fg-4);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+.detail-value {
+  font-weight: 700;
+  color: var(--fg-1);
+  font-size: 0.98rem;
+}
+
+.success-actions {
+  display: flex; justify-content: center; flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.next-steps {
+  max-width: 640px;
+  margin: 3rem auto 0;
+  padding: 1.75rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-xl);
+  text-align: right;
+}
+.next-steps h4 { font-size: 1.1rem; margin-bottom: 1rem; }
+.next-steps ol {
+  list-style: none;
+  counter-reset: ns;
+  display: flex; flex-direction: column; gap: 0.85rem;
+}
+.next-steps ol li {
+  counter-increment: ns;
+  padding-inline-start: 2.5rem;
+  position: relative;
+  color: var(--fg-2);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.next-steps ol li::before {
+  content: counter(ns);
+  position: absolute;
+  right: 0; top: 0;
+  width: 28px; height: 28px;
+  background: var(--grad-primary);
+  border-radius: 50%;
+  color: white;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-glow-purple);
+}
+
+/* Confetti (CSS-only) */
+.confetti-wrap {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  top: -10vh;
+  width: 10px; height: 14px;
+  opacity: 0;
+}
+
+/* ============================================================
+   AGENT #8 — LEGAL PAGES
+   ============================================================ */
+.legal-wrap { padding: 7rem 0 5rem; max-width: 880px; margin: 0 auto; }
+.legal-hero { text-align: center; margin-bottom: 3rem; }
+.legal-hero h1 { font-size: clamp(2rem, 4vw, 2.6rem); margin-bottom: 0.5rem; }
+.legal-hero .date { color: var(--fg-4); font-size: 0.9rem; }
+.legal-content { display: flex; flex-direction: column; gap: 1.25rem; }
+.legal-section {
+  padding: 1.5rem 1.75rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-lg);
+  transition: border-color var(--t-base);
+}
+.legal-section:hover { border-color: var(--line-2); }
+.legal-section h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.6rem;
+  display: flex; align-items: center; gap: 0.65rem;
+}
+.legal-section h2 .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-family: 'Rubik', sans-serif;
+  flex-shrink: 0;
+}
+.legal-section p {
+  color: var(--fg-3);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+/* ============================================================
+   AGENT #7 — WhatsApp floater
+   ============================================================ */
+.wa-float {
+  position: fixed;
+  bottom: 1.5rem; left: 1.5rem;
+  width: 68px; height: 68px;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 900;
+  filter:
+    drop-shadow(0 12px 28px rgba(37, 211, 102, 0.45))
+    drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+  transition: transform var(--t-base);
+  animation: floatWa 3s ease-in-out infinite;
+}
+.wa-float:hover { transform: scale(1.1); }
+.wa-float svg { width: 100%; height: 100%; display: block; }
+@keyframes floatWa { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+/* ============================================================
+   AGENT #9 — Reveal animations
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.in {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+
+/* ============================================================
+   DOWNLOAD BUTTONS (Windows / macOS)
+   ============================================================ */
+.download-grid {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1.6rem;
+  background: linear-gradient(180deg, #0E1020 0%, #050610 100%);
+  color: white;
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  transition: all var(--t-base);
+  min-width: 240px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  text-decoration: none;
+}
+.download-btn:hover {
+  transform: translateY(-3px);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(139, 92, 246, 0.4) inset;
+}
+.download-btn svg { width: 38px; height: 38px; flex-shrink: 0; }
+.download-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+.download-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.download-main {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-family: 'Rubik', sans-serif;
+  letter-spacing: -0.01em;
+  color: white;
+}
+.download-btn.coming-soon {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.download-btn.coming-soon:hover {
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.download-btn.coming-soon::before {
+  content: 'בקרוב';
+  position: absolute;
+  top: -10px;
+  right: 16px;
+  background: var(--grad-primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.22rem 0.65rem;
+  border-radius: var(--r-pill);
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-glow-purple);
+}
+.download-meta {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--fg-4);
+}
+.download-meta strong { color: var(--fg-2); font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   ACCESSIBILITY WIDGET (A11y Premium Panel)
+   ============================================================ */
+/* Skip link */
+.a11y-skip-link {
+  position: fixed; top: 8px; right: 8px;
+  z-index: 100000;
+  background: #111; color: #fff;
+  padding: 8px 12px; border-radius: 10px;
+  text-decoration: none;
+  font: 600 14px system-ui;
+  transform: translateY(-200%);
+  transition: transform 0.2s;
+}
+.a11y-skip-link:focus { transform: translateY(0); }
+
+/* Global classes applied to <html> */
+html.a11y-focus-ring *:focus { outline: 3px solid #0b57d0 !important; outline-offset: 2px !important; box-shadow: none !important; }
+html.a11y-font-100 { font-size: 100%; }
+html.a11y-font-110 { font-size: 110%; }
+html.a11y-font-125 { font-size: 125%; }
+html.a11y-font-150 { font-size: 150%; }
+html.a11y-font-175 { font-size: 175%; }
+html.a11y-text-spacing * { letter-spacing: var(--ls, 0.02em) !important; line-height: var(--lh, 1.6) !important; word-spacing: var(--ws, 0.1em) !important; }
+html.a11y-legible-font body { font-family: "Atkinson Hyperlegible", Arial, system-ui !important; }
+html.a11y-contrast-high, html.a11y-contrast-high body { background: #fff !important; color: #000 !important; }
+html.a11y-contrast-high a { color: #0b57d0 !important; text-decoration: underline !important; }
+html.a11y-dark, html.a11y-dark body { background: #0b1120 !important; color: #e2e8f0 !important; }
+html.a11y-dark a { color: #93c5fd !important; text-decoration: underline; }
+/* Filters apply only to .page elements so the widget itself stays untouched */
+html.a11y-grayscale body > div.page { filter: grayscale(100%) !important; }
+html.a11y-invert body > div.page { filter: invert(100%) hue-rotate(180deg) !important; }
+html.a11y-invert body > div.page img,
+html.a11y-invert body > div.page video,
+html.a11y-invert body > div.page svg { filter: invert(100%) hue-rotate(180deg) !important; }
+html.a11y-highlight-links a { background: #fffa8b !important; color: #0b2e13 !important; outline: 2px dashed #0b2e13 !important; outline-offset: 2px; }
+html.a11y-reduce-motion * { animation-duration: 0s !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
+html.a11y-bigger-targets body > div.page a,
+html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 44px; padding: 0.5rem 0.75rem; }
+
+/* Floating button — bottom-right (WhatsApp is bottom-left) */
+.a11y-fab {
+  position: fixed;
+  bottom: 1.5rem; right: 1.5rem;
+  z-index: 100005;
+}
+.a11y-fab button {
+  display: inline-grid; place-items: center;
+  width: 60px; height: 60px;
+  border: none; border-radius: 50%;
+  padding: 0; cursor: pointer;
+  background: #16a34a; color: #fff;
+  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.45), 0 4px 10px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+}
+.a11y-fab button:hover { filter: brightness(1.08); transform: scale(1.08); }
+.a11y-fab svg { width: 30px; height: 30px; display: block; }
+
+/* Panel */
+.a11y-panel {
+  position: fixed;
+  bottom: 5.5rem; right: 1.5rem;
+  z-index: 100004;
+  width: min(420px, calc(100vw - 2rem));
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 18px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  color: #0f172a;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto;
+}
+.a11y-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: grab; user-select: none;
+}
+.a11y-title { font: 800 14px/1.2 system-ui; color: #0f172a; }
+.a11y-close {
+  background: transparent; border: none; cursor: pointer;
+  font-size: 22px; color: #0f172a; line-height: 1;
+  padding: 0 8px;
+}
+.a11y-content { padding: 14px; max-height: 65vh; overflow: auto; display: grid; gap: 14px; }
+.a11y-content .grp { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; }
+.a11y-content .grp h3 { margin: 0 0 8px; font: 700 13px/1.1 system-ui; color: #0f172a; }
+.a11y-content .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.a11y-content .card-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 8px;
+  padding: 12px;
+  border: 2px solid #16a34a;
+  border-radius: 14px;
+  background: #fff;
+  color: #0a7a35;
+  font: 700 12px/1.1 system-ui;
+  cursor: pointer;
+}
+.a11y-content .card-btn[aria-pressed="true"] { background: #16a34a; color: #fff; border-color: #16a34a; }
+.a11y-content .card-btn svg { width: 22px; height: 22px; }
+.a11y-content .slider { display: grid; gap: 8px; margin-top: 10px; }
+.a11y-content .slider .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.a11y-content .slider .label { font: 700 12px system-ui; color: #111; }
+.a11y-content .slider .val {
+  min-width: 54px; text-align: center;
+  background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 999px; padding: 4px 8px;
+  font: 700 12px system-ui; color: #0f172a;
+}
+.a11y-content .ctrl { display: flex; align-items: center; gap: 8px; }
+.a11y-content .ctrl button {
+  width: 36px; height: 36px;
+  border-radius: 999px;
+  border: 2px solid #16a34a;
+  background: #fff; color: #0a7a35;
+  font: 900 18px/1 system-ui;
+  cursor: pointer;
+}
+.a11y-content .bar { height: 10px; border-radius: 999px; background: linear-gradient(90deg, #d1fae5, #a5f3fc); }
+.a11y-content .range { accent-color: #16a34a; width: 100%; }
+.a11y-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  gap: 8px;
+}
+.a11y-footer .link-btn {
+  background: none; border: none; color: #0b57d0;
+  text-decoration: underline; font: 700 12px system-ui;
+  cursor: pointer;
+}
+.a11y-footer .a11y-hint {
+  font: 600 10.5px system-ui; color: #64748b; text-align: left;
+}
+.a11y-panel[hidden] { display: none !important; }
+@media (max-width: 600px) {
+  .a11y-panel { right: 0.75rem; left: 0.75rem; width: auto; bottom: 5.25rem; }
+  .a11y-content .grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Small responsive nudges */
+@media (max-width: 480px) {
+  .container { padding: 0 1rem; }
+  .hero-trust { gap: 1rem 1.5rem; }
+  .trust-stat .num { font-size: 1.4rem; }
+  .pricing-card { padding: 2rem 1.5rem; }
+  .checkout-card, .summary-card { padding: 1.5rem; }
+  .license-card { padding: 2rem 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<a class="a11y-skip-link" href="#page-home">דלג לתוכן</a>
+
+<!-- ============================================================
+     AGENT #1 — NAVBAR
+     ============================================================ -->
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <div class="nav-cta">
+      <a class="btn btn-primary btn-sm" onclick="nav('home', 'pricing')">הצטרף עכשיו</a>
+      <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="תפריט">
+        <i data-lucide="menu" style="width:22px;height:22px"></i>
+      </button>
+    </div>
+    <ul class="nav-links">
+      <li><a onclick="nav('home', 'features')">פיצ׳רים</a></li>
+      <li><a onclick="nav('home', 'how')">איך זה עובד</a></li>
+      <li><a onclick="nav('home', 'pricing')">תמחור</a></li>
+      <li><a onclick="nav('home', 'faq')">שאלות</a></li>
+      <li><a onclick="nav('home', 'download')">הורדה</a></li>
+      <li><a onclick="nav('home', 'contact')">צור קשר</a></li>
+    </ul>
+    <a class="logo" onclick="nav('home')" aria-label="Magnet Frame PRO">
+      <img class="logo-img" src="logo.png" alt="Magnet Frame PRO">
+    </a>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a onclick="nav('home', 'features'); toggleMobileMenu()">פיצ׳רים</a>
+    <a onclick="nav('home', 'how'); toggleMobileMenu()">איך זה עובד</a>
+    <a onclick="nav('home', 'pricing'); toggleMobileMenu()">תמחור</a>
+    <a onclick="nav('home', 'faq'); toggleMobileMenu()">שאלות</a>
+    <a onclick="nav('home', 'download'); toggleMobileMenu()">הורדה</a>
+    <a onclick="nav('home', 'contact'); toggleMobileMenu()">צור קשר</a>
+    <a class="btn btn-primary btn-block" onclick="nav('home', 'pricing'); toggleMobileMenu()">הצטרף עכשיו</a>
+  </div>
+</nav>
+
+<!-- ============================================================
+     PAGE: HOME
+     ============================================================ -->
+<div class="page active" id="page-home">
+
+  <!-- AGENT #2 — HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div class="hero-content">
+          <div class="hero-eyebrow">
+            <span class="pulse-dot"></span>
+            <span>✨ מוצר ישראלי · תמיכה בעברית מלאה</span>
+          </div>
+          <h1 class="hero-title">
+            התוכנה <span class="accent">המקצועית</span><br>
+            לצלמי מגנטים<br>
+            באירועים
+          </h1>
+          <p class="hero-subtitle">
+            Magnet Frame PRO היא המערכת המתקדמת ביותר ליצירה, עריכה והדפסה של מגנטים לאירועים. מעבד תמונות בדקות, מסגרות מקצועיות, והדפסה ישירה — הכל במקום אחד.
+          </p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary btn-lg" onclick="nav('home', 'pricing')">
+              <span><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg> התחל עכשיו</span>
+              <i data-lucide="arrow-left" style="width:18px;height:18px"></i>
+            </a>
+            <a class="btn btn-ghost btn-lg" onclick="nav('home', 'how')">
+              <i data-lucide="play-circle" style="width:18px;height:18px"></i>
+              <span>ראה איך זה עובד</span>
+            </a>
+          </div>
+          <div class="hero-trust">
+            <div class="trust-stat"><div class="num">500+</div><div class="lbl">צלמים פעילים</div></div>
+            <div class="trust-stat"><div class="num">2M+</div><div class="lbl">מגנטים הופקו</div></div>
+            <div class="trust-stat"><div class="num">99.9%</div><div class="lbl">זמינות שרת</div></div>
+            <div class="trust-stat"><div class="num">⭐ 4.9</div><div class="lbl">מתוך 5</div></div>
+          </div>
+        </div>
+        <div class="hero-mockup">
+          <div class="mockup-frame mockup-real">
+            <img src="screenshot.png" alt="Magnet Frame PRO — ממשק התוכנה" loading="lazy">
+          </div>
+          <div class="mockup-pill mockup-pill-1">
+            <div class="pill-icon violet">🤖</div>
+            <div>
+              <strong>AI חכם</strong>
+              <span>זיהוי פנים אוטומטי</span>
+            </div>
+          </div>
+          <div class="mockup-pill mockup-pill-2">
+            <div class="pill-icon pink">🖨️</div>
+            <div>
+              <strong>הדפסה מיידית</strong>
+              <span>ישירות לנייר מגנטי</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENT #3 — FEATURES -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2 class="section-title">כל מה שצלם מגנטים צריך — <span class="gradient-text">במקום אחד</span></h2>
+        <p class="section-subtitle">מערכת אחת שמחליפה 5 כלים נפרדים. מעיבוד התמונה ועד ההדפסה הסופית.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5a1 1 0 0 0-1 1v3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M16 20h3a1 1 0 0 0 1-1v-3"/><path d="M9 7.5c1-.8 2-1.2 3-1.2s2 .4 3 1.2c.8.7 1.2 1.6 1.2 2.7v3c0 1.6-.7 2.8-1.7 3.5-1 .7-1.7 1-2.5 1s-1.5-.3-2.5-1c-1-.7-1.7-1.9-1.7-3.5v-3c0-1.1.4-2 1.2-2.7Z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M9 7.5c1-.8 2-1.2 3-1.2s2 .4 3 1.2c.8.7 1.2 1.6 1.2 2.7v3c0 1.6-.7 2.8-1.7 3.5-1 .7-1.7 1-2.5 1s-1.5-.3-2.5-1c-1-.7-1.7-1.9-1.7-3.5v-3c0-1.1.4-2 1.2-2.7Z"/><circle cx="9.7" cy="11" r="0.7" fill="currentColor" stroke="none"/><circle cx="14.3" cy="11" r="0.7" fill="currentColor" stroke="none"/><path d="M10 14c.6.6 1.3.9 2 .9s1.4-.3 2-.9"/></svg></div><h3 class="feature-title">זיהוי פנים AI</h3><p class="feature-desc">בינה מלאכותית מזהה פנים אוטומטית, מקצצת ומיישרת לכל מסגרת — בלי לגעת בעכבר.</p></div>
+        <div class="feature-card reveal reveal-delay-1"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4h10v5"/><rect x="3" y="9" width="18" height="9" rx="2" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3" y="9" width="18" height="9" rx="2"/><circle cx="17.5" cy="12.5" r="0.8" fill="currentColor" stroke="none"/><path d="M8 15h8v6H8z"/><path d="M10 18h4M10 20h3"/></svg></div><h3 class="feature-title">הדפסה ישירה</h3><p class="feature-desc">חיבור ישיר למדפסות תרמיות מקצועיות. לוח 4×4 או 2×2 בלחיצה אחת.</p></div>
+        <div class="feature-card reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0Z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 17l5-5"/><circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none"/><path d="M5.5 16.5h1M17.5 16.5h1M7.5 11.5l.7.7M16.5 11.5l-.7.7M12 9v1"/></svg></div><h3 class="feature-title">מהיר במיוחד</h3><p class="feature-desc">עיבוד תמונה ממוצע — פחות מ-3 שניות. עד 200 מגנטים בשעה.</p></div>
+        <div class="feature-card reveal reveal-delay-2"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l-9 9 2 2 9-9z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M14.5 3.5l-9 9 2 2 9-9z"/><path d="M13 5l2 2"/><path d="M18 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor" stroke="none"/><path d="M4 17h16"/><path d="M4 20.5h16"/><circle cx="10" cy="17" r="1.6"/><circle cx="15" cy="20.5" r="1.6"/></svg></div><h3 class="feature-title">עריכה מתקדמת</h3><p class="feature-desc">פילטרים, טקסט מעוצב, אפקטים, רקעים מותאמים. הכל עם מנוע גרפי מקצועי.</p></div>
+        <div class="feature-card reveal reveal-delay-1"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8" width="17" height="4" rx="0.8" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3.5" y="8" width="17" height="4" rx="0.8"/><path d="M5 12v9h14v-9"/><path d="M12 8v13"/><path d="M12 8c-1.5-2.5-4.5-2.5-4.5-.5 0 1 .8 1.5 2 1.5h2.5"/><path d="M12 8c1.5-2.5 4.5-2.5 4.5-.5 0 1-.8 1.5-2 1.5H12"/><path d="M9 15l3 3 3-3"/></svg></div><h3 class="feature-title">עדכונים חינמיים</h3><p class="feature-desc">כל חודש פיצ׳רים חדשים, מסגרות חדשות, שיפורי AI. ללא תוספת תשלום.</p></div>
+        <div class="feature-card reveal reveal-delay-2"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5A2 2 0 0 1 5 4.5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-5l-4 3.2v-3.2H5a2 2 0 0 1-2-2z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M3 6.5A2 2 0 0 1 5 4.5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-5l-4 3.2v-3.2H5a2 2 0 0 1-2-2z"/><path d="M8 7.5v3.5a1.5 1.5 0 0 0 1.5 1.5H13"/><path d="M13 7.5V13"/><circle cx="20" cy="17" r="2.3"/><path d="M19 17l.7.7 1.5-1.5"/></svg></div><h3 class="feature-title">תמיכה בעברית</h3><p class="feature-desc">צוות תמיכה ישראלי. מענה בוואטסאפ תוך שעה (בשעות העבודה).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENT #3 — HOW IT WORKS -->
+  <section class="section how-bg" id="how">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-eyebrow">🛠️ איך זה עובד</span>
+        <h2 class="section-title">מ-0 ל-מגנט מודפס ב-<span class="gradient-text">4 צעדים</span></h2>
+        <p class="section-subtitle">פשוט. מהיר. מקצועי. בלי קוד, בלי אינטרנט, בלי כאבי ראש.</p>
+      </div>
+      <div class="how-grid">
+        <div class="how-step reveal"><span class="step-num">1</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="13" rx="2" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3.5" y="7.5" width="17" height="13" rx="2"/><path d="M3.5 17l4-4 3 3 3.5-3.5 6 6"/><circle cx="8" cy="11.5" r="1.3"/><path d="M12 6.5V2.5"/><path d="M9.5 5L12 2.5l2.5 2.5"/></svg></div><h3>טען תמונות</h3><p>גרור תיקיית אירוע שלמה. המערכת תזהה אוטומטית כל פנים.</p></div>
+        <div class="how-step reveal reveal-delay-1"><span class="step-num">2</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="5.5" height="9" rx="0.8" opacity="0.55"/><rect x="16" y="6.5" width="5.5" height="9" rx="0.8" opacity="0.55"/><rect x="8.5" y="4.5" width="7" height="13" rx="1" fill="currentColor" opacity="0.18" stroke="none"/><rect x="8.5" y="4.5" width="7" height="13" rx="1"/><circle cx="12" cy="20.5" r="2.6" fill="currentColor" opacity="0.4" stroke="none"/><circle cx="12" cy="20.5" r="2.6"/><path d="M10.8 20.5l1 1 1.8-2"/></svg></div><h3>בחר מסגרת</h3><p>מתוך מאות מסגרות מקצועיות — או הוסף משלך.</p></div>
+        <div class="how-step reveal reveal-delay-2"><span class="step-num">3</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2" fill="currentColor" opacity="0.18" stroke="none"/><circle cx="12" cy="12" r="4.2"/><circle cx="11" cy="11.5" r="0.6" fill="currentColor" stroke="none"/><circle cx="13" cy="11.5" r="0.6" fill="currentColor" stroke="none"/><path d="M10.5 13.5c.5.5 1 .7 1.5.7s1-.2 1.5-.7"/><circle cx="4" cy="6" r="1.2"/><circle cx="20" cy="6" r="1.2"/><circle cx="4" cy="18" r="1.2"/><circle cx="20" cy="18" r="1.2"/><circle cx="12" cy="3.2" r="1"/><circle cx="12" cy="20.8" r="1"/><path d="M5 6.8l3.3 2.7M19 6.8l-3.3 2.7M5 17.2l3.3-2.7M19 17.2l-3.3-2.7M12 4.2v3M12 16.8v3"/></svg></div><h3>עיבוד AI</h3><p>קיצוץ, מיקום, יישור — אוטומטי לחלוטין. ערוך אם תרצה.</p></div>
+        <div class="how-step reveal reveal-delay-3"><span class="step-num">4</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v6H5z"/><rect x="3" y="10" width="18" height="7" rx="1.5" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3" y="10" width="18" height="7" rx="1.5"/><circle cx="17.5" cy="13.5" r="0.7" fill="currentColor" stroke="none"/><path d="M8 17v3.5h8V17z" fill="currentColor" opacity="0.35" stroke="currentColor"/><path d="M10 19h4M10 20.3h3"/></svg></div><h3>הדפס</h3><p>פריסה חכמה על נייר, חיבור ישיר למדפסת. סיימת.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENT #4 — PRICING -->
+  <section class="section" id="pricing">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-eyebrow">💎 תמחור הוגן</span>
+        <h2 class="section-title">מחירים <span class="gradient-text">שקופים</span> — ללא הפתעות</h2>
+        <p class="section-subtitle">בחר את התוכנית שמתאימה לך. ביטול בכל עת, ללא התחייבות ארוכת טווח.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card reveal">
+          <h3 class="pricing-name">תוכנית שנתית</h3>
+          <p class="pricing-desc">גמישות מלאה — חידוש כל שנה</p>
+          <div class="price">
+            <span class="price-amount">299</span>
+            <span class="price-currency">₪</span>
+            <span class="price-period">/ לשנה</span>
+          </div>
+          <span class="price-save" style="color:var(--fg-4)">לפני מע״מ</span>
+          <ul class="pricing-features">
+            <li>עיבוד תמונות ללא הגבלה</li>
+            <li>AI לזיהוי פנים ושיפור תמונה</li>
+            <li>כל המסגרות והתבניות</li>
+            <li>הדפסה ישירה למדפסת</li>
+            <li>תמיכה מקצועית בעברית</li>
+            <li>עדכונים ושיפורים</li>
+            <li>ביטול בכל עת</li>
+          </ul>
+          <button class="btn btn-ghost btn-block pricing-btn" onclick="nav('checkout'); selectPlan('yearly')">
+            <span>בחר תוכנית שנתית</span>
+            <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+          </button>
+        </div>
+        <div class="pricing-card featured reveal reveal-delay-1">
+          <div class="pricing-badge">⭐ הכי משתלם · חוסכים 946₪</div>
+          <h3 class="pricing-name">תוכנית 5 שנים</h3>
+          <p class="pricing-desc">החיסכון הגדול ביותר — שלוש שנים וחצי כמעט מתנה</p>
+          <div class="price">
+            <span class="price-amount">549</span>
+            <span class="price-currency">₪</span>
+            <span class="price-period">/ ל-5 שנים</span>
+          </div>
+          <span class="price-save">💰 שווה ערך ל-110₪ לשנה · לפני מע״מ</span>
+          <ul class="pricing-features">
+            <li>עיבוד תמונות ללא הגבלה</li>
+            <li>AI לזיהוי פנים ושיפור תמונה</li>
+            <li>כל המסגרות והתבניות</li>
+            <li>הדפסה ישירה למדפסת</li>
+            <li>תמיכה מקצועית בעברית</li>
+            <li>עדכונים ושיפורים</li>
+            <li>ביטול בכל עת</li>
+          </ul>
+          <button class="btn btn-primary btn-block pricing-btn" onclick="nav('checkout'); selectPlan('fiveyear')">
+            <span><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg> בחר תוכנית 5 שנים</span>
+            <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENT #7 — FAQ -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-eyebrow">❓ שאלות ותשובות</span>
+        <h2 class="section-title">כל מה שרצית <span class="gradient-text">לדעת</span></h2>
+        <p class="section-subtitle">לא מצאת תשובה? דבר איתנו בוואטסאפ — נחזור תוך שעה.</p>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item reveal">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>על איזה מחשב התוכנה רצה?</span>
+            <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
+          </button>
+          <div class="faq-a">Windows 10/11 (64-bit). מומלץ 8GB RAM ומעלה. מספיק כרטיס מסך משולב — אין צורך בכרטיס גרפי ייעודי. בעתיד גם Mac.</div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>צריך אינטרנט כדי להפעיל את התוכנה?</span>
+            <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
+          </button>
+          <div class="faq-a">אינטרנט נדרש רק להפעלה ראשונה ולוודאות הרישיון פעם בכמה ימים. עיבוד התמונות, ההדפסה והעבודה כולה — לוקאלית לחלוטין. אפשר לעבוד באירוע ללא Wi-Fi.</div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>איך מקבלים את המפתח אחרי תשלום?</span>
+            <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
+          </button>
+          <div class="faq-a">מיידית. עם סיום התשלום נוצר מפתח רישיון אישי, מוצג על המסך, נשלח גם למייל. הזן אותו פעם אחת בתוכנה והכל מוכן.</div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>איזה מדפסות נתמכות?</span>
+            <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
+          </button>
+          <div class="faq-a">כל מדפסת תרמית/מגנטית שמתממשקת ל-Windows: DNP DS40/DS80, Mitsubishi CP-K60/D90, Canon Selphy ועוד. תומך גם בנייר A4 רגיל עם פרינטרי לייזר/אינק-ג'ט.</div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>אפשר להעביר את הרישיון למחשב אחר?</span>
+            <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
+          </button>
+          <div class="faq-a">כן. שלח לנו בקשת איפוס (במייל או וואטסאפ) ונאפס את הקישור למחשב — תוכל להפעיל את המפתח על מחשב חדש תוך דקות.</div>
+        </div>
+        <div class="faq-item reveal">
+          <button class="faq-q" onclick="toggleFaq(this)">
+            <span>מה זה תקופת ניסיון?</span>
+            <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
+          </button>
+          <div class="faq-a">בהפעלה ראשונה תקבל 14 יום ניסיון מלא — כל הפיצ׳רים, ללא הגבלה. בסיום הניסיון רוכשים תוכנית.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD SECTION -->
+  <section class="section" id="download">
+    <div class="container">
+      <div class="section-header reveal">
+        <h2 class="section-title">מוכן להתחיל? <span class="gradient-text">הורד עכשיו</span></h2>
+        <p class="section-subtitle">14 יום ניסיון חינם · מלא הפיצ׳רים · בלי כרטיס אשראי</p>
+      </div>
+      <div class="download-grid reveal">
+        <a class="download-btn" href="#" download aria-label="הורד עבור Windows">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="1" y="1" width="14" height="14" fill="#F25022"/>
+            <rect x="17" y="1" width="14" height="14" fill="#7FBA00"/>
+            <rect x="1" y="17" width="14" height="14" fill="#00A4EF"/>
+            <rect x="17" y="17" width="14" height="14" fill="#FFB900"/>
+          </svg>
+          <div class="download-text">
+            <span class="download-sub">הורד עבור</span>
+            <span class="download-main">Windows 10 / 11</span>
+          </div>
+        </a>
+        <a class="download-btn coming-soon" role="link" aria-disabled="true" aria-label="macOS בקרוב">
+          <svg viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+          </svg>
+          <div class="download-text">
+            <span class="download-sub">בקרוב על</span>
+            <span class="download-main">macOS</span>
+          </div>
+        </a>
+      </div>
+      <p class="download-meta reveal">
+        💾 <strong>גרסה 2.0.0</strong> · ~140 MB · Windows 10/11 (64-bit) · עברית מלאה
+      </p>
+    </div>
+  </section>
+
+  <!-- AGENT #7 — CTA / CONTACT -->
+  <section class="cta-section" id="contact">
+    <div class="container">
+      <div class="cta-card reveal">
+        <h2 class="cta-title">מוכן להתחיל? <svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg></h2>
+        <p class="cta-subtitle">הצטרף ל-500+ צלמים מקצועיים שכבר הפכו את העבודה שלהם למהירה ורווחית יותר.</p>
+        <div class="cta-actions">
+          <a class="btn btn-primary btn-lg" onclick="nav('home', 'pricing')">
+            <span>בחר תוכנית עכשיו</span>
+            <i data-lucide="arrow-left" style="width:18px;height:18px"></i>
+          </a>
+          <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank">
+            <span>💬 דבר איתנו בוואטסאפ</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AGENT #7 — FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img class="logo-img" src="logo.png" alt="Magnet Frame PRO" style="height:38px">
+          <p>התוכנה המקצועית והמתקדמת ביותר לצלמי מגנטים באירועים. מוצר ישראלי, תמיכה בעברית.</p>
+        </div>
+        <div class="footer-col">
+          <h4>מוצר</h4>
+          <ul>
+            <li><a onclick="nav('home', 'features')">פיצ׳רים</a></li>
+            <li><a onclick="nav('home', 'how')">איך זה עובד</a></li>
+            <li><a onclick="nav('home', 'pricing')">תמחור</a></li>
+            <li><a onclick="nav('home', 'faq')">שאלות</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>חברה</h4>
+          <ul>
+            <li><a onclick="nav('home', 'contact')">צור קשר</a></li>
+            <li><a href="https://wa.me/972524184525" target="_blank">וואטסאפ</a></li>
+            <li><a href="mailto:PHOTO.ME.PM1@GMAIL.COM">מייל תמיכה</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>משפטי</h4>
+          <ul>
+            <li><a onclick="nav('terms')">תנאי שימוש</a></li>
+            <li><a onclick="nav('privacy')">מדיניות פרטיות</a></li>
+            <li><a onclick="nav('cancellation')">מדיניות ביטולים</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Magnet Frame PRO. כל הזכויות שמורות.</span>
+        <span>תוצרת ישראל 🇮🇱 · נבנה באהבה לצלמים</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ============================================================
+     PAGE: CHECKOUT  (AGENT #5)
+     ============================================================ -->
+<div class="page" id="page-checkout">
+  <div class="checkout-wrap">
+    <div class="container">
+      <div class="checkout-header reveal">
+        <h1>🛒 סיום רכישה</h1>
+        <p>עוד רגע ואתה מתחיל להשתמש ב-Magnet Frame PRO</p>
+      </div>
+
+      <div class="stepper" id="stepper">
+        <div class="stepper-item active" data-step="1">
+          <div class="stepper-bubble">1</div>
+          <span>בחירת תוכנית</span>
+        </div>
+        <div class="stepper-line"></div>
+        <div class="stepper-item" data-step="2">
+          <div class="stepper-bubble">2</div>
+          <span>פרטי לקוח</span>
+        </div>
+        <div class="stepper-line"></div>
+        <div class="stepper-item" data-step="3">
+          <div class="stepper-bubble">3</div>
+          <span>אישור</span>
+        </div>
+      </div>
+
+      <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
+        <div class="checkout-grid">
+          <div>
+            <div class="checkout-card">
+              <h2><span class="num">1</span> בחר תוכנית</h2>
+              <div class="plan-pick">
+                <label class="plan-option" onclick="selectPlanOption(this, 'yearly')">
+                  <div class="po-title">📅 שנתי</div>
+                  <div class="po-price">₪299 <small>/ שנה</small></div>
+                </label>
+                <label class="plan-option selected" onclick="selectPlanOption(this, 'fiveyear')">
+                  <div class="po-title">💎 5 שנים</div>
+                  <div class="po-price">₪549 <small>/ 5 שנים</small></div>
+                </label>
+              </div>
+            </div>
+
+            <div class="checkout-card" style="margin-top: 1.25rem">
+              <h2><span class="num">2</span> פרטי הלקוח</h2>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>שם מלא <span class="req">*</span></label>
+                  <input type="text" name="fullName" class="form-input" required placeholder="ישראל ישראלי" autocomplete="name">
+                </div>
+                <div class="form-group">
+                  <label>טלפון <span class="req">*</span></label>
+                  <input type="tel" name="phone" class="form-input" required placeholder="050-1234567" autocomplete="tel" inputmode="tel">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>אימייל <span class="req">*</span></label>
+                <input type="email" name="email" class="form-input" required placeholder="you@email.com" autocomplete="email" dir="ltr">
+                <span class="form-help">📧 לכאן יישלח מפתח הרישיון מיד עם השלמת הרכישה</span>
+              </div>
+              <div class="form-group">
+                <label>תעודת זהות / ת.ז (אופציונלי)</label>
+                <input type="text" name="idNumber" class="form-input" placeholder="000000000" autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="9" dir="ltr">
+                <span class="form-help">🪪 משמש להנפקת חשבונית מס לעוסק פטור / יחיד</span>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>שם העסק (אופציונלי)</label>
+                  <input type="text" name="businessName" class="form-input" placeholder="סטודיו צילום ישראל" autocomplete="organization">
+                </div>
+                <div class="form-group">
+                  <label>ח.פ / ע.מ (אופציונלי)</label>
+                  <input type="text" name="businessId" class="form-input" placeholder="000000000" autocomplete="off" inputmode="numeric" dir="ltr">
+                </div>
+              </div>
+            </div>
+
+            <div class="checkout-card" style="margin-top: 1.25rem">
+              <h2><span class="num">3</span> אישור והשלמת רכישה</h2>
+              <p style="color: var(--fg-3); font-size: 0.93rem; line-height: 1.65; margin-bottom: 1.25rem">
+                בלחיצה על הכפתור — נוצרת הזמנה במערכת, מונפק מפתח רישיון אישי, ונשלח אליך מייל אישור עם המפתח. הכל אוטומטי, תוך שניות.
+              </p>
+
+              <div id="checkoutError" role="alert" class="checkout-error"></div>
+
+              <button id="submitBtn" type="submit" class="btn btn-primary btn-lg btn-block">
+                <span id="btnText">🔐 השלם רכישה וקבל מפתח</span>
+              </button>
+
+              <div class="security-strip">
+                <div class="ico">🔒</div>
+                <div>
+                  <strong style="color:var(--fg-1);font-weight:700">תשלום מאובטח</strong>
+                  <div style="font-size:0.82rem;color:var(--fg-3)">חיבור SSL מוצפן · תקן PCI-DSS · ללא שמירת פרטי אשראי אצלנו</div>
+                </div>
+              </div>
+
+              <p style="font-size:0.78rem;color:var(--fg-4);margin-top:1rem;text-align:center">
+                בלחיצה על הכפתור אני מאשר/ת את <a onclick="nav('terms')" style="color:var(--brand-purple-bright);cursor:pointer">תנאי השימוש</a> ואת <a onclick="nav('privacy')" style="color:var(--brand-purple-bright);cursor:pointer">מדיניות הפרטיות</a>.
+              </p>
+            </div>
+          </div>
+
+          <aside class="checkout-summary">
+            <div class="summary-card">
+              <h3>📋 סיכום הזמנה</h3>
+              <div class="summary-row">
+                <span>תוכנית</span>
+                <span id="planLabel" style="font-weight:700;color:var(--fg-1)">תוכנית 5 שנים</span>
+              </div>
+              <div class="summary-row">
+                <span>מחיר התוכנית</span>
+                <span id="planPrice" style="font-weight:700;color:var(--fg-1)">₪549</span>
+              </div>
+              <div class="summary-row">
+                <span>מע״מ (18%)</span>
+                <span id="vatAmount" style="font-weight:700;color:var(--fg-1)">₪98.82</span>
+              </div>
+              <div class="summary-row total">
+                <span>סה״כ לתשלום</span>
+                <span class="v" id="totalAmount">₪647.82</span>
+              </div>
+              <ul class="summary-features">
+                <li>הפעלה מיידית במייל</li>
+                <li>תמיכה בעברית</li>
+                <li>ביטול תוך 14 יום</li>
+                <li>חשבונית דיגיטלית</li>
+              </ul>
+            </div>
+
+            <a class="btn btn-ghost btn-block" onclick="nav('home', 'pricing')" style="margin-top:1rem">
+              ← חזרה לבחירת תוכנית
+            </a>
+          </aside>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: SUCCESS  (AGENT #6)
+     ============================================================ -->
+<div class="page" id="page-success">
+  <div class="success-wrap">
+    <div class="container">
+      <div class="success-burst">🎉</div>
+      <h1 class="success-title">תודה רבה על הרכישה!</h1>
+      <p class="success-subtitle">המפתח שלך מוכן ופעיל. שמרת עותק במייל — אבל אפשר להעתיק ישירות מכאן.</p>
+
+      <div class="license-card">
+        <div class="license-label">🔑 מפתח הרישיון שלך</div>
+        <div class="license-key" id="licenseKey">MFP-XXXX-XXXX-XXXX</div>
+        <button class="copy-btn" onclick="copyLicense()" id="copyBtn">
+          <i data-lucide="copy" style="width:16px;height:16px"></i>
+          <span>העתק מפתח</span>
+        </button>
+      </div>
+
+      <div class="details-grid">
+        <div class="detail-row"><div class="detail-label">תוכנית</div><div class="detail-value" id="planNameSuccess">—</div></div>
+        <div class="detail-row"><div class="detail-label">תאריך רכישה</div><div class="detail-value" id="purchaseDate">—</div></div>
+        <div class="detail-row"><div class="detail-label">תוקף עד</div><div class="detail-value" id="expiryDate">—</div></div>
+        <div class="detail-row"><div class="detail-label">מספר הזמנה</div><div class="detail-value" id="orderNumber">—</div></div>
+        <div class="detail-row"><div class="detail-label">תאריך הפעלה</div><div class="detail-value" id="activationDate">—</div></div>
+        <div class="detail-row"><div class="detail-label">סכום ששולם</div><div class="detail-value" id="amount">—</div></div>
+      </div>
+
+      <div class="next-steps">
+        <h4><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg> השלבים הבאים</h4>
+        <ol>
+          <li>פתח את התוכנה Magnet Frame PRO במחשב שלך.</li>
+          <li>במסך הראשון, בחר ״הזן מפתח רישיון״.</li>
+          <li>הדבק את המפתח שהעתקת ולחץ ״הפעל״.</li>
+          <li>זהו — כל הפיצ׳רים נפתחו. עיבוד ראשון תוך 3 שניות!</li>
+        </ol>
+      </div>
+
+      <div class="success-actions">
+        <a class="btn btn-primary btn-lg" onclick="nav('home')">חזרה לעמוד הבית</a>
+        <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank">
+          💬 צריך עזרה? דבר איתנו
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: CANCEL  (AGENT #6)
+     ============================================================ -->
+<div class="page" id="page-cancel">
+  <div class="success-wrap">
+    <div class="container">
+      <div class="success-burst" style="background:linear-gradient(135deg,#F59E0B,#EF4444);box-shadow:0 30px 80px -10px rgba(245,158,11,0.6),0 0 0 8px rgba(245,158,11,0.1)">😔</div>
+      <h1 class="success-title">העסקה בוטלה</h1>
+      <p class="success-subtitle">לא חויב כלום. אם הייתה תקלה — אנחנו פה לעזור.</p>
+      <div class="success-actions">
+        <a class="btn btn-primary btn-lg" onclick="nav('home', 'pricing')">חזרה לבחירת תוכנית</a>
+        <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank">💬 דבר עם תמיכה</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: TERMS  (AGENT #8)
+     ============================================================ -->
+<div class="page" id="page-terms">
+  <div class="legal-wrap">
+    <div class="container">
+      <div class="legal-hero">
+        <h1>📜 תנאי שימוש</h1>
+        <p class="date">בתוקף מתאריך: אפריל 2026</p>
+      </div>
+      <div class="legal-content">
+        <div class="legal-section"><h2><span class="num">1</span> מבוא והגדרות</h2><p>ברוכים הבאים ל-Magnet Frame PRO (״השירות״, ״התוכנה״, ״אנחנו״). תנאי שימוש אלה מסדירים את השימוש שלכם בתוכנה ובשירותים הנלווים.</p></div>
+        <div class="legal-section"><h2><span class="num">2</span> הסכמה לתנאים</h2><p>השימוש בשירות מהווה הסכמה מלאה לתנאים אלה ולמדיניות הפרטיות שלנו. אישור התנאים בעת ההרשמה או בעת התשלום מהווה חוזה מחייב.</p></div>
+        <div class="legal-section"><h2><span class="num">3</span> תיאור השירות</h2><p>Magnet Frame PRO היא תוכנה מקצועית לצלמי מגנטים באירועים, הכוללת עיבוד תמונות אוטומטי, ספריית מסגרות, כלי עריכה, הדפסה ישירה, ותמיכה טכנית.</p></div>
+        <div class="legal-section"><h2><span class="num">4</span> רישיון שימוש</h2><p>בכפוף לתשלום דמי המנוי, החברה מעניקה לך רישיון מוגבל, לא בלעדי, לא ניתן להעברה, לשימוש בתוכנה למטרות עסקיות. הרישיון תקף למחשב אחד בלבד.</p></div>
+        <div class="legal-section"><h2><span class="num">5</span> מנוי ותשלום</h2><p>השירות ניתן במסגרת מנוי שנתי (299 ₪) או 5-שנים (549 ₪). המחירים אינם כוללים מע״מ. החיוב מתבצע מראש ומיד עם הרכישה.</p></div>
+        <div class="legal-section"><h2><span class="num">6</span> חובות המשתמש</h2><p>אתה מתחייב לספק מידע מדויק, לשמור על סודיות פרטי ההתחברות, לא להשתמש בשירות לכל מטרה בלתי חוקית, ולכבד זכויות יוצרים של תוכן שאתה מעלה.</p></div>
+        <div class="legal-section"><h2><span class="num">7</span> קניין רוחני</h2><p>כל הזכויות בתוכנה, קוד המקור, העיצוב, והשמות המסחריים הם קניינה הבלעדי של החברה. התוכן שאתה יוצר באמצעות התוכנה הוא בבעלותך המלאה.</p></div>
+        <div class="legal-section"><h2><span class="num">8</span> הגבלת אחריות</h2><p>השירות ניתן ״כפי שהוא״. החברה אינה אחראית לנזק עקיף, אובדן רווחים, או תקלות טכניות. אחריותה הכוללת לא תעלה על סכום התשלום ב-12 החודשים האחרונים.</p></div>
+        <div class="legal-section"><h2><span class="num">9</span> סיום השירות</h2><p>המשתמש רשאי לבטל את המנוי בכל עת. הביטול ייכנס לתוקף בתום תקופת החיוב הנוכחית.</p></div>
+        <div class="legal-section"><h2><span class="num">10</span> יצירת קשר</h2><p>לשאלות: מייל — PHOTO.ME.PM1@GMAIL.COM | וואטסאפ — 052-4184525. הדין החל הוא הדין הישראלי.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: PRIVACY  (AGENT #8)
+     ============================================================ -->
+<div class="page" id="page-privacy">
+  <div class="legal-wrap">
+    <div class="container">
+      <div class="legal-hero">
+        <h1>🔐 מדיניות פרטיות</h1>
+        <p class="date">בתוקף מתאריך: אפריל 2026</p>
+      </div>
+      <div class="legal-content">
+        <div class="legal-section"><h2><span class="num">1</span> איזה מידע אנחנו אוספים</h2><p>פרטי זיהוי (שם, מייל, טלפון), פרטי עסק (שם העסק, ח.פ), פרטי תשלום (מעובדים דרך סולק חיצוני מאובטח — לא נשמרים אצלנו), ומידע טכני לצורך שיפור השירות.</p></div>
+        <div class="legal-section"><h2><span class="num">2</span> התמונות שלך נשארות אצלך</h2><p>כל עיבוד התמונות מתבצע באופן מקומי על המחשב שלך בלבד. אנחנו לא מעלים, לא שומרים ולא רואים אף תמונה שלך — לעולם.</p></div>
+        <div class="legal-section"><h2><span class="num">3</span> למה אנחנו משתמשים במידע</h2><p>אספקת השירות, עיבוד תשלומים, מתן תמיכה טכנית, שליחת עדכונים חשובים, שיפור המוצר, ועמידה בדרישות חוקיות.</p></div>
+        <div class="legal-section"><h2><span class="num">4</span> שיתוף מידע עם צדדים שלישיים</h2><p>אנחנו לא מוכרים ולא משכירים את המידע שלך. שיתוף מתבצע רק עם ספקי שירות מאובטחים (סולקי תשלום), או לפי דרישה חוקית.</p></div>
+        <div class="legal-section"><h2><span class="num">5</span> אבטחת מידע</h2><p>הצפנת SSL/TLS, סליקה בתקן PCI-DSS, גיבויים תקופתיים, והגבלת גישה לעובדים מורשים בלבד.</p></div>
+        <div class="legal-section"><h2><span class="num">6</span> הזכויות שלך</h2><p>זכות עיון, תיקון, מחיקה, והתנגדות לשימוש במידע. לפנייה: PHOTO.ME.PM1@GMAIL.COM — נשיב תוך 14 יום.</p></div>
+        <div class="legal-section"><h2><span class="num">7</span> יצירת קשר</h2><p>מייל: PHOTO.ME.PM1@GMAIL.COM | וואטסאפ: 052-4184525</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: CANCELLATION  (AGENT #8)
+     ============================================================ -->
+<div class="page" id="page-cancellation">
+  <div class="legal-wrap">
+    <div class="container">
+      <div class="legal-hero">
+        <h1>↩️ מדיניות ביטולים והחזרים</h1>
+        <p class="date">בתוקף מתאריך: אפריל 2026</p>
+      </div>
+      <div class="legal-content">
+        <div class="legal-section"><h2><span class="num">1</span> ביטול עסקה לפי חוק</h2><p>בהתאם לחוק הגנת הצרכן, ניתן לבטל עסקה תוך 14 ימים מיום ביצוע הרכישה. החזר כספי מלא בניכוי דמי ביטול של 5% או 100 ₪ — הנמוך מביניהם. הביטול ייכנס לתוקף מיידי וההחזר תוך 14 יום.</p></div>
+        <div class="legal-section"><h2><span class="num">2</span> ביטול מנוי שנתי</h2><p>תוך 14 יום מרכישה: החזר מלא. לאחר 14 עד 60 יום: החזר יחסי בניכוי דמי שימוש לפי תעריף ממוצע חודשי. לאחר 60 יום: המנוי יסתיים בתום השנה ללא החזר.</p></div>
+        <div class="legal-section"><h2><span class="num">3</span> ביטול מנוי 5 שנים</h2><p>תוך 14 יום מרכישה: החזר מלא. לאחר 14 עד 60 יום: החזר יחסי בניכוי דמי שימוש לפי תעריף ממוצע חודשי. לאחר 60 יום: המנוי יסתיים בתום תקופת ה-5 שנים ללא החזר.</p></div>
+        <div class="legal-section"><h2><span class="num">4</span> איך לבטל</h2><p>שלוש דרכים: מייל (PHOTO.ME.PM1@GMAIL.COM), וואטסאפ (052-4184525), או טלפון (א׳-ה׳ 9:00-17:00). ציין שם מלא ומספר הזמנה.</p></div>
+        <div class="legal-section"><h2><span class="num">5</span> החזר כספי</h2><p>ההחזר יבוצע לאותו אמצעי תשלום. אשראי — זיכוי תוך 3-7 ימי עסקים. ביט/PayBox — החזר תוך 24-48 שעות. תקבל מייל אישור עם חשבונית זיכוי.</p></div>
+        <div class="legal-section"><h2><span class="num">6</span> יצירת קשר</h2><p>מייל ביטולים: PHOTO.ME.PM1@GMAIL.COM | תמיכה כללית: PHOTO.ME.PM1@GMAIL.COM | וואטסאפ: 052-4184525</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WhatsApp floater -->
+<a class="wa-float" href="https://wa.me/972524184525" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M0 32l2.245-8.196A15.83 15.83 0 010 16C0 7.163 7.163 0 16 0c8.836 0 16 7.163 16 16s-7.164 16-16 16h-.001A15.951 15.951 0 018.31 30l-8.31 2z" fill="#ffffff"/>
+    <path d="M.661 31.339l2.171-7.929A15.299 15.299 0 01.777 16.013C.78 7.55 7.667.665 16.13.665a15.21 15.21 0 0110.847 4.495c2.876 2.882 4.46 6.71 4.458 10.782-.004 8.464-6.891 15.349-15.353 15.349h-.007a15.392 15.392 0 01-7.337-1.869L.661 31.339z" fill="#25D366"/>
+    <path d="M12.05 9.305c-.282-.625-.578-.638-.846-.649l-.72-.009c-.25 0-.657.094-1 .468-.345.376-1.314 1.282-1.314 3.126 0 1.846 1.345 3.628 1.532 3.879.188.25 2.625 4.205 6.487 5.717 3.21 1.256 3.863 1.007 4.56.94.7-.063 2.252-.92 2.572-1.811.316-.892.316-1.659.221-1.811-.094-.156-.345-.25-.72-.438-.375-.187-2.22-1.094-2.564-1.22-.343-.124-.595-.187-.846.188-.25.376-.97 1.222-1.188 1.473-.218.25-.437.28-.812.094-.376-.188-1.585-.583-3.02-1.866-1.117-.997-1.871-2.225-2.09-2.601-.219-.376-.024-.578.165-.766.169-.169.376-.439.562-.658.187-.219.249-.376.374-.625.124-.25.062-.469-.031-.657-.094-.187-.847-2.041-1.158-2.781" fill="#ffffff"/>
+  </svg>
+</a>
+
+<!-- ============================================================
+     ACCESSIBILITY WIDGET — Floating button + Panel
+     ============================================================ -->
+<div class="a11y-fab">
+  <button id="a11yOpen" aria-label="פתח לוח נגישות" title="נגישות (Alt+0)" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="white" d="M12 2a2 2 0 1 1 .001 3.999A2 2 0 0 1 12 2m7.5 5h-15a1 1 0 0 0 0 2h5v13a1 1 0 0 0 2 0v-6h1v6a1 1 0 0 0 2 0V9h5a1 1 0 0 0 0-2z"/>
+    </svg>
+  </button>
+</div>
+
+<section class="a11y-panel" id="a11yPanel" role="dialog" aria-modal="false" aria-label="לוח נגישות" hidden>
+  <div class="a11y-header" id="a11yDragHandle">
+    <div class="a11y-title">הגדרות נגישות</div>
+    <button class="a11y-close" id="a11yClose" aria-label="סגור">×</button>
+  </div>
+  <div class="a11y-content">
+    <div class="grp">
+      <h3>מצבי תצוגה</h3>
+      <div class="grid">
+        <button class="card-btn" data-toggle="contrastHigh"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor" opacity=".15"/><path d="M12 3a9 9 0 1 1 0 18V3z" fill="currentColor"/></svg>ניגודיות גבוהה</button>
+        <button class="card-btn" data-toggle="dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/></svg>מצב כהה</button>
+        <button class="card-btn" data-toggle="grayscale"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="12" r="3" fill="currentColor"/><circle cx="16" cy="12" r="3" fill="currentColor" opacity=".2"/></svg>גווני אפור</button>
+        <button class="card-btn" data-toggle="invert"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor"/><path d="M12 3a9 9 0 0 0 0 18" fill="#fff"/></svg>היפוך צבעים</button>
+        <button class="card-btn" data-toggle="highlightLinks"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 12a4 4 0 0 1 4-4h3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 12a4 4 0 0 1-4 4H9" stroke="currentColor" stroke-width="2" fill="none"/></svg>הדגשת קישורים</button>
+        <button class="card-btn" data-toggle="reduceMotion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h8v8H4zM12 12h8v8h-8z" fill="currentColor" opacity=".3"/><path d="M4 12h8v8H4zM12 4h8v8h-8z" fill="currentColor"/></svg>הפחתת תנועה</button>
+      </div>
+    </div>
+    <div class="grp">
+      <h3>התאמות טקסט</h3>
+      <div class="slider" data-type="font">
+        <div class="row"><span class="label">גודל גופן</span><span class="val" id="fontVal">100%</span></div>
+        <div class="row">
+          <div class="ctrl"><button data-step="-1" aria-label="הקטנת טקסט">−</button></div>
+          <input class="range" id="fontRange" type="range" min="100" max="175" step="5" value="100" aria-label="גודל טקסט">
+          <div class="ctrl"><button data-step="1" aria-label="הגדלת טקסט">+</button></div>
+        </div>
+        <div class="bar"></div>
+      </div>
+      <div class="slider" data-type="wordspace">
+        <div class="row"><span class="label">ריווח בין מילים</span><span class="val" id="wsVal">0</span></div>
+        <div class="row">
+          <div class="ctrl"><button data-step="-1">−</button></div>
+          <input class="range" id="wsRange" type="range" min="0" max="12" step="1" value="0" aria-label="ריווח מילים">
+          <div class="ctrl"><button data-step="1">+</button></div>
+        </div>
+        <div class="bar"></div>
+      </div>
+      <div class="slider" data-type="lineheight">
+        <div class="row"><span class="label">ריווח בין שורות</span><span class="val" id="lhVal">1.6</span></div>
+        <div class="row">
+          <div class="ctrl"><button data-step="-1">−</button></div>
+          <input class="range" id="lhRange" type="range" min="1.2" max="2.2" step="0.1" value="1.6" aria-label="ריווח שורות">
+          <div class="ctrl"><button data-step="1">+</button></div>
+        </div>
+        <div class="bar"></div>
+      </div>
+      <div class="slider" data-type="letterspace">
+        <div class="row"><span class="label">ריווח בין אותיות</span><span class="val" id="lsVal">0</span></div>
+        <div class="row">
+          <div class="ctrl"><button data-step="-1">−</button></div>
+          <input class="range" id="lsRange" type="range" min="0" max="12" step="1" value="0" aria-label="ריווח אותיות">
+          <div class="ctrl"><button data-step="1">+</button></div>
+        </div>
+        <div class="bar"></div>
+      </div>
+      <div class="grid" style="margin-top:10px">
+        <button class="card-btn" data-toggle="legibleFont"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 18V6h4l4 12 4-12h6" stroke="currentColor" stroke-width="2" fill="none"/></svg>פונט קריא</button>
+        <button class="card-btn" data-toggle="textSpacing"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 12h16M4 16h16" stroke="currentColor" stroke-width="2"/></svg>ריווח טקסט</button>
+        <button class="card-btn" data-toggle="biggerTargets"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" fill="currentColor"/><rect x="14" y="4" width="6" height="6" fill="currentColor"/><rect x="4" y="14" width="6" height="6" fill="currentColor"/><rect x="14" y="14" width="6" height="6" fill="currentColor"/></svg>יעדים גדולים</button>
+      </div>
+    </div>
+    <div class="grp">
+      <h3>כלי קריאה</h3>
+      <div class="grid">
+        <button class="card-btn" id="a11ySpeakBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4l4 2V8l-4 2zm6 8a7 7 0 0 0 0-12" stroke="currentColor" stroke-width="2" fill="none"/></svg>קרא בקול</button>
+        <button class="card-btn" id="a11yCursorBig"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 7-7 3-3 7-4-17z" fill="currentColor"/></svg>סמן גדול</button>
+        <button class="card-btn" id="a11yCursorRead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16" stroke="currentColor" stroke-width="3"/><path d="M12 4v16" stroke="currentColor" stroke-width="3"/></svg>סמן קריאה</button>
+        <button class="card-btn" id="a11ySkipBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10v10H7z" fill="currentColor"/><path d="M3 12h4" stroke="#fff" stroke-width="2"/></svg>דלג לתוכן</button>
+      </div>
+    </div>
+  </div>
+  <div class="a11y-footer">
+    <button class="link-btn" id="a11yResetBtn">איפוס הכול</button>
+    <span class="a11y-hint">Alt+0 · Alt+± · Alt+9 איפוס</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     AGENT #9 + #10 — SCRIPT
+     ============================================================ -->
+<script>
+  // Initialize icons after Lucide loads
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+    initReveal();
+    initFeatureCardLight();
+  });
+
+  let selectedPlan = 'fiveyear';
+
+  // ========== NAVIGATION ==========
+  function nav(pageId, sectionId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('page-' + pageId);
+    if (target) target.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (sectionId) {
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          const pos = el.getBoundingClientRect().top + window.pageYOffset - 80;
+          window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+    const titles = {
+      home: 'Magnet Frame PRO — דף הבית',
+      checkout: 'סיום רכישה — Magnet Frame PRO',
+      success: 'תודה על הרכישה! — Magnet Frame PRO',
+      cancel: 'העסקה בוטלה — Magnet Frame PRO',
+      terms: 'תנאי שימוש — Magnet Frame PRO',
+      privacy: 'מדיניות פרטיות — Magnet Frame PRO',
+      cancellation: 'מדיניות ביטולים — Magnet Frame PRO'
+    };
+    document.title = titles[pageId] || 'Magnet Frame PRO';
+    setTimeout(() => { if (window.lucide) lucide.createIcons(); initReveal(); }, 50);
+    if (pageId === 'success') setTimeout(updateSuccessPage, 100);
+  }
+
+  function toggleMobileMenu() {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  }
+
+  function toggleFaq(btn) {
+    const item = btn.parentElement;
+    item.classList.toggle('open');
+  }
+
+  // ========== REVEAL (AGENT #9) ==========
+  function initReveal() {
+    const els = document.querySelectorAll('.reveal:not(.in)');
+    if (!('IntersectionObserver' in window)) {
+      els.forEach(el => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          en.target.classList.add('in');
+          io.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    els.forEach(el => io.observe(el));
+  }
+
+  // Mouse-following spotlight on feature cards
+  function initFeatureCardLight() {
+    document.querySelectorAll('.feature-card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+        card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+      });
+    });
+  }
+
+  // Navbar scroll state
+  window.addEventListener('scroll', () => {
+    const n = document.getElementById('navbar');
+    if (!n) return;
+    if (window.scrollY > 20) n.classList.add('scrolled');
+    else n.classList.remove('scrolled');
+  }, { passive: true });
+
+  // ========== CHECKOUT (AGENT #5) ==========
+  // Single source of truth for plan metadata. ``dbName`` must match the
+  // plan name as seeded in server/app/database.py so the lookup at
+  // /checkout/plans resolves to the right numeric id.
+  const PLANS = {
+    yearly:   { priceILS: 299,   days: 365,  label: 'תוכנית שנתית',   successLabel: 'Magnet Frame PRO — שנתי',   dbName: 'שנתי' },
+    fiveyear: { priceILS: 549,   days: 1825, label: 'תוכנית 5 שנים',  successLabel: 'Magnet Frame PRO — 5 שנים', dbName: '5 שנים' }
+  };
+  function planOrFallback(name) { return PLANS[name] || PLANS.yearly; }
+
+  function selectPlan(plan) {
+    if (!PLANS[plan]) plan = 'yearly';
+    selectedPlan = plan;
+    const options = document.querySelectorAll('.plan-option');
+    options.forEach(o => o.classList.remove('selected'));
+    if (plan === 'yearly'   && options[0]) options[0].classList.add('selected');
+    if (plan === 'fiveyear' && options[1]) options[1].classList.add('selected');
+    updatePrices();
+    updateStepper();
+  }
+
+  function selectPlanOption(el, plan) {
+    document.querySelectorAll('.plan-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedPlan = PLANS[plan] ? plan : 'yearly';
+    updatePrices();
+    updateStepper();
+  }
+
+  function updatePrices() {
+    const meta = planOrFallback(selectedPlan);
+    const basePrice = meta.priceILS;
+    const vat = basePrice * 0.18;
+    const total = basePrice + vat;
+    const fmt = n => '₪' + n.toLocaleString('he-IL', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+    setText('planPrice', fmt(basePrice));
+    setText('vatAmount', fmt(vat));
+    setText('totalAmount', fmt(total));
+    setText('planLabel', meta.label);
+  }
+
+  function updateStepper() {
+    // Light-weight stepper: plan selected → step 1 done, form has text → step 2 in progress
+    const items = document.querySelectorAll('.stepper-item');
+    const lines = document.querySelectorAll('.stepper-line');
+    if (!items.length) return;
+    const hasName  = (document.querySelector('[name=fullName]')?.value || '').trim().length > 0;
+    const hasEmail = (document.querySelector('[name=email]')?.value || '').trim().length > 0;
+    items.forEach(i => { i.classList.remove('active', 'done'); });
+    lines.forEach(l => l.classList.remove('done'));
+    items[0].classList.add('done'); lines[0]?.classList.add('done');
+    if (hasName && hasEmail) {
+      items[1].classList.add('done'); lines[1]?.classList.add('done');
+      items[2].classList.add('active');
+    } else {
+      items[1].classList.add('active');
+    }
+  }
+  document.addEventListener('input', e => {
+    if (e.target.matches('#checkoutForm [name]')) updateStepper();
+  });
+
+  let issuedLicense = null;
+
+  function resolveServerBase() {
+    if (window.location && window.location.protocol &&
+        window.location.protocol.indexOf('http') === 0 &&
+        window.location.host) {
+      return window.location.origin;
+    }
+    return 'http://127.0.0.1:8000';
+  }
+
+  function fetchWithTimeout(url, opts, ms) {
+    if (typeof AbortController === 'undefined') return fetch(url, opts);
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms);
+    return fetch(url, Object.assign({}, opts, { signal: ctl.signal }))
+      .finally(() => clearTimeout(timer));
+  }
+
+  function handleCheckoutSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const errorEl = document.getElementById('checkoutError');
+    btn.disabled = true;
+    btnText.innerHTML = '<span class="spinner"></span> מעבד רכישה...';
+    if (errorEl) errorEl.style.display = 'none';
+    issuedLicense = null;
+
+    const showError = (msg) => {
+      btn.disabled = false;
+      btnText.innerHTML = '🔐 השלם רכישה וקבל מפתח';
+      if (errorEl) {
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+        errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        alert(msg);
+      }
+    };
+
+    if (window.location.protocol === 'file:') {
+      showError('האתר נפתח כקובץ מקומי. הפעל את השרת ופתח את http://127.0.0.1:8000/site/ בדפדפן.');
+      return;
+    }
+
+    const fd = new FormData(e.target);
+    const customerName  = (fd.get('fullName')     || '').toString().trim();
+    const customerEmail = (fd.get('email')        || '').toString().trim();
+    const customerPhone = (fd.get('phone')        || '').toString().trim();
+    const idNumber      = (fd.get('idNumber')     || '').toString().trim();
+    const businessName  = (fd.get('businessName') || '').toString().trim();
+    const businessId    = (fd.get('businessId')   || '').toString().trim();
+
+    const meta = planOrFallback(selectedPlan);
+
+    const base = resolveServerBase();
+    const planFetchUrl = base + '/checkout/plans';
+    const submitUrl    = base + '/checkout/complete-dev';
+
+    fetchWithTimeout(planFetchUrl, { method: 'GET' }, 8000)
+    .then(async resp => {
+      if (!resp.ok) throw new Error('PLANS_HTTP_' + resp.status);
+      const list = await resp.json();
+      if (!Array.isArray(list)) throw new Error('PLANS_SHAPE');
+      let match = list.find(p => p && p.name === meta.dbName);
+      if (!match) {
+        match = list.find(p =>
+          p && Number(p.days) === Number(meta.days) &&
+          p.license_type !== 'trial_14_days'
+        );
+      }
+      if (!match || !match.id) throw new Error('PLAN_NOT_FOUND:' + meta.dbName);
+      return match.id;
+    })
+    .then(planId => {
+      return fetchWithTimeout(submitUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan_id:            planId,
+          customer_name:      customerName,
+          customer_email:     customerEmail,
+          customer_phone:     customerPhone,
+          customer_id_number: idNumber,
+          business_name:      businessName,
+          business_id:        businessId,
+        }),
+      }, 15000);
+    })
+    .then(async resp => {
+      const text = await resp.text();
+      let body = {};
+      try { body = text ? JSON.parse(text) : {}; } catch (_) { body = { detail: text }; }
+      if (!resp.ok) {
+        const detail = body && body.detail
+          ? (typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail))
+          : '';
+        throw new Error('השרת השיב ' + resp.status + (detail ? (' — ' + detail) : ''));
+      }
+      return body;
+    })
+    .then(license => {
+      const key = license && (license.license_key || license.serial_key);
+      if (!key) throw new Error('השרת לא החזיר מפתח רישיון. נסה שוב או צור קשר עם התמיכה.');
+      issuedLicense = license;
+      nav('success');
+      btn.disabled = false;
+      btnText.innerHTML = '🔐 השלם רכישה וקבל מפתח';
+    })
+    .catch(err => {
+      console.error('Checkout failed:', err);
+      let msg;
+      if (err && err.name === 'AbortError') {
+        msg = 'השרת לא הגיב בזמן. ודא ש-uvicorn רץ על http://127.0.0.1:8000 ושאין חומת אש שחוסמת.';
+      } else if (err && err.message && err.message.indexOf('Failed to fetch') !== -1) {
+        msg = 'אין חיבור לשרת ' + base + '. ודא שהשרת רץ (uvicorn app.main:app --port 8000) ונסה שוב.';
+      } else if (err && err.message && err.message.indexOf('PLAN_NOT_FOUND') === 0) {
+        msg = 'התוכנית שנבחרה לא נמצאה במערכת הניהול. צור קשר עם התמיכה.';
+      } else if (err && err.message && err.message.indexOf('PLANS_HTTP_') === 0) {
+        msg = 'לא ניתן לטעון את רשימת התוכניות מהשרת. נסה שוב בעוד רגע.';
+      } else if (err && err.message) {
+        msg = 'הרכישה נכשלה: ' + err.message;
+      } else {
+        msg = 'הרכישה נכשלה (שגיאה לא ידועה).';
+      }
+      showError(msg);
+    });
+  }
+
+  // ========== SUCCESS PAGE (AGENT #6) ==========
+  function generateKey() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let r = 'MFP-';
+    for (let i = 0; i < 4; i++) {
+      for (let j = 0; j < 4; j++) r += chars[Math.floor(Math.random() * chars.length)];
+      if (i < 3) r += '-';
+    }
+    return r;
+  }
+
+  function updateSuccessPage() {
+    const meta = planOrFallback(selectedPlan);
+    const lic = issuedLicense || {};
+    const key = lic.license_key || lic.serial_key || generateKey();
+    const keyEl = document.getElementById('licenseKey');
+    if (keyEl) keyEl.textContent = key;
+    const now = new Date();
+    let expiry = null;
+    if (lic.expires_at) {
+      const p = new Date(lic.expires_at);
+      if (!isNaN(p.getTime())) expiry = p;
+    }
+    if (!expiry) {
+      expiry = new Date();
+      expiry.setDate(expiry.getDate() + meta.days);
+    }
+    const fmt = d => d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+    const setT = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+    setT('planNameSuccess', meta.successLabel);
+    setT('activationDate', fmt(now));
+    setT('expiryDate', fmt(expiry));
+    setT('purchaseDate', fmt(now));
+    const orderRef = (key && key.length >= 4)
+      ? '#MFP-' + key.slice(-8).replace(/-/g, '')
+      : '#MFP-' + Math.floor(Math.random() * 900000 + 100000);
+    setT('orderNumber', orderRef);
+    const total = meta.priceILS * 1.18;
+    setT('amount', '₪' + total.toLocaleString('he-IL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    fireConfetti();
+  }
+
+  function copyLicense() {
+    const key = document.getElementById('licenseKey').textContent;
+    const btn = document.getElementById('copyBtn');
+    const onDone = () => {
+      btn.classList.add('copied');
+      btn.innerHTML = '<i data-lucide="check" style="width:16px;height:16px"></i><span>הועתק!</span>';
+      if (window.lucide) lucide.createIcons();
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = '<i data-lucide="copy" style="width:16px;height:16px"></i><span>העתק מפתח</span>';
+        if (window.lucide) lucide.createIcons();
+      }, 2000);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(key).then(onDone).catch(() => {
+        // Fallback for non-secure contexts
+        const ta = document.createElement('textarea');
+        ta.value = key; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); onDone(); } catch (_) {}
+        document.body.removeChild(ta);
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = key; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); onDone(); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+  }
+
+  // ========== CONFETTI (AGENT #6 + #9) ==========
+  function fireConfetti() {
+    const colors = ['#8B5CF6', '#EC4899', '#22D3EE', '#F59E0B', '#10B981', '#F472B6'];
+    const wrap = document.createElement('div');
+    wrap.className = 'confetti-wrap';
+    document.body.appendChild(wrap);
+    const N = 80;
+    for (let i = 0; i < N; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      const x = Math.random() * 100;
+      const dx = (Math.random() - 0.5) * 40;
+      const rot = Math.random() * 720 - 360;
+      const dur = 2500 + Math.random() * 2500;
+      const delay = Math.random() * 1200;
+      const size = 6 + Math.random() * 10;
+      piece.style.left = x + 'vw';
+      piece.style.width = size + 'px';
+      piece.style.height = (size * 1.3) + 'px';
+      piece.style.background = c;
+      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      piece.animate([
+        { transform: 'translate(0,0) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx}vw, 110vh) rotate(${rot}deg)`, opacity: 0.85 }
+      ], { duration: dur, delay: delay, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)', fill: 'forwards' });
+      wrap.appendChild(piece);
+    }
+    setTimeout(() => wrap.remove(), 6000);
+  }
+
+  // Init initial prices
+  updatePrices();
+
+  // ============================================================
+  // ACCESSIBILITY WIDGET
+  // ============================================================
+  (() => {
+    const html = document.documentElement;
+    const mainTarget = document.getElementById('page-home') || document.body;
+    const openBtn  = document.getElementById('a11yOpen');
+    const panel    = document.getElementById('a11yPanel');
+    const closeBtn = document.getElementById('a11yClose');
+    const resetBtn = document.getElementById('a11yResetBtn');
+    const speakBtn = document.getElementById('a11ySpeakBtn');
+    const skipBtn  = document.getElementById('a11ySkipBtn');
+    const STORAGE  = 'a11y_premium_prefs_v1';
+
+    html.classList.add('a11y-focus-ring');
+
+    function loadPrefs() { try { return JSON.parse(localStorage.getItem(STORAGE)) || {}; } catch { return {}; } }
+    function savePrefs(p) { localStorage.setItem(STORAGE, JSON.stringify(p)); }
+
+    let prefs = Object.assign({
+      fontScale: 100, ws: 0, lh: 1.6, ls: 0,
+      contrast: null, dark: false, grayscale: false, invert: false,
+      highlightLinks: false, reduceMotion: false,
+      legibleFont: false, textSpacing: false, biggerTargets: false,
+    }, loadPrefs());
+
+    function applyA11y() {
+      html.classList.remove(
+        'a11y-font-100','a11y-font-110','a11y-font-125','a11y-font-150','a11y-font-175',
+        'a11y-contrast-high','a11y-dark','a11y-grayscale','a11y-invert',
+        'a11y-highlight-links','a11y-reduce-motion',
+        'a11y-legible-font','a11y-text-spacing','a11y-bigger-targets'
+      );
+      const fs = prefs.fontScale;
+      html.classList.add(
+        fs >= 175 ? 'a11y-font-175' :
+        fs >= 150 ? 'a11y-font-150' :
+        fs >= 125 ? 'a11y-font-125' :
+        fs >= 110 ? 'a11y-font-110' : 'a11y-font-100'
+      );
+      if (prefs.textSpacing) {
+        html.style.setProperty('--ws', (prefs.ws/100) + 'em');
+        html.style.setProperty('--lh', prefs.lh);
+        html.style.setProperty('--ls', (prefs.ls/100) + 'em');
+        html.classList.add('a11y-text-spacing');
+      } else {
+        html.style.removeProperty('--ws');
+        html.style.removeProperty('--lh');
+        html.style.removeProperty('--ls');
+      }
+      if (prefs.legibleFont)   html.classList.add('a11y-legible-font');
+      if (prefs.contrast === 'high') html.classList.add('a11y-contrast-high');
+      if (prefs.dark)          html.classList.add('a11y-dark');
+      if (prefs.invert)        { prefs.grayscale = false; prefs.contrast = null; prefs.dark = false; }
+      if (prefs.grayscale)     prefs.invert = false;
+      if (prefs.grayscale)     html.classList.add('a11y-grayscale');
+      if (prefs.invert)        html.classList.add('a11y-invert');
+      if (prefs.highlightLinks) html.classList.add('a11y-highlight-links');
+      if (prefs.reduceMotion)  html.classList.add('a11y-reduce-motion');
+      if (prefs.biggerTargets) html.classList.add('a11y-bigger-targets');
+      savePrefs(prefs);
+      syncA11yPressed();
+      syncA11ySliders();
+    }
+
+    function syncA11yPressed() {
+      panel.querySelectorAll('.card-btn[data-toggle]').forEach(btn => {
+        const k = btn.dataset.toggle;
+        const on = (k === 'contrastHigh') ? (prefs.contrast === 'high') : !!prefs[k];
+        btn.setAttribute('aria-pressed', String(on));
+      });
+    }
+
+    const fontRange = document.getElementById('fontRange');
+    const fontVal   = document.getElementById('fontVal');
+    const wsRange   = document.getElementById('wsRange');
+    const wsVal     = document.getElementById('wsVal');
+    const lhRange   = document.getElementById('lhRange');
+    const lhVal     = document.getElementById('lhVal');
+    const lsRange   = document.getElementById('lsRange');
+    const lsVal     = document.getElementById('lsVal');
+
+    function syncA11ySliders() {
+      fontRange.value = prefs.fontScale; fontVal.textContent = prefs.fontScale + '%';
+      wsRange.value   = prefs.ws;        wsVal.textContent   = prefs.ws;
+      lhRange.value   = prefs.lh;        lhVal.textContent   = prefs.lh;
+      lsRange.value   = prefs.ls;        lsVal.textContent   = prefs.ls;
+    }
+
+    fontRange.addEventListener('input', e => { prefs.fontScale = parseInt(e.target.value, 10); applyA11y(); });
+    wsRange.addEventListener('input',   e => { prefs.ws        = parseInt(e.target.value, 10); prefs.textSpacing = true; applyA11y(); });
+    lhRange.addEventListener('input',   e => { prefs.lh        = parseFloat(e.target.value);   prefs.textSpacing = true; applyA11y(); });
+    lsRange.addEventListener('input',   e => { prefs.ls        = parseInt(e.target.value, 10); prefs.textSpacing = true; applyA11y(); });
+
+    panel.querySelectorAll('.slider').forEach(sl => {
+      const type = sl.dataset.type;
+      const minus = sl.querySelector('[data-step="-1"]');
+      const plus  = sl.querySelector('[data-step="1"]');
+      function step(range, val, delta, after) {
+        const v = parseFloat(range.value) + delta;
+        range.value = Math.min(parseFloat(range.max), Math.max(parseFloat(range.min), v));
+        val.textContent = range.value + (range === fontRange ? '%' : '');
+        after(parseFloat(range.value));
+      }
+      if (type === 'font') {
+        minus.addEventListener('click', () => step(fontRange, fontVal, -5, v => { prefs.fontScale = v; applyA11y(); }));
+        plus.addEventListener('click',  () => step(fontRange, fontVal,  5, v => { prefs.fontScale = v; applyA11y(); }));
+      } else if (type === 'wordspace') {
+        minus.addEventListener('click', () => step(wsRange, wsVal, -1, v => { prefs.ws = v; prefs.textSpacing = true; applyA11y(); }));
+        plus.addEventListener('click',  () => step(wsRange, wsVal,  1, v => { prefs.ws = v; prefs.textSpacing = true; applyA11y(); }));
+      } else if (type === 'lineheight') {
+        minus.addEventListener('click', () => step(lhRange, lhVal, -0.1, v => { prefs.lh = Number(v.toFixed(1)); prefs.textSpacing = true; applyA11y(); }));
+        plus.addEventListener('click',  () => step(lhRange, lhVal,  0.1, v => { prefs.lh = Number(v.toFixed(1)); prefs.textSpacing = true; applyA11y(); }));
+      } else if (type === 'letterspace') {
+        minus.addEventListener('click', () => step(lsRange, lsVal, -1, v => { prefs.ls = v; prefs.textSpacing = true; applyA11y(); }));
+        plus.addEventListener('click',  () => step(lsRange, lsVal,  1, v => { prefs.ls = v; prefs.textSpacing = true; applyA11y(); }));
+      }
+    });
+
+    panel.querySelectorAll('.card-btn[data-toggle]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.dataset.toggle;
+        if (k === 'contrastHigh')      prefs.contrast = (prefs.contrast === 'high' ? null : 'high');
+        else if (k === 'dark')         prefs.dark = !prefs.dark;
+        else                            prefs[k] = !prefs[k];
+        applyA11y();
+      });
+    });
+
+    // Big cursor
+    document.getElementById('a11yCursorBig').addEventListener('click', function() {
+      const bigCursor = 'url("data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 width=%2732%27 height=%2732%27><circle cx=%2716%27 cy=%2716%27 r=%2712%27 fill=%27%23000%27 stroke=%27%23fff%27 stroke-width=%272%27/></svg>") 16 16, auto';
+      if (document.body.style.cursor === bigCursor) {
+        document.body.style.cursor = '';
+        this.setAttribute('aria-pressed', 'false');
+      } else {
+        document.body.style.cursor = bigCursor;
+        this.setAttribute('aria-pressed', 'true');
+      }
+    });
+
+    // Reading cursor (vertical line follows mouse)
+    document.getElementById('a11yCursorRead').addEventListener('click', function() {
+      const existing = document.getElementById('a11yReadCursor');
+      if (existing) {
+        existing.remove();
+        this.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      const line = document.createElement('div');
+      line.id = 'a11yReadCursor';
+      Object.assign(line.style, {
+        position: 'fixed', top: 0, bottom: 0, width: '2px',
+        background: '#16a34a', opacity: '.85',
+        pointerEvents: 'none', zIndex: '99995',
+      });
+      document.body.appendChild(line);
+      document.addEventListener('mousemove', e => { line.style.left = e.clientX + 'px'; }, { passive: true });
+      this.setAttribute('aria-pressed', 'true');
+    });
+
+    // Speak (selected text or page title)
+    speakBtn.addEventListener('click', () => {
+      const sel = window.getSelection && String(window.getSelection());
+      const text = sel || document.title;
+      if (!window.speechSynthesis) { alert('הדפדפן לא תומך בקריאה בקול'); return; }
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const v = voices.find(x => /he-IL/i.test(x.lang)) || voices[0];
+      if (v) u.voice = v;
+      u.rate = 1; u.pitch = 1; u.volume = 1;
+      window.speechSynthesis.speak(u);
+    });
+
+    // Skip to content
+    skipBtn.addEventListener('click', () => {
+      mainTarget.setAttribute('tabindex', '-1');
+      mainTarget.focus({ preventScroll: true });
+      mainTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Open / close panel
+    function toggleA11yPanel(force) {
+      const show = typeof force === 'boolean' ? force : panel.hasAttribute('hidden');
+      panel.toggleAttribute('hidden', !show);
+      openBtn.setAttribute('aria-expanded', String(show));
+    }
+    openBtn.addEventListener('click',  () => toggleA11yPanel());
+    closeBtn.addEventListener('click', () => toggleA11yPanel(false));
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (!e.altKey) return;
+      if (e.key === '0') { e.preventDefault(); toggleA11yPanel(); }
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); prefs.fontScale = Math.min(175, prefs.fontScale + 5); applyA11y(); }
+      if (e.key === '-') { e.preventDefault(); prefs.fontScale = Math.max(100, prefs.fontScale - 5); applyA11y(); }
+      if (e.key === '9') { e.preventDefault(); prefs = { fontScale: 100, ws: 0, lh: 1.6, ls: 0 }; applyA11y(); }
+    });
+
+    // Drag the panel
+    let dragging = false, sx = 0, sy = 0, baseX = 0, baseY = 0;
+    const dragHandle = document.getElementById('a11yDragHandle');
+    dragHandle.addEventListener('mousedown', e => {
+      if (e.target.closest('.a11y-close')) return;
+      dragging = true; sx = e.clientX; sy = e.clientY;
+      const tr = panel.style.transform.match(/translate\((-?\d+)px,\s*(-?\d+)px\)/);
+      baseX = tr ? parseInt(tr[1], 10) : 0;
+      baseY = tr ? parseInt(tr[2], 10) : 0;
+      document.addEventListener('mousemove', dragMove);
+      document.addEventListener('mouseup', dragUp);
+    });
+    function dragMove(e) {
+      if (!dragging) return;
+      const dx = (e.clientX - sx) * (html.dir === 'rtl' ? -1 : 1) + baseX;
+      const dy = (e.clientY - sy) + baseY;
+      panel.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+    function dragUp() {
+      dragging = false;
+      document.removeEventListener('mousemove', dragMove);
+      document.removeEventListener('mouseup', dragUp);
+    }
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+      prefs = {
+        fontScale: 100, ws: 0, lh: 1.6, ls: 0,
+        contrast: null, dark: false, grayscale: false, invert: false,
+        highlightLinks: false, reduceMotion: false,
+        legibleFont: false, textSpacing: false, biggerTargets: false,
+      };
+      document.body.style.cursor = '';
+      const existing = document.getElementById('a11yReadCursor');
+      if (existing) existing.remove();
+      panel.style.transform = '';
+      applyA11y();
+    });
+
+    // Initial paint
+    applyA11y();
+  })();
+</script>
+</body>
+</html>

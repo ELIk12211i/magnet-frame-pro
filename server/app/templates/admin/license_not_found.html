@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}License Not Found{% endblock %}
+
+{% block content %}
+<div class="empty-state">
+  <i class="bi bi-search empty-icon"></i>
+  <h1 class="empty-title">הרישיון לא נמצא</h1>
+  <p class="empty-sub">
+    לא נמצא רישיון עם המפתח <code class="mono-key">{{ serial_key }}</code>.
+  </p>
+  <a href="/admin/licenses" class="btn btn-primary">
+    <i class="bi bi-chevron-right ms-1"></i> חזרה לרשימת הרישיונות
+  </a>
+</div>
+{% endblock %}

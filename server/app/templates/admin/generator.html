@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+{% block title %}Generate License{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">יצירת רישיון</h1>
+    <p class="page-sub">הנפקת קוד רישיון חדש ללקוח</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/plans" class="btn btn-outline-secondary">
+      <i class="bi bi-diagram-3 ms-1"></i> ניהול תכניות
+    </a>
+    <a href="/admin/licenses" class="btn btn-outline-secondary">
+      <i class="bi bi-collection ms-1"></i> כל הרישיונות
+    </a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger gen-alert">
+    <i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}
+  </div>
+{% endif %}
+
+<div class="gen-layout">
+
+  {# ════════════════════════════════════════════════════════════════
+     Left column — the form itself.  Single clean card, no nested
+     sections so the visual hierarchy is flat and easy to follow.
+     ════════════════════════════════════════════════════════════════ #}
+  <section class="gen-card">
+    <header class="gen-card-head">
+      <div class="gen-card-head-icon">
+        <i class="bi bi-person-plus-fill"></i>
+      </div>
+      <div>
+        <h2 class="gen-card-title">פרטי רישיון חדש</h2>
+        <p class="gen-card-sub">מלא את הפרטים ולחץ על "צור קוד"</p>
+      </div>
+    </header>
+
+    <form method="post" action="/admin/generator"
+          id="generatorForm" class="gen-form" novalidate>
+
+      {# ── Row 1: first + last name ─────────────────────────────── #}
+      <div class="gen-row gen-row-2">
+        <div class="gen-field">
+          <label for="first_name" class="gen-label">
+            <i class="bi bi-person"></i>
+            שם פרטי
+          </label>
+          <input type="text" id="first_name" name="first_name"
+                 class="gen-input"
+                 value="{{ form.first_name or '' }}"
+                 placeholder="ישראל"
+                 autocomplete="given-name">
+        </div>
+
+        <div class="gen-field">
+          <label for="last_name" class="gen-label">
+            <i class="bi bi-person-badge"></i>
+            שם משפחה
+          </label>
+          <input type="text" id="last_name" name="last_name"
+                 class="gen-input"
+                 value="{{ form.last_name or '' }}"
+                 placeholder="ישראלי"
+                 autocomplete="family-name">
+        </div>
+      </div>
+
+      {# ── Row 2: phone ─────────────────────────────────────────── #}
+      <div class="gen-field">
+        <label for="phone" class="gen-label">
+          <i class="bi bi-telephone"></i>
+          טלפון
+        </label>
+        <input type="tel" id="phone" name="phone"
+               class="gen-input" dir="ltr"
+               value="{{ form.phone or '' }}"
+               placeholder="050-0000000"
+               autocomplete="tel">
+        <span class="gen-help">לצורך יצירת קשר עם הלקוח (אופציונלי)</span>
+      </div>
+
+      {# ── Row 3: plan name + days ──────────────────────────────── #}
+      {# Subscription kind (trial / lifetime / periodic) is a property
+         of the *plan* itself — managed from /admin/plans — not of the
+         individual license.  Here we only ask which plan to issue. #}
+      <div class="gen-row gen-row-2-1">
+        <div class="gen-field">
+          <label for="license_type_name" class="gen-label">
+            <i class="bi bi-tag"></i>
+            שם התכנית
+          </label>
+          <div class="gen-combo">
+            <input type="text" id="license_type_name" name="license_type_name"
+                   class="gen-input gen-input-combo"
+                   list="licenseTypeList" required
+                   value="{{ form.license_type_name or '' }}"
+                   placeholder="בחר מהרשימה או הקלד חדש"
+                   autocomplete="off">
+            <datalist id="licenseTypeList">
+              {% for p in plans %}
+                <option value="{{ p.name }}"
+                        data-days="{{ p.days if p.days is not none else '' }}"
+                        data-type="{{ p.license_type }}">
+                  {% if p.license_type == 'lifetime' %}
+                    {{ p.name }} — לצמיתות
+                  {% else %}
+                    {{ p.name }} — {{ p.days }} ימים
+                  {% endif %}
+                </option>
+              {% endfor %}
+            </datalist>
+            <i class="bi bi-chevron-down gen-combo-chev"></i>
+          </div>
+          <span class="gen-help">שם לתצוגה (למשל: פרימיום / 3 חודשים)</span>
+        </div>
+
+        <div class="gen-field" id="genDaysField">
+          <label for="days" class="gen-label">
+            <i class="bi bi-calendar-range"></i>
+            כמות ימים
+          </label>
+          <input type="number" id="days" name="days"
+                 class="gen-input gen-input-num" dir="ltr"
+                 min="1" max="36500"
+                 value="{{ form.days or '' }}"
+                 placeholder="365">
+          <span class="gen-help" id="genDaysHelp">
+            משך תוקף המנוי בימים
+          </span>
+        </div>
+      </div>
+
+      {# ── Submit ───────────────────────────────────────────────── #}
+      <div class="gen-submit-row">
+        <button type="submit" class="gen-btn-primary" id="generatorSubmit" disabled>
+          <i class="bi bi-magic"></i>
+          <span>צור קוד</span>
+        </button>
+        <button type="reset" class="gen-btn-ghost" id="generatorReset">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          <span>נקה</span>
+        </button>
+        <p class="gen-submit-hint" id="generatorHint">
+          יש למלא שם לקוח וסוג רישיון כדי ליצור קוד
+        </p>
+      </div>
+
+    </form>
+  </section>
+
+  {# ════════════════════════════════════════════════════════════════
+     Right column — result card OR tips card.
+     ════════════════════════════════════════════════════════════════ #}
+  <aside class="gen-side">
+    {% if created %}
+      <div class="gen-result">
+        <header class="gen-result-head">
+          <div class="gen-result-badge">
+            <i class="bi bi-check-lg"></i>
+          </div>
+          <div>
+            <h3 class="gen-result-title">הקוד נוצר בהצלחה</h3>
+            <p class="gen-result-sub">העתק ושלח ללקוח</p>
+          </div>
+        </header>
+
+        <div class="gen-key-wrap">
+          <code class="gen-key" id="generatedKey">{{ created.license_key or created.serial_key }}</code>
+          <button type="button" class="gen-copy copy-btn"
+                  data-copy-target="#generatedKey" title="העתק">
+            <i class="bi bi-clipboard"></i>
+            <span class="copy-label">העתק</span>
+          </button>
+        </div>
+
+        <dl class="gen-meta">
+          {% if created.customer_name %}
+            <dt>לקוח</dt>
+            <dd>{{ created.customer_name }}</dd>
+          {% endif %}
+          {% if created.customer_phone %}
+            <dt>טלפון</dt>
+            <dd dir="ltr">{{ created.customer_phone }}</dd>
+          {% endif %}
+          <dt>סוג</dt>
+          <dd>
+            {% if created.plan_name %}
+              <strong>{{ created.plan_name }}</strong>
+            {% elif created.license_type == 'lifetime' %}לצמיתות
+            {% elif created.license_type == 'trial_14_days' %}ניסיון
+            {% else %}שנתי / תקופתי{% endif %}
+          </dd>
+          {% if created.expires_at %}
+            <dt>תפוגה</dt>
+            <dd>{{ created.expires_at|localdate }}</dd>
+          {% endif %}
+          <dt>נוצר</dt>
+          <dd>{{ created.created_at|localdt }}</dd>
+        </dl>
+
+        <div class="gen-result-actions">
+          <a href="/admin/generator" class="gen-btn-ghost">
+            <i class="bi bi-plus-lg"></i>
+            <span>צור נוסף</span>
+          </a>
+          <a href="/admin/licenses/{{ created.serial_key }}" class="gen-btn-ghost">
+            <i class="bi bi-eye"></i>
+            <span>פרטים</span>
+          </a>
+        </div>
+      </div>
+    {% else %}
+      <div class="gen-tips">
+        <h3 class="gen-tips-title">
+          <i class="bi bi-lightbulb"></i> איך זה עובד
+        </h3>
+        <ol class="gen-tips-list">
+          <li>
+            <strong>פרטי הלקוח</strong> — שם פרטי, משפחה וטלפון נשמרים
+            פנימית ולא מוצגים בתוכנת הלקוח.
+          </li>
+          <li>
+            <strong>סוג רישיון</strong> — בחר מהרשימה, או הקלד שם חדש
+            והוא יישמר אוטומטית לשימושים הבאים.
+          </li>
+          <li>
+            <strong>כמות ימים</strong> — קובע את משך תוקף הרישיון.
+            השאר ריק עבור רישיון לצמיתות.
+          </li>
+          <li>
+            <strong>צור קוד</strong> — המפתח יוצג כאן עם כפתור העתקה מהיר.
+          </li>
+        </ol>
+      </div>
+    {% endif %}
+  </aside>
+</div>
+
+{# ══════════════════════════════════════════════════════════════════
+   Interactive behaviour:
+   1. Autofill "days" when the user picks an existing plan from the
+      combobox.
+   2. Keep the submit button disabled until the required fields are
+      filled in.
+   3. Collapse the previous-result card as soon as the user starts
+      entering data for a new license — so the old code doesn't linger
+      on screen while filling out the new form.
+   ══════════════════════════════════════════════════════════════════ #}
+<script>
+(function() {
+  var form       = document.getElementById('generatorForm');
+  var firstInput = document.getElementById('first_name');
+  var lastInput  = document.getElementById('last_name');
+  var phoneInput = document.getElementById('phone');
+  var typeInput  = document.getElementById('license_type_name');
+  var daysInput  = document.getElementById('days');
+  var list       = document.getElementById('licenseTypeList');
+  var submitBtn  = document.getElementById('generatorSubmit');
+  var resetBtn   = document.getElementById('generatorReset');
+  var hintEl     = document.getElementById('generatorHint');
+  var sideEl     = document.querySelector('.gen-side');
+  if (!form || !submitBtn) return;
+
+  // ── 1. Autofill days from chosen plan ───────────────────────────
+  function findOption(name) {
+    if (!list) return null;
+    var opts = list.querySelectorAll('option');
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].value === name) return opts[i];
+    }
+    return null;
+  }
+  function syncDays() {
+    if (!typeInput || !daysInput) return;
+    var opt = findOption(typeInput.value.trim());
+    if (!opt) return;
+    var d = opt.getAttribute('data-days');
+    daysInput.value = (d !== null && d !== '') ? d : '';
+    // If the plan carries an explicit type, flip the kind radios.
+    var t = opt.getAttribute('data-type');
+    if (t) {
+      var kr = form.querySelector(
+        'input[name="license_kind"][value="' + t + '"]');
+      if (kr) { kr.checked = true; syncKind(); }
+    }
+  }
+  if (typeInput) {
+    typeInput.addEventListener('change', syncDays);
+    typeInput.addEventListener('input',  syncDays);
+  }
+
+  // ── 1b. Toggle "days" field based on the selected plan ─────────
+  // When the admin picks a "lifetime" plan from the combobox, hide
+  // the days field entirely.  Otherwise show it with the plan's
+  // default days pre-filled.
+  var daysField = document.getElementById('genDaysField');
+  function syncDaysFieldForPlan() {
+    if (!typeInput || !daysField || !daysInput) return;
+    var opt = findOption(typeInput.value.trim());
+    if (!opt) {
+      // Typed a new plan name — keep days visible.
+      daysField.style.display = '';
+      daysInput.required = true;
+      return;
+    }
+    var t = opt.getAttribute('data-type');
+    if (t === 'lifetime') {
+      daysField.style.display = 'none';
+      daysInput.required = false;
+      daysInput.value = '';
+    } else {
+      daysField.style.display = '';
+      daysInput.required = true;
+    }
+  }
+  if (typeInput) {
+    typeInput.addEventListener('change', syncDaysFieldForPlan);
+    typeInput.addEventListener('input',  syncDaysFieldForPlan);
+  }
+  syncDaysFieldForPlan();
+
+  // ── 2. Enable/disable submit button based on required fields ────
+  function hasName() {
+    return (firstInput && firstInput.value.trim().length > 0) ||
+           (lastInput  && lastInput.value.trim().length  > 0);
+  }
+  function hasType() {
+    return typeInput && typeInput.value.trim().length > 0;
+  }
+  function refreshSubmit() {
+    var ok = hasName() && hasType();
+    submitBtn.disabled = !ok;
+    if (hintEl) {
+      if (ok) {
+        hintEl.textContent = 'הכל מוכן — ניתן ליצור את הקוד';
+        hintEl.classList.add('gen-submit-hint-ok');
+      } else if (!hasName() && !hasType()) {
+        hintEl.textContent = 'יש למלא שם לקוח וסוג רישיון כדי ליצור קוד';
+        hintEl.classList.remove('gen-submit-hint-ok');
+      } else if (!hasName()) {
+        hintEl.textContent = 'יש להזין שם פרטי או שם משפחה';
+        hintEl.classList.remove('gen-submit-hint-ok');
+      } else {
+        hintEl.textContent = 'יש לבחור או להקליד סוג רישיון';
+        hintEl.classList.remove('gen-submit-hint-ok');
+      }
+    }
+  }
+  [firstInput, lastInput, typeInput].forEach(function(el) {
+    if (el) {
+      el.addEventListener('input',  refreshSubmit);
+      el.addEventListener('change', refreshSubmit);
+    }
+  });
+  refreshSubmit();
+
+  // ── 3. Hide the stale result card when the user edits the form ──
+  var resultEl = document.querySelector('.gen-result');
+  function hideStaleResult() {
+    if (!resultEl) return;
+    // Fade-out then remove from layout so the column can render
+    // a fresh tips card when the next submission happens.
+    resultEl.classList.add('gen-result-fading');
+    setTimeout(function() {
+      if (resultEl && resultEl.parentNode) {
+        resultEl.parentNode.removeChild(resultEl);
+        resultEl = null;
+        // Optionally show the tips card inline so the side isn't empty.
+        if (sideEl && !sideEl.querySelector('.gen-tips')) {
+          var tips = document.createElement('div');
+          tips.className = 'gen-tips';
+          tips.innerHTML =
+            '<h3 class="gen-tips-title">' +
+            '<i class="bi bi-lightbulb"></i> איך זה עובד</h3>' +
+            '<ol class="gen-tips-list">' +
+            '<li><strong>פרטי הלקוח</strong> — שם פרטי, משפחה וטלפון נשמרים פנימית ולא מוצגים בתוכנת הלקוח.</li>' +
+            '<li><strong>סוג רישיון</strong> — בחר מהרשימה, או הקלד שם חדש והוא יישמר אוטומטית לשימושים הבאים.</li>' +
+            '<li><strong>כמות ימים</strong> — קובע את משך תוקף הרישיון. השאר ריק עבור רישיון לצמיתות.</li>' +
+            '<li><strong>צור קוד</strong> — המפתח יוצג כאן עם כפתור העתקה מהיר.</li>' +
+            '</ol>';
+          sideEl.appendChild(tips);
+        }
+      }
+    }, 220);
+  }
+  [firstInput, lastInput, phoneInput, typeInput, daysInput].forEach(function(el) {
+    if (el) el.addEventListener('input', hideStaleResult, { once: true });
+  });
+
+  // ── Reset: also restore the button state ────────────────────────
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      setTimeout(refreshSubmit, 0);
+    });
+  }
+})();
+</script>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   Generator screen — modern, flat, RTL-aware layout.
+   Scoped with ``.gen-*`` prefix so nothing leaks into other pages.
+   ════════════════════════════════════════════════════════════════ */
+
+.gen-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 992px) {
+  .gen-layout { grid-template-columns: 1fr; }
+}
+
+.gen-alert {
+  border-radius: 10px;
+  border: 1px solid #f5b5b5;
+  margin-bottom: 18px;
+}
+
+/* ── Card shell ───────────────────────────────────────────────── */
+.gen-card {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 16px;
+  padding: 28px 28px 22px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.04),
+              0 8px 24px rgba(18,28,50,.03);
+}
+.gen-card-head {
+  display: flex; gap: 14px; align-items: center;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eef1f7;
+  margin-bottom: 22px;
+}
+.gen-card-head-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, #E8F0FF 0%, #D7E4FF 100%);
+  color: #2E8BFF;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.gen-card-title {
+  margin: 0; font-size: 18px; font-weight: 700;
+  color: #1a2746; letter-spacing: -0.01em;
+}
+.gen-card-sub {
+  margin: 2px 0 0; font-size: 13px; color: #6b7a94;
+}
+
+/* ── Form layout ──────────────────────────────────────────────── */
+.gen-form { display: flex; flex-direction: column; gap: 18px; }
+
+.gen-row { display: grid; gap: 16px; }
+.gen-row-2   { grid-template-columns: 1fr 1fr; }
+.gen-row-2-1 { grid-template-columns: 1.5fr 1fr; }
+@media (max-width: 620px) {
+  .gen-row-2, .gen-row-2-1 { grid-template-columns: 1fr; }
+}
+
+/* ── Field (label + input + help) ─────────────────────────────── */
+.gen-field { display: flex; flex-direction: column; }
+.gen-label {
+  font-size: 13px; font-weight: 600;
+  color: #2c3a58; margin-bottom: 6px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.gen-label i { color: #7a8aa7; font-size: 14px; }
+
+.gen-input {
+  height: 44px;
+  padding: 0 14px;
+  font-size: 14.5px;
+  color: #1a2746;
+  background: #fbfcfe;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color .12s, box-shadow .12s, background .12s;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.gen-input:hover  { border-color: #b9c4d6; }
+.gen-input:focus  {
+  border-color: #2E8BFF;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(46,139,255,.15);
+}
+.gen-input::placeholder { color: #a8b3c7; }
+.gen-input-num  { text-align: center; letter-spacing: 0.5px; }
+
+.gen-help {
+  font-size: 12px; color: #8a96ae;
+  margin-top: 6px; line-height: 1.4;
+}
+
+/* ── Kind picker (trial / lifetime / periodic) ────────────────── */
+.gen-kind-radio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (max-width: 560px) {
+  .gen-kind-radio { grid-template-columns: 1fr; }
+}
+.gen-kind-opt { cursor: pointer; margin: 0; position: relative; }
+.gen-kind-opt input {
+  position: absolute; opacity: 0; pointer-events: none;
+}
+.gen-kind-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 14px 8px;
+  border: 1.5px solid #dbe1ec;
+  border-radius: 11px;
+  background: #fbfcfe;
+  color: #4a5a78;
+  text-align: center;
+  transition: all .12s;
+  min-height: 90px;
+  justify-content: center;
+}
+.gen-kind-inner i {
+  font-size: 20px;
+  color: #7a8aa7;
+}
+.gen-kind-inner strong {
+  font-size: 14px; font-weight: 700;
+  color: #1a2746;
+}
+.gen-kind-inner small {
+  font-size: 11.5px; color: #8a96ae;
+  font-weight: 500;
+}
+.gen-kind-opt:hover .gen-kind-inner {
+  border-color: #93b4ff;
+  transform: translateY(-1px);
+}
+.gen-kind-opt input:checked + .gen-kind-inner {
+  border-color: #2E8BFF;
+  background: #EAF3FF;
+  box-shadow: 0 2px 8px rgba(46,139,255,.18);
+}
+.gen-kind-opt input:checked + .gen-kind-inner i,
+.gen-kind-opt input:checked + .gen-kind-inner strong {
+  color: #1a56c4;
+}
+.gen-kind-opt input:checked + .gen-kind-inner small {
+  color: #2E8BFF;
+}
+
+.gen-custom-wrap {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1.5px dashed #BFD9FF;
+  background: #F7FAFF;
+  border-radius: 11px;
+}
+.gen-custom-icon {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: #2E8BFF; pointer-events: none;
+  font-size: 14px;
+}
+.gen-input-custom {
+  padding-right: 38px;
+  font-weight: 600;
+}
+.gen-input-custom:focus {
+  border-color: #2E8BFF;
+  background: #ffffff;
+}
+
+/* ── Combobox (input + datalist) ──────────────────────────────── */
+.gen-combo { position: relative; }
+.gen-combo-chev {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: #9aa6c0; pointer-events: none;
+  font-size: 12px;
+}
+.gen-input-combo { padding-left: 34px; }
+
+/* ── Buttons ──────────────────────────────────────────────────── */
+.gen-submit-row {
+  display: flex; gap: 10px;
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 1px solid #eef1f7;
+  flex-wrap: wrap;
+}
+.gen-btn-primary,
+.gen-btn-ghost {
+  height: 44px;
+  padding: 0 22px;
+  font-size: 14.5px;
+  font-weight: 700;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; gap: 8px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .12s;
+  text-decoration: none;
+  font-family: inherit;
+}
+.gen-btn-primary {
+  background: linear-gradient(180deg, #3D97FF 0%, #2E8BFF 100%);
+  color: #ffffff;
+  border-color: #2E8BFF;
+  box-shadow: 0 2px 6px rgba(46,139,255,.3);
+  min-width: 160px;
+  justify-content: center;
+}
+.gen-btn-primary:hover:not(:disabled)  {
+  background: linear-gradient(180deg, #2E8BFF 0%, #1E76E6 100%);
+  box-shadow: 0 4px 10px rgba(46,139,255,.35);
+  transform: translateY(-1px);
+}
+.gen-btn-primary:active:not(:disabled) { transform: translateY(0); }
+.gen-btn-primary:disabled {
+  background: #c8d3e7;
+  border-color: #c8d3e7;
+  color: #ffffff;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+.gen-submit-hint {
+  flex: 1 0 100%;
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #8a96ae;
+  line-height: 1.5;
+}
+.gen-submit-hint.gen-submit-hint-ok {
+  color: #1a7f37;
+  font-weight: 600;
+}
+
+/* Fade-out animation for the old result card when the admin starts
+   typing a new license.  Hides visually without jumping the layout. */
+.gen-result-fading {
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity .2s ease-out, transform .2s ease-out;
+  pointer-events: none;
+}
+.gen-btn-ghost {
+  background: #ffffff;
+  color: #4a5a78;
+  border-color: #dbe1ec;
+}
+.gen-btn-ghost:hover {
+  background: #f6f8fc;
+  border-color: #b9c4d6;
+  color: #2c3a58;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Right side — result / tips
+   ════════════════════════════════════════════════════════════════ */
+
+.gen-side { position: sticky; top: 16px; }
+
+.gen-result {
+  background: #ffffff;
+  border: 1px solid #d4eadc;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgba(18,28,50,.04),
+              0 8px 24px rgba(18,28,50,.03);
+}
+.gen-result-head {
+  display: flex; gap: 12px; align-items: center;
+  padding-bottom: 16px; border-bottom: 1px solid #eef4f0;
+  margin-bottom: 16px;
+}
+.gen-result-badge {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: #D4F2DF; color: #1a7f37;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.gen-result-title {
+  margin: 0; font-size: 16px; font-weight: 700; color: #1a2746;
+}
+.gen-result-sub {
+  margin: 2px 0 0; font-size: 13px; color: #6b7a94;
+}
+
+.gen-key-wrap {
+  display: flex; align-items: stretch; gap: 8px;
+  background: #f7f9fc;
+  border: 1.5px dashed #c9d3e5;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 14px;
+}
+.gen-key {
+  flex: 1; min-width: 0;
+  font-family: 'JetBrains Mono','Cascadia Mono','Consolas',monospace;
+  font-size: 15px; font-weight: 700;
+  color: #0e1b3a;
+  background: transparent;
+  padding: 6px 8px;
+  direction: ltr; text-align: center;
+  letter-spacing: 0.5px;
+  word-break: break-all;
+  align-self: center;
+}
+.gen-copy {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 14px; height: 36px;
+  background: #2E8BFF; color: #ffffff;
+  border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background .12s;
+  white-space: nowrap; align-self: center;
+  font-family: inherit;
+}
+.gen-copy:hover { background: #1E76E6; }
+
+.gen-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 14px;
+  font-size: 13.5px;
+  margin: 0 0 14px;
+}
+.gen-meta dt { color: #7a8aa7; font-weight: 500; }
+.gen-meta dd { margin: 0; color: #1a2746; font-weight: 600; }
+.gen-meta dd strong { color: #1a56c4; font-weight: 700; }
+.gen-meta dd .gen-sub {
+  color: #8a96ae;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.gen-result-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  padding-top: 14px; border-top: 1px solid #eef4f0;
+}
+.gen-result-actions .gen-btn-ghost { width: 100%; justify-content: center; height: 38px; }
+
+/* ── Tips card ────────────────────────────────────────────────── */
+.gen-tips {
+  background: #f7faff;
+  border: 1px solid #d8e4ff;
+  border-radius: 16px;
+  padding: 22px;
+}
+.gen-tips-title {
+  margin: 0 0 14px; font-size: 15px; font-weight: 700;
+  color: #1a2746;
+  display: flex; align-items: center; gap: 8px;
+}
+.gen-tips-title i { color: #2E8BFF; }
+.gen-tips-list {
+  margin: 0; padding-right: 18px;
+  color: #4a5a78; font-size: 13.5px;
+  line-height: 1.7;
+}
+.gen-tips-list li { margin-bottom: 6px; }
+.gen-tips-list strong { color: #1a2746; }
+</style>
+{% endblock %}

@@ -1,0 +1,14 @@
+{%- set _s = (lic.status or '') | lower -%}
+{%- if _s == 'active' -%}
+  <span class="status-badge status-active"><i class="bi bi-check-circle-fill"></i> פעיל</span>
+{%- elif _s == 'unused' -%}
+  <span class="status-badge status-unused"><i class="bi bi-circle"></i> לא הופעל</span>
+{%- elif _s == 'disabled' -%}
+  <span class="status-badge status-disabled"><i class="bi bi-x-octagon-fill"></i> מושבת</span>
+{%- elif _s == 'expired' -%}
+  <span class="status-badge status-expired"><i class="bi bi-clock-history"></i> פג תוקף</span>
+{%- elif _s == 'reset' -%}
+  <span class="status-badge status-reset"><i class="bi bi-arrow-counterclockwise"></i> אופס</span>
+{%- else -%}
+  <span class="status-badge status-other">{{ lic.status or '—' }}</span>
+{%- endif -%}

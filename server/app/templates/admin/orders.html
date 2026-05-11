@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Orders{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">הזמנות</h1>
+    <p class="page-sub">סה"כ {{ total|default(0) }} הזמנות מהאתר</p>
+  </div>
+</div>
+
+<div class="card filter-card">
+  <div class="card-body">
+    <form method="get" action="/admin/orders" class="row g-2 align-items-end">
+      <div class="col-md-7">
+        <label class="form-label small">חיפוש</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" class="form-control"
+                 value="{{ filters.q or '' }}"
+                 placeholder="מס׳ הזמנה, שם לקוח, אימייל, טלפון, מפתח רישיון…">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small">סטטוס</label>
+        <select name="status" class="form-select">
+          <option value="">הכל</option>
+          {% for s in ['pending', 'paid', 'failed', 'refunded'] %}
+            <option value="{{ s }}" {% if filters.status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="bi bi-funnel"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>הזמנה</th>
+          <th>תאריך</th>
+          <th>לקוח</th>
+          <th>פרטי קשר</th>
+          <th>תוכנית</th>
+          <th>סכום</th>
+          <th>סטטוס</th>
+          <th>מפתח רישיון</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for o in items %}
+        <tr>
+          <td>
+            <span class="mono-small">#{{ '%06d' % o.id }}</span>
+            {% if o.provider and o.provider != 'unknown' %}
+              <div class="small text-muted">{{ o.provider }}</div>
+            {% endif %}
+          </td>
+          <td class="small text-muted">{{ o.created_at|localdt }}</td>
+          <td>
+            {% if o.customer_name %}{{ o.customer_name }}
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="small">
+            {% if o.customer_email %}
+              <div><i class="bi bi-envelope text-muted"></i> {{ o.customer_email }}</div>
+            {% endif %}
+            {% if o.customer_phone %}
+              <div><i class="bi bi-telephone text-muted"></i> {{ o.customer_phone }}</div>
+            {% endif %}
+            {% if not o.customer_email and not o.customer_phone %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if o.plan_name %}{{ o.plan_name }}
+            {% else %}<span class="text-muted">{{ o.plan_key or '—' }}</span>{% endif %}
+          </td>
+          <td class="small">
+            {% if o.amount_cents and o.amount_cents > 0 %}
+              {{ '%.2f' % (o.amount_cents / 100) }} {{ o.currency or 'ILS' }}
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% set badge_cls = 'secondary' %}
+            {% if o.status == 'paid' %}{% set badge_cls = 'success' %}{% endif %}
+            {% if o.status == 'pending' %}{% set badge_cls = 'warning text-dark' %}{% endif %}
+            {% if o.status == 'failed' %}{% set badge_cls = 'danger' %}{% endif %}
+            {% if o.status == 'refunded' %}{% set badge_cls = 'info text-dark' %}{% endif %}
+            <span class="badge bg-{{ badge_cls }}">{{ o.status or 'unknown' }}</span>
+            {% if o.paid_at %}
+              <div class="small text-muted mt-1">שולם: {{ o.paid_at|localdt }}</div>
+            {% elif o.failed_at %}
+              <div class="small text-muted mt-1">נכשל: {{ o.failed_at|localdt }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if o.license_serial %}
+              <a href="/admin/licenses/{{ o.license_serial }}" class="mono-key">{{ o.license_serial }}</a>
+              {% if o.license_expires_at %}
+                <div class="small text-muted">תוקף: {{ o.license_expires_at|localdate }}</div>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="text-center text-muted py-5">
+          לא נמצאו הזמנות תואמות.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages and pages > 1 %}
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <div class="small text-muted">
+      עמוד {{ page }} מתוך {{ pages }} · סה"כ {{ total }}
+    </div>
+    <nav>
+      <ul class="pagination pagination-sm mb-0">
+        {%- set base_q = '&q=' ~ (filters.q or '') ~ '&status=' ~ (filters.status or '') ~ '&limit=' ~ (limit or 25) -%}
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page - 1 }}{{ base_q }}"><i class="bi bi-chevron-right"></i></a>
+        </li>
+        {% for p in range(1, pages + 1) %}
+          {% if p == 1 or p == pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}{{ base_q }}">{{ p }}</a>
+            </li>
+          {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        <li class="page-item {% if page >= pages %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ page + 1 }}{{ base_q }}"><i class="bi bi-chevron-left"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+<aside class="app-sidebar" id="appSidebar">
+  <div class="sidebar-brand">
+    <i class="bi bi-shield-lock-fill sidebar-logo"></i>
+    <div>
+      <div class="sidebar-brand-title">License Manager</div>
+      <div class="sidebar-brand-sub">Magnet Frame Pro</div>
+    </div>
+  </div>
+
+  <div class="sidebar-clock" id="sidebarClock" aria-live="polite">
+    <i class="bi bi-clock"></i>
+    <div>
+      <div class="sidebar-clock-time" id="sidebarClockTime">--:--:--</div>
+      <div class="sidebar-clock-date" id="sidebarClockDate">—</div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    var timeEl = document.getElementById('sidebarClockTime');
+    var dateEl = document.getElementById('sidebarClockDate');
+    if (!timeEl) return;
+    var WEEKDAYS_HE = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    var MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני',
+                     'יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function tick() {
+      var d = new Date();
+      timeEl.textContent = pad(d.getHours()) + ':' +
+                           pad(d.getMinutes()) + ':' +
+                           pad(d.getSeconds());
+      if (dateEl) {
+        dateEl.textContent = 'יום ' + WEEKDAYS_HE[d.getDay()] + ' · ' +
+                             d.getDate() + ' ב' + MONTHS_HE[d.getMonth()] +
+                             ' ' + d.getFullYear();
+      }
+    }
+    tick();
+    // Align to next whole second so the display is smooth.
+    var delay = 1000 - (new Date().getMilliseconds());
+    setTimeout(function() {
+      tick();
+      setInterval(tick, 1000);
+    }, delay);
+
+    // Also hydrate any <time class="js-local-dt"> elements on the page
+    // so the user sees browser-local time even if the bundled app.js
+    // hasn't reloaded yet (aggressive browser caching).
+    function pad2(n) { return (n < 10 ? '0' : '') + n; }
+    document.querySelectorAll('time.js-local-dt[datetime]').forEach(function(el) {
+      try {
+        var dt = new Date(el.getAttribute('datetime'));
+        if (isNaN(dt.getTime())) return;
+        el.textContent = dt.getFullYear() + '-' + pad2(dt.getMonth()+1) + '-' +
+                         pad2(dt.getDate()) + ' ' +
+                         pad2(dt.getHours()) + ':' + pad2(dt.getMinutes()) +
+                         ':' + pad2(dt.getSeconds());
+      } catch (_) {}
+    });
+    document.querySelectorAll('time.js-local-date[datetime]').forEach(function(el) {
+      try {
+        var dt = new Date(el.getAttribute('datetime'));
+        if (isNaN(dt.getTime())) return;
+        el.textContent = dt.getFullYear() + '-' + pad2(dt.getMonth()+1) + '-' +
+                         pad2(dt.getDate());
+      } catch (_) {}
+    });
+  })();
+  </script>
+
+  <nav class="sidebar-nav">
+    <a href="/admin/dashboard"
+       class="sidebar-link {% if active_nav == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i><span>לוח בקרה</span>
+    </a>
+    <a href="/admin/generator"
+       class="sidebar-link {% if active_nav == 'generator' %}active{% endif %}">
+      <i class="bi bi-key-fill"></i><span>יצירת רישיון</span>
+    </a>
+    <a href="/admin/plans"
+       class="sidebar-link {% if active_nav == 'plans' %}active{% endif %}">
+      <i class="bi bi-diagram-3-fill"></i><span>תכניות מנוי</span>
+    </a>
+    <a href="/admin/licenses"
+       class="sidebar-link {% if active_nav == 'licenses' %}active{% endif %}">
+      <i class="bi bi-collection-fill"></i><span>כל הרישיונות</span>
+    </a>
+    <a href="/admin/orders"
+       class="sidebar-link {% if active_nav == 'orders' %}active{% endif %}">
+      <i class="bi bi-receipt-cutoff"></i><span>הזמנות</span>
+    </a>
+    <a href="/admin/customers"
+       class="sidebar-link {% if active_nav == 'customers' %}active{% endif %}">
+      <i class="bi bi-people-fill"></i><span>לקוחות</span>
+    </a>
+    <a href="/admin/leads"
+       class="sidebar-link {% if active_nav == 'leads' %}active{% endif %}">
+      <i class="bi bi-person-plus-fill"></i><span>משתמשים חדשים</span>
+    </a>
+    <a href="/admin/events"
+       class="sidebar-link {% if active_nav == 'events' %}active{% endif %}">
+      <i class="bi bi-journal-text"></i><span>יומן אירועים</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <i class="bi bi-person-circle"></i>
+      <div>
+        <div class="sidebar-user-label">מחובר כ־</div>
+        <div class="sidebar-user-name">{{ user }}</div>
+      </div>
+    </div>
+    <form method="post" action="/admin/logout" class="mt-2">
+      <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+        <i class="bi bi-box-arrow-right ms-1"></i> יציאה
+      </button>
+    </form>
+  </div>
+</aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>

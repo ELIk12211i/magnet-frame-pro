@@ -1,0 +1,33 @@
+# Don't ship secrets or local-only data to Railway.
+.env
+.env.*
+
+# SQLite state lives in a Railway Volume, NOT in the image.
+licenses.db
+licenses.db-journal
+licenses.db-wal
+licenses.db-shm
+
+# Python build artefacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Windows dev helpers
+*.bat
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
