@@ -100,9 +100,12 @@ app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 
 # ---------------------------------------------------------------------------
-# Marketing site — static files from project-root ``site/``.
+# Marketing site — static files from ``server/site/`` so Railway (which has
+# Root Directory = ``server``) can find the assets. Local dev copies live
+# at both server/site/ and the project-root site/; the deployed copy is
+# server/site/.
 # ---------------------------------------------------------------------------
-_SITE_DIR = Path(__file__).parent.parent.parent / "site"
+_SITE_DIR = Path(__file__).parent.parent / "site"
 try:
     _SITE_DIR.mkdir(parents=True, exist_ok=True)
     _site_index = _SITE_DIR / "index.html"
