@@ -100,7 +100,7 @@ railway variables set SECRET_KEY=$(python -c "import secrets; print(secrets.toke
 | `SMTP_PORT` | `587` | |
 | `SMTP_USER` | `your@gmail.com` | |
 | `SMTP_PASSWORD` | `app-password` | Gmail App Password — לא הסיסמה הרגילה |
-| `SMTP_FROM` | `noreply@magnetframe.com` | |
+| `SMTP_FROM` | `noreply@magnetframepro.co.il` | |
 | `SMTP_FROM_NAME` | `Magnet Frame Pro` | |
 | `SMTP_USE_TLS` | `true` | |
 | `WEBHOOK_SECRET` | random string | רק אם משתמש בתשלומים |

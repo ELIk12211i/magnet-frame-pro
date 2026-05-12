@@ -11,7 +11,7 @@ Configuration (via environment variables or server/.env):
     SMTP_PORT        587 (STARTTLS) or 465 (SSL); default 587
     SMTP_USER        SMTP username
     SMTP_PASSWORD    SMTP password / API key
-    SMTP_FROM        "From" address (e.g. no-reply@magnetframe.co.il)
+    SMTP_FROM        "From" address (e.g. no-reply@magnetframepro.co.il)
     SMTP_FROM_NAME   Display name for the From header
     SMTP_USE_TLS     "true"/"false"; default "true" (STARTTLS on port 587)
     SMTP_USE_SSL     "true"/"false"; default "false" (SMTPS on port 465)
@@ -188,7 +188,7 @@ def send_license_delivery(
     serial_key: str,
     plan_name: str,
     expires_at: Optional[str] = None,
-    support_email: str = "support@magnetframe.co.il",
+    support_email: str = "support@magnetframepro.co.il",
 ) -> bool:
     """Send the "your license is ready" email with the serial key.
 
