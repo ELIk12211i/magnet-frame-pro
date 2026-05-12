@@ -254,6 +254,14 @@ def init_db() -> None:
         _add_column_if_missing(conn, "licenses", "validation_message",
                                "TEXT DEFAULT ''")
 
+        # ----- Trial table: ensure ``serial_key`` exists on legacy DBs.
+        # Older deploys created ``trials`` with only (machine_id,
+        # started_at, expires_at); the modern ``start_trial`` flow
+        # writes ``serial_key`` too. Missing columns would crash the
+        # insert and surface as a 500 to the desktop client.
+        _add_column_if_missing(conn, "trials", "serial_key",
+                               "TEXT DEFAULT ''")
+
         # ------------------------------------------------------------------
         # Additive: activations + events + indexes.
         # ------------------------------------------------------------------

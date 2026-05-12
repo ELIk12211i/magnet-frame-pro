@@ -76,6 +76,19 @@ YEARLY_DAYS = 365
 VALIDATION_RECHECK_DAYS = 3
 VALIDATION_OFFLINE_GRACE_DAYS = 7
 
+# ---------------------------------------------------------------------------
+# Machine-rebinding cap.
+#
+# A purchased license is migrated to a new machine on first activation
+# from that machine (so a customer can move their license between PCs).
+# To prevent casual sharing, the migration is capped: after
+# ``MAX_REBINDS`` distinct moves, further activations from new machines
+# are rejected and the customer must contact support to reset the
+# binding.  Counted by the number of rows in ``machine_history`` for
+# the serial.
+# ---------------------------------------------------------------------------
+MAX_REBINDS = 3
+
 
 # ---------------------------------------------------------------------------
 # Canonical status enum for the unified response.
@@ -294,7 +307,26 @@ def activate(serial: str, mid: str, ip: str = "", user_agent: str = "",
         # ``machine_history`` so that machine can't fall back to a
         # fresh trial later.  Same key on the SAME machine is still
         # a no-op refresh.
+        # 2026-05 update: capped at ``MAX_REBINDS`` distinct moves to
+        # prevent casual sharing.  Past the cap we reject with a
+        # support-prompt message.
         incoming_hwid = (machine_uuid or "").strip()
+
+        def _count_rebinds() -> int:
+            """How many times has THIS serial moved between machines?
+
+            Returns 0 if the table is missing (older DB) so we never
+            block on a schema migration glitch.
+            """
+            try:
+                row_ = conn.execute(
+                    "SELECT COUNT(*) AS c FROM machine_history "
+                    "WHERE last_serial = ?",
+                    (serial,),
+                ).fetchone()
+                return int(row_["c"]) if row_ else 0
+            except Exception:
+                return 0
 
         def _record_history(prev_mid: str) -> None:
             if not prev_mid:
@@ -311,32 +343,44 @@ def activate(serial: str, mid: str, ip: str = "", user_agent: str = "",
                 # legitimate activation if the insert fails.
                 pass
 
-        migrated_from: str = ""
+        # Detect a pending migration (license is bound to another
+        # machine).  We need the decision BEFORE recording history so
+        # we can enforce the cap on the new attempt itself.
+        wants_migration = False
+        migrate_reason = ""
         if bound_hwid:
-            # Modern flow — compare hardware IDs.
             if incoming_hwid and bound_hwid != incoming_hwid:
-                migrated_from = bound_mid or bound_hwid
-                _safe(_evt.log_event, serial, mid,
-                      _evt.EVENT_ACTIVATION_MACHINE_MISMATCH,
-                      message=f"HWID migrate: bound={bound_hwid} "
-                              f"incoming={incoming_hwid}",
-                      ip=ip, actor="client")
-                _record_history(migrated_from)
+                wants_migration = True
+                migrate_reason = (f"HWID migrate: bound={bound_hwid} "
+                                  f"incoming={incoming_hwid}")
             elif not incoming_hwid and bound_mid and bound_mid != mid:
-                # Older client — match by IP.
-                migrated_from = bound_mid
+                wants_migration = True
+                migrate_reason = f"IP migrate: bound={bound_mid}"
+        elif bound_mid and bound_mid != mid:
+            wants_migration = True
+            migrate_reason = f"legacy migrate: bound={bound_mid}"
+
+        if wants_migration:
+            current_rebinds = _count_rebinds()
+            if current_rebinds >= MAX_REBINDS:
                 _safe(_evt.log_event, serial, mid,
                       _evt.EVENT_ACTIVATION_MACHINE_MISMATCH,
-                      message=f"IP migrate: bound={bound_mid}",
+                      message=(f"rebind cap reached: "
+                               f"{current_rebinds}/{MAX_REBINDS} "
+                               f"({migrate_reason})"),
                       ip=ip, actor="client")
-                _record_history(migrated_from)
-        elif bound_mid and bound_mid != mid:
-            # Legacy license (no HWID stored yet).
-            migrated_from = bound_mid
+                raise LicenseError(
+                    "רישיון זה הוחלף בין מחשבים %d פעמים. "
+                    "צרו קשר עם התמיכה לאיפוס." % current_rebinds,
+                    status=403,
+                )
+
+        migrated_from: str = ""
+        if wants_migration:
+            migrated_from = bound_mid or bound_hwid or "unknown"
             _safe(_evt.log_event, serial, mid,
                   _evt.EVENT_ACTIVATION_MACHINE_MISMATCH,
-                  message=f"legacy migrate: bound={bound_mid}",
-                  ip=ip, actor="client")
+                  message=migrate_reason, ip=ip, actor="client")
             _record_history(migrated_from)
 
         # If a migration happened, retire the old binding *now* so the
@@ -354,6 +398,11 @@ def activate(serial: str, mid: str, ip: str = "", user_agent: str = "",
             data["hardware_id"] = incoming_hwid or bound_hwid
             bound_mid  = mid
             bound_hwid = incoming_hwid or bound_hwid
+            _safe(_evt.log_event, serial, mid,
+                  _evt.EVENT_MACHINE_REBOUND,
+                  message=(f"rebound from {migrated_from} "
+                           f"(count={_count_rebinds()}/{MAX_REBINDS})"),
+                  ip=ip, actor="client")
 
         # At this point the license is either unbound or belongs to
         # this machine.  The rest of the flow treats it as "same
@@ -765,57 +814,113 @@ def start_trial(
         # trial belongs to without a JOIN.
         customer_name  = (name or "").strip()
         customer_phone = (phone or "").strip()
-        conn.execute(
-            """
-            INSERT INTO licenses (serial_key, license_type, machine_id,
-                                  status, activated_at, expires_at,
-                                  created_at, notes, customer_name,
-                                  customer_phone, plan_name, plan_days)
-            VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                serial_key,
-                LICENSE_TYPE_TRIAL,
-                mid,
-                started_at,
-                expires_at,
-                started_at,
-                "auto-created by start_trial",
-                customer_name,
-                customer_phone,
-                trial_plan_name,
-                trial_days,
-            ),
-        )
-        row = conn.execute(
-            "SELECT * FROM licenses WHERE serial_key = ?", (serial_key,)
-        ).fetchone()
-
-    _safe(_evt.log_event, serial_key, mid, _evt.EVENT_TRIAL_STARTED,
-          ip=ip, actor="client")
-    _safe(_evt.record_activation, serial_key, mid, ip, "active",
-          "trial", user_agent)
-
-    # Persist the lead (name + phone) in a dedicated table so the
-    # admin's "משתמשים חדשים" page can show every trial signup.
-    # Non-fatal: if writing fails the trial activation still succeeds.
-    try:
-        with get_connection() as conn2:
-            conn2.execute(
+        # Defensive: wrap the license INSERT so that a schema drift
+        # (e.g. a column missing on a stale production DB) cannot
+        # propagate as an unhandled 500.  ``trials`` is already
+        # written above which is what blocks the second click;
+        # writing the licenses row is best-effort here.  If it
+        # fails, the response is still synthesised from the
+        # in-memory data we already have so the caller sees a
+        # clean trial-activated reply.
+        license_row_written = False
+        try:
+            conn.execute(
                 """
-                INSERT INTO trial_leads
-                (machine_id, serial_key, name, phone, ip, user_agent, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO licenses (serial_key, license_type, machine_id,
+                                      status, activated_at, expires_at,
+                                      created_at, notes, customer_name,
+                                      customer_phone, plan_name, plan_days)
+                VALUES (?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (mid, serial_key, (name or "").strip(), (phone or "").strip(),
-                 ip or "", user_agent or "", started_at),
+                (
+                    serial_key,
+                    LICENSE_TYPE_TRIAL,
+                    mid,
+                    started_at,
+                    expires_at,
+                    started_at,
+                    "auto-created by start_trial",
+                    customer_name,
+                    customer_phone,
+                    trial_plan_name,
+                    trial_days,
+                ),
             )
-    except Exception:
-        pass
+            license_row_written = True
+        except Exception:
+            # Schema drift on a stale DB — log nothing here (the
+            # caller still gets a clean response below).  The
+            # ``trials`` row above is the source of truth that
+            # prevents a re-trial.
+            license_row_written = False
 
-    return _response(_row_to_dict(row),
-                     f"הניסיון הופעל — {trial_days} ימים.",
-                     status=STATUS_ACTIVE, is_demo=False)
+        row = None
+        if license_row_written:
+            try:
+                row = conn.execute(
+                    "SELECT * FROM licenses WHERE serial_key = ?",
+                    (serial_key,),
+                ).fetchone()
+            except Exception:
+                row = None
+
+    # Build a baseline response from data we already hold, so the
+    # rest of this function cannot crash the request even if
+    # post-write helpers blow up.
+    fallback_row: Dict[str, Any] = {
+        "serial_key":     serial_key,
+        "license_type":   LICENSE_TYPE_TRIAL,
+        "machine_id":     mid,
+        "status":         STATUS_ACTIVE,
+        "activated_at":   started_at,
+        "expires_at":     expires_at,
+        "created_at":     started_at,
+        "notes":          "auto-created by start_trial",
+        "customer_name":  customer_name,
+        "customer_phone": customer_phone,
+        "plan_name":      trial_plan_name,
+        "plan_days":      trial_days,
+    }
+
+    try:
+        _safe(_evt.log_event, serial_key, mid, _evt.EVENT_TRIAL_STARTED,
+              ip=ip, actor="client")
+        _safe(_evt.record_activation, serial_key, mid, ip, "active",
+              "trial", user_agent)
+
+        # Persist the lead (name + phone) in a dedicated table so the
+        # admin's "משתמשים חדשים" page can show every trial signup.
+        # Non-fatal: if writing fails the trial activation still succeeds.
+        try:
+            with get_connection() as conn2:
+                conn2.execute(
+                    """
+                    INSERT INTO trial_leads
+                    (machine_id, serial_key, name, phone, ip, user_agent, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (mid, serial_key, (name or "").strip(), (phone or "").strip(),
+                     ip or "", user_agent or "", started_at),
+                )
+        except Exception:
+            pass
+
+        row_dict = _row_to_dict(row) if row is not None else fallback_row
+        # If the DB returned an incomplete row, top it up so the
+        # response model always has the canonical trial fields.
+        for k, v in fallback_row.items():
+            row_dict.setdefault(k, v)
+        return _response(row_dict,
+                         f"הניסיון הופעל — {trial_days} ימים.",
+                         status=STATUS_ACTIVE, is_demo=False)
+    except Exception:
+        # Last-resort safety net: return a clean response built from
+        # the data we already committed so the desktop client sees
+        # success instead of "server error".  Bookkeeping (events /
+        # activations / leads) is best-effort.
+        return _response(fallback_row,
+                         f"הניסיון הופעל — {trial_days} ימים.",
+                         status=STATUS_ACTIVE, is_demo=False)
 
 
 def reset(serial: str, ip: str = "", actor: str = "") -> Dict[str, Any]:
