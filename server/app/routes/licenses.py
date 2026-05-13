@@ -159,6 +159,32 @@ def reset(req: ResetRequest, request: Request):
         raise _convert(err)
 
 
+@router.post("/deactivate", response_model=LicenseResponse)
+def deactivate(req: ResetRequest, request: Request):
+    """Customer-facing release of the machine-binding.
+
+    Lets the desktop client itself free its license so the same serial
+    can be activated on a different machine — the user's
+    "נקה מפתח" button calls this.  No admin auth required, because
+    the user is operating on their OWN serial from a machine that
+    presumably has the license already bound (the desktop client
+    only exposes this when a license is loaded).
+
+    The server-side machinery is shared with :func:`reset` — both
+    routes ultimately call ``svc.reset`` to NULL out the binding
+    columns and flip the row to ``status='unused'``.  We tag the
+    actor as ``"customer"`` (instead of an admin email) so the
+    audit log differentiates the two channels.
+    """
+    try:
+        return svc.reset(
+            req.serial_key, ip=_client_ip(request),
+            actor=(req.actor or "customer"),
+        )
+    except svc.LicenseError as err:
+        raise _convert(err)
+
+
 @router.get("/info/{serial_key}", response_model=LicenseResponse)
 def info(serial_key: str, request: Request):
     """Public read of a license — PII fields are stripped for anonymous

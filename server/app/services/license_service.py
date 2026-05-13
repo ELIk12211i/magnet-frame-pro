@@ -301,108 +301,44 @@ def activate(serial: str, mid: str, ip: str = "", user_agent: str = "",
         # reboots and network changes), then the legacy machine_id
         # (IP) for backwards compatibility with licenses issued
         # before this column existed.
-        # 2026-04 product change: instead of rejecting a different-
-        # machine activation outright, MIGRATE the license to the new
-        # machine and record the previous binding in
-        # ``machine_history`` so that machine can't fall back to a
-        # fresh trial later.  Same key on the SAME machine is still
-        # a no-op refresh.
-        # 2026-05 update: capped at ``MAX_REBINDS`` distinct moves to
-        # prevent casual sharing.  Past the cap we reject with a
-        # support-prompt message.
+        #
+        # 2026-05-12 product change: enforce STRICT single-machine
+        # binding.  When the license is bound to machine A and a
+        # request arrives from machine B, refuse with a clear
+        # Hebrew message that tells the user to first run
+        # "נקה מפתח" on the old machine (or contact support if
+        # that machine is unreachable).  Same key on the SAME
+        # machine remains a no-op refresh.
         incoming_hwid = (machine_uuid or "").strip()
 
-        def _count_rebinds() -> int:
-            """How many times has THIS serial moved between machines?
-
-            Returns 0 if the table is missing (older DB) so we never
-            block on a schema migration glitch.
-            """
-            try:
-                row_ = conn.execute(
-                    "SELECT COUNT(*) AS c FROM machine_history "
-                    "WHERE last_serial = ?",
-                    (serial,),
-                ).fetchone()
-                return int(row_["c"]) if row_ else 0
-            except Exception:
-                return 0
-
-        def _record_history(prev_mid: str) -> None:
-            if not prev_mid:
-                return
-            try:
-                conn.execute(
-                    "INSERT OR REPLACE INTO machine_history "
-                    "(machine_id, last_serial, reason, recorded_at) "
-                    "VALUES (?, ?, 'license_migrated', ?)",
-                    (prev_mid, serial, _iso(_now())),
-                )
-            except Exception:
-                # History tracking is opportunistic — never block a
-                # legitimate activation if the insert fails.
-                pass
-
-        # Detect a pending migration (license is bound to another
-        # machine).  We need the decision BEFORE recording history so
-        # we can enforce the cap on the new attempt itself.
-        wants_migration = False
-        migrate_reason = ""
+        is_different_machine = False
+        mismatch_reason = ""
         if bound_hwid:
+            # We have a stored HWID — primary check.
             if incoming_hwid and bound_hwid != incoming_hwid:
-                wants_migration = True
-                migrate_reason = (f"HWID migrate: bound={bound_hwid} "
-                                  f"incoming={incoming_hwid}")
+                is_different_machine = True
+                mismatch_reason = (f"HWID mismatch: bound={bound_hwid} "
+                                   f"incoming={incoming_hwid}")
             elif not incoming_hwid and bound_mid and bound_mid != mid:
-                wants_migration = True
-                migrate_reason = f"IP migrate: bound={bound_mid}"
+                # Old client without HWID support — fall back to IP.
+                is_different_machine = True
+                mismatch_reason = f"IP mismatch (no incoming HWID): bound={bound_mid}"
         elif bound_mid and bound_mid != mid:
-            wants_migration = True
-            migrate_reason = f"legacy migrate: bound={bound_mid}"
+            # Legacy license issued before the HWID column existed.
+            is_different_machine = True
+            mismatch_reason = f"legacy IP mismatch: bound={bound_mid}"
 
-        if wants_migration:
-            current_rebinds = _count_rebinds()
-            if current_rebinds >= MAX_REBINDS:
-                _safe(_evt.log_event, serial, mid,
-                      _evt.EVENT_ACTIVATION_MACHINE_MISMATCH,
-                      message=(f"rebind cap reached: "
-                               f"{current_rebinds}/{MAX_REBINDS} "
-                               f"({migrate_reason})"),
-                      ip=ip, actor="client")
-                raise LicenseError(
-                    "רישיון זה הוחלף בין מחשבים %d פעמים. "
-                    "צרו קשר עם התמיכה לאיפוס." % current_rebinds,
-                    status=403,
-                )
-
-        migrated_from: str = ""
-        if wants_migration:
-            migrated_from = bound_mid or bound_hwid or "unknown"
+        if is_different_machine:
             _safe(_evt.log_event, serial, mid,
                   _evt.EVENT_ACTIVATION_MACHINE_MISMATCH,
-                  message=migrate_reason, ip=ip, actor="client")
-            _record_history(migrated_from)
-
-        # If a migration happened, retire the old binding *now* so the
-        # rest of this function treats this activation as a same-
-        # machine flow on the new machine.  We REBIND the row in-place
-        # rather than create a duplicate — one license = one active
-        # binding.
-        if migrated_from:
-            conn.execute(
-                "UPDATE licenses SET machine_id = ?, hardware_id = ? "
-                "WHERE serial_key = ?",
-                (mid, incoming_hwid or bound_hwid, serial),
+                  message=mismatch_reason, ip=ip, actor="client")
+            raise LicenseError(
+                "הרישיון פעיל כבר על מחשב אחר. "
+                "כדי להעביר אותו למחשב הזה — היכנס אל המחשב הקודם, "
+                "פתח את התוכנה ולחץ ‘נקה מפתח’ בעמוד הרישיון. "
+                "אם אין לך גישה למחשב הקודם — פנה לתמיכה.",
+                status=403,
             )
-            data["machine_id"]  = mid
-            data["hardware_id"] = incoming_hwid or bound_hwid
-            bound_mid  = mid
-            bound_hwid = incoming_hwid or bound_hwid
-            _safe(_evt.log_event, serial, mid,
-                  _evt.EVENT_MACHINE_REBOUND,
-                  message=(f"rebound from {migrated_from} "
-                           f"(count={_count_rebinds()}/{MAX_REBINDS})"),
-                  ip=ip, actor="client")
 
         # At this point the license is either unbound or belongs to
         # this machine.  The rest of the flow treats it as "same
@@ -939,9 +875,21 @@ def reset(serial: str, ip: str = "", actor: str = "") -> Dict[str, Any]:
             "UPDATE activations SET status = 'reset' WHERE serial_key = ?",
             (serial,),
         )
+        # Clear EVERY binding column — machine_id (IP), hardware_id
+        # (stable per-machine HWID), hostname and client_public_ip.
+        # If hardware_id is left populated, the next activation from
+        # a fresh machine sees ``bound_hwid != incoming_hwid`` and
+        # the strict-binding rejection fires even though the row is
+        # supposed to be free.  Status flips to ``unused`` so the
+        # admin dashboard reflects "available to activate elsewhere".
         conn.execute(
-            "UPDATE licenses SET machine_id = NULL, status = 'unused' "
-            "WHERE serial_key = ?",
+            "UPDATE licenses "
+            "   SET machine_id       = NULL, "
+            "       hardware_id      = NULL, "
+            "       hostname         = NULL, "
+            "       client_public_ip = NULL, "
+            "       status           = 'unused' "
+            " WHERE serial_key = ?",
             (serial,),
         )
         fresh = conn.execute(
