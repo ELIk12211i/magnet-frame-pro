@@ -51,6 +51,7 @@ from fastapi.templating import Jinja2Templates
 from .auth import RedirectToLogin, purge_expired_sessions
 from .database import DB_PATH, init_db
 from .routes import admin_api, admin_pages, checkout, licenses, webhooks
+from .security import SecurityMiddleware
 
 
 logging.basicConfig(
@@ -88,6 +89,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logger.info("CORS allow_origins=%s", _origins)
+
+# Rate limiting + same-origin CSRF defence + security headers. Admin
+# protection is ON here because this app mounts the /admin dashboard.
+app.add_middleware(SecurityMiddleware, protect_admin=True)
 
 
 # ---------------------------------------------------------------------------

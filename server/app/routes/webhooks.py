@@ -231,12 +231,19 @@ async def payment_webhook(
 
     parsed = _parse_provider_payload(provider, data)
 
-    # 3. Idempotency — if we already processed this (provider, txn_id), bail.
+    # 3. Idempotency — if this (provider, txn_id) already reached a
+    # terminal state, bail. Previously only ``paid`` short-circuited, so a
+    # replayed ``failed``/``refunded`` payload re-ran mark_failed/
+    # mark_refunded. Treating ALL terminal states as already-processed
+    # makes replays a no-op without affecting the first webhook for a
+    # pending order (which has no attached txn yet → ``existing`` is None).
+    _TERMINAL = ("paid", "refunded", "failed")
     existing = orders.get_order_by_txn_id(provider, parsed["provider_txn_id"])
-    if existing and (existing.get("status") == "paid"):
+    if existing and (existing.get("status") in _TERMINAL):
         logger.info(
-            "webhook[%s]: duplicate txn_id=%s — already processed order=%s",
+            "webhook[%s]: duplicate txn_id=%s — already processed order=%s (status=%s)",
             provider, parsed["provider_txn_id"], existing.get("id"),
+            existing.get("status"),
         )
         return {"success": True, "status": "already_processed",
                 "order_id": existing.get("id")}

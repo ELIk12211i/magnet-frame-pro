@@ -3,7 +3,12 @@
 .env.*
 !.env.example
 
-# SQLite state
+# SQLite state — block ALL db files so no copy/backup (incl. renamed
+# "licenses - copy.db") can ever be committed with customer PII.
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 licenses.db
 licenses.db-journal
 licenses.db-wal

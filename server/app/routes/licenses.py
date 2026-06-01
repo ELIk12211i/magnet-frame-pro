@@ -7,10 +7,19 @@ client and any admin UI need to talk to the license server.
 
 NOTE ON AUTH
 ------------
-These endpoints are intentionally **not** authenticated: the desktop
-client calls them directly from customer machines. In production you
-should firewall (or reverse-proxy with auth) the write endpoints
-``/license/generate``, ``/license/disable`` and ``/license/enable``.
+The client-driven endpoints (``/activate``, ``/validate``,
+``/start-trial``, ``/deactivate``, ``/info`` …) are intentionally
+**not** authenticated: the desktop client calls them directly from
+customer machines.
+
+The privileged write endpoints ``/license/generate``,
+``/license/disable`` and ``/license/enable`` are admin-only
+(``Depends(require_admin_api)``) — they were previously left open with a
+"firewall in production" note, but in the combined single-domain
+deployment there is no network boundary to firewall, so they are now
+gated by the same admin session as ``/license/reset``. The admin UI
+already drives these operations through the authenticated
+``/admin/api/*`` and ``/admin/*`` routes, so no client flow is affected.
 """
 
 from __future__ import annotations
@@ -288,7 +297,8 @@ def report_status(req: ReportStatusRequest, request: Request):
 # Admin-driven endpoints (public by design; firewall in production).
 # ---------------------------------------------------------------------------
 
-@router.post("/generate", response_model=LicenseResponse)
+@router.post("/generate", response_model=LicenseResponse,
+             dependencies=[Depends(require_admin_api)])
 def generate(req: GenerateRequest, request: Request):
     try:
         return svc.generate(
@@ -302,7 +312,8 @@ def generate(req: GenerateRequest, request: Request):
         raise _convert(err)
 
 
-@router.post("/disable", response_model=LicenseResponse)
+@router.post("/disable", response_model=LicenseResponse,
+             dependencies=[Depends(require_admin_api)])
 def disable(req: DisableRequest, request: Request):
     try:
         return svc.disable_license(
@@ -315,7 +326,8 @@ def disable(req: DisableRequest, request: Request):
         raise _convert(err)
 
 
-@router.post("/enable", response_model=LicenseResponse)
+@router.post("/enable", response_model=LicenseResponse,
+             dependencies=[Depends(require_admin_api)])
 def enable(req: EnableRequest, request: Request):
     try:
         return svc.enable_license(

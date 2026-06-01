@@ -22,11 +22,13 @@ The actual payment + license issuance happens in
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
 
+from .. import config
 from ..schemas import CheckoutCreateRequest, CheckoutCreateResponse, PublicPlan
 from ..services import email_service
 from ..services import license_service as licsvc
@@ -41,6 +43,24 @@ router = APIRouter()
 
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _dev_checkout_enabled() -> bool:
+    """Whether the unauthenticated ``/checkout/complete-dev`` no-payment
+    issuance endpoint is reachable.
+
+    Safe default that preserves the current live flow: enabled only while
+    no real payment provider is configured (``PAYMENT_PROVIDER == "none"``).
+    Once a provider is wired up the endpoint auto-disables (the real
+    ``/checkout/create`` → payment → webhook path owns issuance). The
+    ``MFP_ALLOW_DEV_CHECKOUT`` env var is an explicit override: set it to
+    ``0``/``false``/``no`` to force-disable even in dev, or ``1``/``true``
+    to force-enable.
+    """
+    override = os.environ.get("MFP_ALLOW_DEV_CHECKOUT")
+    if override is not None and override.strip() != "":
+        return override.strip().lower() in ("1", "true", "yes", "on")
+    return (config.PAYMENT_PROVIDER or "none").strip().lower() == "none"
 
 
 def _client_ip(request: Request) -> str:
@@ -242,11 +262,18 @@ def complete_checkout_dev(req: CheckoutCreateRequest, request: Request):
       5. Returns the license key so the website can show it on the
          "thank you" page.
 
-    DEV ONLY — must be disabled or replaced with the real webhook
-    integration before shipping to production. The endpoint has no
-    payment verification and will happily issue a paid license to any
-    caller who posts a valid plan_id.
+    DEV ONLY — has no payment verification and will happily issue a paid
+    license to any caller who posts a valid plan_id. It is therefore
+    gated (see ``_dev_checkout_enabled``): it stays available only while
+    no real payment provider is configured (``PAYMENT_PROVIDER=none``,
+    the current dev default — so the live website purchase flow keeps
+    working unchanged), auto-disables the moment a provider is wired up
+    (the real ``/checkout/create`` → webhook flow takes over), and can be
+    force-disabled at any time via ``MFP_ALLOW_DEV_CHECKOUT=0``.
     """
+    if not _dev_checkout_enabled():
+        raise HTTPException(status_code=404, detail="Not found.")
+
     name  = (req.customer_name  or "").strip()
     email = (req.customer_email or "").strip().lower()
     phone = (req.customer_phone or "").strip()

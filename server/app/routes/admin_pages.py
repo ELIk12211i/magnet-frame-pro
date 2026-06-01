@@ -212,29 +212,55 @@ def _render(
     ctx.setdefault("request", request)
     tpl_path = _TEMPLATES_DIR / template
     if not tpl_path.exists():
-        body = (
-            f"[template missing: {template}] — ctx keys: "
-            + ", ".join(sorted(k for k in ctx.keys() if k != 'request'))
+        # Log the detail server-side; return a generic message so we never
+        # leak template names / context keys to the browser.
+        logger.error(
+            "admin template missing: %s (ctx keys: %s)",
+            template,
+            ", ".join(sorted(k for k in ctx.keys() if k != "request")),
         )
-        return PlainTextResponse(body, status_code=status_code)
+        return PlainTextResponse("Page temporarily unavailable.",
+                                 status_code=status_code)
     try:
         return templates.TemplateResponse(
             template, ctx, status_code=status_code
         )
-    except Exception as e:
-        return PlainTextResponse(
-            f"[template render error: {template}]\n{e}",
-            status_code=500,
-        )
+    except Exception:
+        # Log the full traceback server-side; never echo exception text.
+        logger.exception("admin template render error: %s", template)
+        return PlainTextResponse("Page temporarily unavailable.",
+                                 status_code=500)
 
 
-def _set_session_cookie(response, token: str) -> None:
+def _request_is_https(request) -> bool:
+    """True when the request reached us over HTTPS.
+
+    Railway (and most PaaS) terminate TLS at an edge proxy and forward
+    plain HTTP internally, so ``request.url.scheme`` is often ``http``
+    even for a genuine HTTPS request — the authoritative signal is the
+    ``X-Forwarded-Proto`` header. We check both so the cookie is marked
+    ``Secure`` in production while staying unset for local ``http`` dev
+    (where a ``Secure`` cookie would never be sent back).
+    """
+    if request is None:
+        return False
+    try:
+        proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+        if proto:
+            return proto == "https"
+        return request.url.scheme == "https"
+    except Exception:
+        return False
+
+
+def _set_session_cookie(response, token: str, request=None) -> None:
     response.set_cookie(
         key=_cfg.SESSION_COOKIE_NAME,
         value=token,
         max_age=_cfg.SESSION_LIFETIME_DAYS * 24 * 3600,
         httponly=True,
         samesite="lax",
+        secure=_request_is_https(request),
         path="/",
     )
 
@@ -288,7 +314,7 @@ def login_submit(
         if not target.startswith("/admin"):
             target = "/admin/dashboard"
         resp = RedirectResponse(target, status_code=302)
-        _set_session_cookie(resp, token)
+        _set_session_cookie(resp, token, request)
         return resp
 
     # Failed login — re-render with error.

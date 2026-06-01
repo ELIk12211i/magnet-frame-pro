@@ -30,6 +30,7 @@ lock timeout).
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -39,6 +40,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .database import DB_PATH, init_db
 from .routes import checkout, licenses, webhooks
+from .security import SecurityMiddleware
 
 
 logging.basicConfig(
@@ -55,15 +57,34 @@ app = FastAPI(
 
 
 # ---------------------------------------------------------------------------
-# CORS — permissive for /license/* so the desktop client can reach it.
+# CORS — the desktop client is NOT a browser, so CORS never applies to it;
+# only browser callers (the bundled marketing/checkout site, served from
+# this same origin) are affected. We therefore lock origins to the real
+# domain + localhost instead of "*", mirroring the production combined
+# server. Override with MFP_ALLOWED_ORIGINS. allow_credentials stays False
+# (the public API uses no cookies).
 # ---------------------------------------------------------------------------
+_default_origins = (
+    "https://magnetframepro.co.il,"
+    "https://www.magnetframepro.co.il,"
+    "http://127.0.0.1:8000,"
+    "http://localhost:8000"
+)
+_origins = [
+    o.strip()
+    for o in os.environ.get("MFP_ALLOWED_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting + security headers (no admin routes here → protect_admin=False).
+app.add_middleware(SecurityMiddleware, protect_admin=False)
 
 
 # ---------------------------------------------------------------------------

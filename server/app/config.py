@@ -39,6 +39,12 @@ _load_dotenv()
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+# NOTE: SECRET_KEY is currently NOT used to sign anything. Admin sessions
+# use opaque random tokens stored in the ``admin_sessions`` table (see
+# ``app.auth``), so a session is invalidated by deleting its DB row, NOT
+# by rotating this key. Kept for forward-compatibility (e.g. if cookie
+# signing is added later) and to satisfy deployment docs. Rotating it has
+# no effect on existing sessions today.
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 SESSION_COOKIE_NAME = os.environ.get("SESSION_COOKIE_NAME", "admin_session")
 DATABASE_PATH = os.environ.get("DATABASE_PATH", "licenses.db")

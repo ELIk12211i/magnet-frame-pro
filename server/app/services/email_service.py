@@ -23,6 +23,7 @@ configures the mail credentials.
 
 from __future__ import annotations
 
+import html as _html
 import logging
 import os
 import smtplib
@@ -88,10 +89,19 @@ def _render(template: str, **fields: Any) -> str:
     # We do not use ``str.format`` because customer values may contain
     # ``{`` characters (unlikely but possible). We do a safe manual
     # replace of ``{{name}}`` tokens instead.
+    #
+    # Every substituted value is HTML-escaped: these tokens land inside an
+    # HTML email body, and at least one (``customer_name``) is fully
+    # attacker-controlled at checkout. Without escaping, a name like
+    # ``<img src=x onerror=...>`` would be injected verbatim into the mail
+    # delivered to the customer. All current fields are plain-text data
+    # (name, serial key, plan, dates, support email), so escaping is a
+    # pure security hardening with no effect on legitimate content.
     out = template
     for key, value in fields.items():
         token = "{{" + key + "}}"
-        out = out.replace(token, str(value if value is not None else ""))
+        safe = _html.escape(str(value if value is not None else ""))
+        out = out.replace(token, safe)
     return out
 
 
