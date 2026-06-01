@@ -43,6 +43,11 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "")
 SESSION_COOKIE_NAME = os.environ.get("SESSION_COOKIE_NAME", "admin_session")
 DATABASE_PATH = os.environ.get("DATABASE_PATH", "licenses.db")
 
+# Payment provider id used by ``services.payments_service``.
+# "none" (default) = dev mode (no charge); set to grow/cardcom/payplus/stripe
+# once a merchant account + adapter are ready.
+PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "none")
+
 try:
     SESSION_LIFETIME_DAYS = int(os.environ.get("SESSION_LIFETIME_DAYS", "30"))
 except Exception:

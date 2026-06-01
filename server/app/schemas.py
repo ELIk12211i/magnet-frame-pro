@@ -147,7 +147,9 @@ class CheckoutCreateResponse(BaseModel):
     status:       str
     amount_cents: int
     currency:     str = "ILS"
-    next_step:    Optional[str] = ""  # provider-specific redirect URL
+    next_step:    Optional[str] = ""  # provider hosted-payment-page URL (redirect here)
+    provider:     Optional[str] = "none"   # active payment provider id
+    payment_configured: bool = False        # True when a real provider is wired up
     message:      Optional[str] = ""
 
 

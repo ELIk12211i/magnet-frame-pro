@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0A0B14">
-<meta name="description" content="Magnet Frame PRO — התוכנה המקצועית והמתקדמת ביותר לצלמי מגנטים באירועים. עיבוד AI, מסגרות מקצועיות, הדפסה ישירה.">
-<title>Magnet Frame PRO — התוכנה המקצועית לצלמי מגנטים</title>
+<meta name="description" content="Magnet Frame PRO - התוכנה המקצועית והמתקדמת ביותר לצלמי מגנטים באירועים. עיבוד AI, מסגרות מקצועיות, הדפסה ישירה.">
+<title>Magnet Frame PRO - התוכנה המקצועית לצלמי מגנטים</title>
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.344.0/umd/lucide.min.js" defer></script>
 <style>
 /* ============================================================
-   AGENT #1 — DARK THEME CORE: Design Tokens
+   AGENT #1 - DARK THEME CORE: Design Tokens
    ============================================================ */
 :root {
   /* Brand */
@@ -161,7 +161,11 @@ img { max-width: 100%; height: auto; display: block; }
   overflow: hidden;
   isolation: isolate;
   white-space: nowrap;
+  cursor: pointer;
 }
+/* Any element wired with onclick should show the hand cursor — covers
+   <a class="btn" onclick> links that have no href. */
+a[onclick], [role="button"], .pricing-btn { cursor: pointer; }
 .btn-primary {
   background: var(--grad-primary);
   color: white;
@@ -212,7 +216,7 @@ img { max-width: 100%; height: auto; display: block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ============================================================
-   AGENT #1 — NAVBAR
+   AGENT #1 - NAVBAR
    ============================================================ */
 .navbar {
   position: fixed; top: 0; right: 0; left: 0;
@@ -279,6 +283,18 @@ img { max-width: 100%; height: auto; display: block; }
   .nav-cta .btn-ghost { display: none; }
   .mobile-toggle { display: inline-flex; }
 }
+/* Phones: tighten the header so the logo + CTA + ☰ never crowd or clip. */
+@media (max-width: 560px) {
+  .nav-container { padding: 0.65rem 0.9rem; gap: 0.6rem; }
+  .logo-img { height: 34px; }
+  .nav-cta { gap: 0.5rem; }
+  .nav-cta .btn-primary { padding: 0.5rem 0.85rem; font-size: 0.85rem; white-space: nowrap; }
+  .mobile-toggle { width: 40px; height: 40px; }
+  /* Slim, subtle scrollbar on phones - the fat 10px gradient bar looked
+     broken in the narrow mobile view. */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-thumb { border: none; border-radius: 4px; }
+}
 .mobile-menu {
   display: none;
   position: fixed; top: 70px; right: 0; left: 0;
@@ -301,7 +317,7 @@ img { max-width: 100%; height: auto; display: block; }
 .mobile-menu a:hover { background: rgba(255, 255, 255, 0.05); color: var(--fg-1); }
 
 /* ============================================================
-   AGENT #2 — HERO
+   AGENT #2 - HERO
    ============================================================ */
 .hero {
   padding: 9rem 0 5rem;
@@ -612,7 +628,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #1 — SECTION HEADERS (shared)
+   AGENT #1 - SECTION HEADERS (shared)
    ============================================================ */
 .section { padding: 6rem 0; position: relative; }
 .section-header {
@@ -645,7 +661,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #3 — FEATURES
+   AGENT #3 - FEATURES
    ============================================================ */
 .features-grid {
   display: grid;
@@ -715,7 +731,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #3 — HOW IT WORKS
+   AGENT #3 - HOW IT WORKS
    ============================================================ */
 .how-bg { background: linear-gradient(180deg, transparent 0%, rgba(139, 92, 246, 0.04) 50%, transparent 100%); }
 .how-grid {
@@ -788,13 +804,13 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #4 — PRICING
+   AGENT #4 - PRICING
    ============================================================ */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 1.5rem;
-  max-width: 920px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 .pricing-card {
@@ -906,6 +922,33 @@ img { max-width: 100%; height: auto; display: block; }
 .pricing-features li strong { color: var(--fg-1); }
 .pricing-btn { display: block; }
 
+/* Pricing: compact spacing so clicking "תמחור" reveals all 3 plans (with
+   their buttons) in one screen, instead of scrolling to a tall header that
+   pushes the cards below the fold. Scoped to #pricing — other sections keep
+   their roomy spacing. */
+#pricing { padding: 2.5rem 0 3rem; }
+#pricing .section-header { margin-bottom: 1.5rem; }
+#pricing .pricing-card { padding: 1.75rem; }
+#pricing .pricing-desc { margin-bottom: 1rem; }
+#pricing .price-save { margin-bottom: 1rem; }
+#pricing .pricing-features { margin: 1rem 0 1.25rem; gap: 0.5rem; }
+
+/* Click any plan card to SELECT it: highlight ring + ✓ badge in the corner. */
+.pricing-card { cursor: pointer; }
+.pricing-card.chosen {
+  border-color: var(--brand-purple);
+  box-shadow: 0 0 0 2px var(--brand-purple) inset, 0 22px 55px -18px rgba(139, 92, 246, 0.6);
+}
+.pricing-card.chosen::before { opacity: 1; }
+.pricing-card.chosen::after {
+  content: '✓';
+  position: absolute; top: 12px; inset-inline-end: 14px;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--grad-primary); color: #fff; font-weight: 800; font-size: 0.85rem;
+  box-shadow: 0 6px 16px -3px rgba(139, 92, 246, 0.7); z-index: 3;
+}
+
 .payment-strip {
   margin-top: 3rem;
   text-align: center;
@@ -934,7 +977,7 @@ img { max-width: 100%; height: auto; display: block; }
 .payment-chip.paybox { background: linear-gradient(135deg, #047857, #10B981); color: white; border: none; }
 
 /* ============================================================
-   AGENT #7 — FAQ
+   AGENT #7 - FAQ
    ============================================================ */
 .faq-list {
   max-width: 820px;
@@ -986,7 +1029,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #7 — CTA / CONTACT
+   AGENT #7 - CTA / CONTACT
    ============================================================ */
 .cta-section {
   position: relative;
@@ -1037,7 +1080,7 @@ img { max-width: 100%; height: auto; display: block; }
 .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
 /* ============================================================
-   AGENT #7 — FOOTER
+   AGENT #7 - FOOTER
    ============================================================ */
 .footer {
   background: var(--bg-0);
@@ -1081,7 +1124,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #5 — CHECKOUT WIZARD
+   AGENT #5 - CHECKOUT WIZARD
    ============================================================ */
 .checkout-wrap {
   padding: 7rem 0 5rem;
@@ -1210,7 +1253,7 @@ img { max-width: 100%; height: auto; display: block; }
 
 .plan-pick {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.85rem;
   margin-bottom: 1.5rem;
 }
@@ -1322,6 +1365,17 @@ img { max-width: 100%; height: auto; display: block; }
   font-size: 0.85rem;
   color: var(--fg-2);
 }
+.pay-methods {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+}
+.pay-method {
+  font-size: 0.8rem; font-weight: 600; color: var(--fg-2);
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
 .security-strip .ico {
   width: 32px; height: 32px;
   border-radius: 50%;
@@ -1332,7 +1386,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #6 — SUCCESS PAGE
+   AGENT #6 - SUCCESS PAGE
    ============================================================ */
 .success-wrap {
   padding: 8rem 0 5rem;
@@ -1533,7 +1587,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #8 — LEGAL PAGES
+   AGENT #8 - LEGAL PAGES
    ============================================================ */
 .legal-wrap { padding: 7rem 0 5rem; max-width: 880px; margin: 0 auto; }
 .legal-hero { text-align: center; margin-bottom: 3rem; }
@@ -1571,7 +1625,7 @@ img { max-width: 100%; height: auto; display: block; }
 }
 
 /* ============================================================
-   AGENT #7 — WhatsApp floater
+   AGENT #7 - WhatsApp floater
    ============================================================ */
 .wa-float {
   position: fixed;
@@ -1590,7 +1644,7 @@ img { max-width: 100%; height: auto; display: block; }
 @keyframes floatWa { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 /* ============================================================
-   AGENT #9 — Reveal animations
+   AGENT #9 - Reveal animations
    ============================================================ */
 .reveal {
   opacity: 0;
@@ -1734,7 +1788,7 @@ html.a11y-reduce-motion * { animation-duration: 0s !important; transition-durati
 html.a11y-bigger-targets body > div.page a,
 html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 44px; padding: 0.5rem 0.75rem; }
 
-/* Floating button — bottom-right (WhatsApp is bottom-left) */
+/* Floating button - bottom-right (WhatsApp is bottom-left) */
 .a11y-fab {
   position: fixed;
   bottom: 1.5rem; right: 1.5rem;
@@ -1853,14 +1907,18 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 <a class="a11y-skip-link" href="#page-home">דלג לתוכן</a>
 
 <!-- ============================================================
-     AGENT #1 — NAVBAR
+     AGENT #1 - NAVBAR
      ============================================================ -->
 <nav class="navbar" id="navbar">
   <div class="nav-container">
     <div class="nav-cta">
       <a class="btn btn-primary btn-sm" onclick="nav('home', 'pricing')">הצטרף עכשיו</a>
       <button class="mobile-toggle" onclick="toggleMobileMenu()" aria-label="תפריט">
-        <i data-lucide="menu" style="width:22px;height:22px"></i>
+        <!-- Inline SVG so the menu icon ALWAYS renders, even if the Lucide
+             CDN is slow or blocked (it was showing as an empty box). -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
       </button>
     </div>
     <ul class="nav-links">
@@ -1891,7 +1949,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
      ============================================================ -->
 <div class="page active" id="page-home">
 
-  <!-- AGENT #2 — HERO -->
+  <!-- AGENT #2 - HERO -->
   <section class="hero">
     <div class="container">
       <div class="hero-grid">
@@ -1902,11 +1960,11 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             באירועים
           </h1>
           <p class="hero-subtitle">
-            Magnet Frame PRO היא המערכת המתקדמת ביותר ליצירה, עריכה והדפסה של מגנטים לאירועים. מעבד תמונות בדקות, מסגרות מקצועיות, והדפסה ישירה — הכל במקום אחד.
+            Magnet Frame PRO היא המערכת המתקדמת ביותר ליצירה, עריכה והדפסה של מגנטים לאירועים. מעבד תמונות בדקות, מסגרות מקצועיות, והדפסה ישירה - הכל במקום אחד.
           </p>
           <div class="hero-ctas">
             <a class="btn btn-primary btn-lg" onclick="nav('home', 'pricing')">
-              <span><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg> התחל עכשיו</span>
+              <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> התחל עכשיו</span>
               <i data-lucide="arrow-left" style="width:18px;height:18px"></i>
             </a>
             <a class="btn btn-ghost btn-lg" onclick="nav('home', 'how')">
@@ -1918,22 +1976,22 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <div class="trust-stat"><div class="num">500+</div><div class="lbl">צלמים פעילים</div></div>
             <div class="trust-stat"><div class="num">2M+</div><div class="lbl">מגנטים הופקו</div></div>
             <div class="trust-stat"><div class="num">99.9%</div><div class="lbl">זמינות שרת</div></div>
-            <div class="trust-stat"><div class="num">⭐ 4.9</div><div class="lbl">מתוך 5</div></div>
+            <div class="trust-stat"><div class="num"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4.9</div><div class="lbl">מתוך 5</div></div>
           </div>
         </div>
         <div class="hero-mockup">
           <div class="mockup-frame mockup-real">
-            <img src="screenshot.png" alt="Magnet Frame PRO — ממשק התוכנה" loading="lazy">
+            <img src="screenshot.png" alt="Magnet Frame PRO - ממשק התוכנה" loading="lazy">
           </div>
           <div class="mockup-pill mockup-pill-1">
-            <div class="pill-icon violet">🤖</div>
+            <div class="pill-icon violet"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg></div>
             <div>
               <strong>AI חכם</strong>
               <span>זיהוי פנים אוטומטי</span>
             </div>
           </div>
           <div class="mockup-pill mockup-pill-2">
-            <div class="pill-icon pink">🖨️</div>
+            <div class="pill-icon pink"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect width="12" height="8" x="6" y="14" rx="1"/></svg></div>
             <div>
               <strong>הדפסה מיידית</strong>
               <span>ישירות לנייר מגנטי</span>
@@ -1944,17 +2002,17 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
     </div>
   </section>
 
-  <!-- AGENT #3 — FEATURES -->
+  <!-- AGENT #3 - FEATURES -->
   <section class="section" id="features">
     <div class="container">
       <div class="section-header reveal">
-        <h2 class="section-title">כל מה שצלם מגנטים צריך — <span class="gradient-text">במקום אחד</span></h2>
+        <h2 class="section-title">כל מה שצלם מגנטים צריך - <span class="gradient-text">במקום אחד</span></h2>
         <p class="section-subtitle">מערכת אחת שמחליפה 5 כלים נפרדים. מעיבוד התמונה ועד ההדפסה הסופית.</p>
       </div>
       <div class="features-grid">
-        <div class="feature-card reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5a1 1 0 0 0-1 1v3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M16 20h3a1 1 0 0 0 1-1v-3"/><path d="M9 7.5c1-.8 2-1.2 3-1.2s2 .4 3 1.2c.8.7 1.2 1.6 1.2 2.7v3c0 1.6-.7 2.8-1.7 3.5-1 .7-1.7 1-2.5 1s-1.5-.3-2.5-1c-1-.7-1.7-1.9-1.7-3.5v-3c0-1.1.4-2 1.2-2.7Z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M9 7.5c1-.8 2-1.2 3-1.2s2 .4 3 1.2c.8.7 1.2 1.6 1.2 2.7v3c0 1.6-.7 2.8-1.7 3.5-1 .7-1.7 1-2.5 1s-1.5-.3-2.5-1c-1-.7-1.7-1.9-1.7-3.5v-3c0-1.1.4-2 1.2-2.7Z"/><circle cx="9.7" cy="11" r="0.7" fill="currentColor" stroke="none"/><circle cx="14.3" cy="11" r="0.7" fill="currentColor" stroke="none"/><path d="M10 14c.6.6 1.3.9 2 .9s1.4-.3 2-.9"/></svg></div><h3 class="feature-title">זיהוי פנים AI</h3><p class="feature-desc">בינה מלאכותית מזהה פנים אוטומטית, מקצצת ומיישרת לכל מסגרת — בלי לגעת בעכבר.</p></div>
+        <div class="feature-card reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5a1 1 0 0 0-1 1v3"/><path d="M16 4h3a1 1 0 0 1 1 1v3"/><path d="M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M16 20h3a1 1 0 0 0 1-1v-3"/><path d="M9 7.5c1-.8 2-1.2 3-1.2s2 .4 3 1.2c.8.7 1.2 1.6 1.2 2.7v3c0 1.6-.7 2.8-1.7 3.5-1 .7-1.7 1-2.5 1s-1.5-.3-2.5-1c-1-.7-1.7-1.9-1.7-3.5v-3c0-1.1.4-2 1.2-2.7Z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M9 7.5c1-.8 2-1.2 3-1.2s2 .4 3 1.2c.8.7 1.2 1.6 1.2 2.7v3c0 1.6-.7 2.8-1.7 3.5-1 .7-1.7 1-2.5 1s-1.5-.3-2.5-1c-1-.7-1.7-1.9-1.7-3.5v-3c0-1.1.4-2 1.2-2.7Z"/><circle cx="9.7" cy="11" r="0.7" fill="currentColor" stroke="none"/><circle cx="14.3" cy="11" r="0.7" fill="currentColor" stroke="none"/><path d="M10 14c.6.6 1.3.9 2 .9s1.4-.3 2-.9"/></svg></div><h3 class="feature-title">זיהוי פנים AI</h3><p class="feature-desc">בינה מלאכותית מזהה פנים אוטומטית, מקצצת ומיישרת לכל מסגרת - בלי לגעת בעכבר.</p></div>
         <div class="feature-card reveal reveal-delay-1"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4h10v5"/><rect x="3" y="9" width="18" height="9" rx="2" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3" y="9" width="18" height="9" rx="2"/><circle cx="17.5" cy="12.5" r="0.8" fill="currentColor" stroke="none"/><path d="M8 15h8v6H8z"/><path d="M10 18h4M10 20h3"/></svg></div><h3 class="feature-title">הדפסה ישירה</h3><p class="feature-desc">חיבור ישיר למדפסות תרמיות מקצועיות. לוח 4×4 או 2×2 בלחיצה אחת.</p></div>
-        <div class="feature-card reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0Z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 17l5-5"/><circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none"/><path d="M5.5 16.5h1M17.5 16.5h1M7.5 11.5l.7.7M16.5 11.5l-.7.7M12 9v1"/></svg></div><h3 class="feature-title">מהיר במיוחד</h3><p class="feature-desc">עיבוד תמונה ממוצע — פחות מ-3 שניות. עד 200 מגנטים בשעה.</p></div>
+        <div class="feature-card reveal"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 17a9 9 0 1 1 17 0Z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 17l5-5"/><circle cx="12" cy="17" r="1.5" fill="currentColor" stroke="none"/><path d="M5.5 16.5h1M17.5 16.5h1M7.5 11.5l.7.7M16.5 11.5l-.7.7M12 9v1"/></svg></div><h3 class="feature-title">מהיר במיוחד</h3><p class="feature-desc">עיבוד תמונה ממוצע - פחות מ-3 שניות. עד 200 מגנטים בשעה.</p></div>
         <div class="feature-card reveal reveal-delay-2"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5l-9 9 2 2 9-9z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M14.5 3.5l-9 9 2 2 9-9z"/><path d="M13 5l2 2"/><path d="M18 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor" stroke="none"/><path d="M4 17h16"/><path d="M4 20.5h16"/><circle cx="10" cy="17" r="1.6"/><circle cx="15" cy="20.5" r="1.6"/></svg></div><h3 class="feature-title">עריכה מתקדמת</h3><p class="feature-desc">פילטרים, טקסט מעוצב, אפקטים, רקעים מותאמים. הכל עם מנוע גרפי מקצועי.</p></div>
         <div class="feature-card reveal reveal-delay-1"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8" width="17" height="4" rx="0.8" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3.5" y="8" width="17" height="4" rx="0.8"/><path d="M5 12v9h14v-9"/><path d="M12 8v13"/><path d="M12 8c-1.5-2.5-4.5-2.5-4.5-.5 0 1 .8 1.5 2 1.5h2.5"/><path d="M12 8c1.5-2.5 4.5-2.5 4.5-.5 0 1-.8 1.5-2 1.5H12"/><path d="M9 15l3 3 3-3"/></svg></div><h3 class="feature-title">עדכונים חינמיים</h3><p class="feature-desc">כל חודש פיצ׳רים חדשים, מסגרות חדשות, שיפורי AI. ללא תוספת תשלום.</p></div>
         <div class="feature-card reveal reveal-delay-2"><div class="feature-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5A2 2 0 0 1 5 4.5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-5l-4 3.2v-3.2H5a2 2 0 0 1-2-2z" fill="currentColor" opacity="0.18" stroke="none"/><path d="M3 6.5A2 2 0 0 1 5 4.5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-5l-4 3.2v-3.2H5a2 2 0 0 1-2-2z"/><path d="M8 7.5v3.5a1.5 1.5 0 0 0 1.5 1.5H13"/><path d="M13 7.5V13"/><circle cx="20" cy="17" r="2.3"/><path d="M19 17l.7.7 1.5-1.5"/></svg></div><h3 class="feature-title">תמיכה בעברית</h3><p class="feature-desc">צוות תמיכה ישראלי. מענה בוואטסאפ תוך שעה (בשעות העבודה).</p></div>
@@ -1962,37 +2020,58 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
     </div>
   </section>
 
-  <!-- AGENT #3 — HOW IT WORKS -->
+  <!-- AGENT #3 - HOW IT WORKS -->
   <section class="section how-bg" id="how">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-eyebrow">🛠️ איך זה עובד</span>
+        <span class="section-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> איך זה עובד</span>
         <h2 class="section-title">מ-0 ל-מגנט מודפס ב-<span class="gradient-text">4 צעדים</span></h2>
         <p class="section-subtitle">פשוט. מהיר. מקצועי. בלי קוד, בלי אינטרנט, בלי כאבי ראש.</p>
       </div>
       <div class="how-grid">
         <div class="how-step reveal"><span class="step-num">1</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7.5" width="17" height="13" rx="2" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3.5" y="7.5" width="17" height="13" rx="2"/><path d="M3.5 17l4-4 3 3 3.5-3.5 6 6"/><circle cx="8" cy="11.5" r="1.3"/><path d="M12 6.5V2.5"/><path d="M9.5 5L12 2.5l2.5 2.5"/></svg></div><h3>טען תמונות</h3><p>גרור תיקיית אירוע שלמה. המערכת תזהה אוטומטית כל פנים.</p></div>
-        <div class="how-step reveal reveal-delay-1"><span class="step-num">2</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="5.5" height="9" rx="0.8" opacity="0.55"/><rect x="16" y="6.5" width="5.5" height="9" rx="0.8" opacity="0.55"/><rect x="8.5" y="4.5" width="7" height="13" rx="1" fill="currentColor" opacity="0.18" stroke="none"/><rect x="8.5" y="4.5" width="7" height="13" rx="1"/><circle cx="12" cy="20.5" r="2.6" fill="currentColor" opacity="0.4" stroke="none"/><circle cx="12" cy="20.5" r="2.6"/><path d="M10.8 20.5l1 1 1.8-2"/></svg></div><h3>בחר מסגרת</h3><p>מתוך מאות מסגרות מקצועיות — או הוסף משלך.</p></div>
-        <div class="how-step reveal reveal-delay-2"><span class="step-num">3</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2" fill="currentColor" opacity="0.18" stroke="none"/><circle cx="12" cy="12" r="4.2"/><circle cx="11" cy="11.5" r="0.6" fill="currentColor" stroke="none"/><circle cx="13" cy="11.5" r="0.6" fill="currentColor" stroke="none"/><path d="M10.5 13.5c.5.5 1 .7 1.5.7s1-.2 1.5-.7"/><circle cx="4" cy="6" r="1.2"/><circle cx="20" cy="6" r="1.2"/><circle cx="4" cy="18" r="1.2"/><circle cx="20" cy="18" r="1.2"/><circle cx="12" cy="3.2" r="1"/><circle cx="12" cy="20.8" r="1"/><path d="M5 6.8l3.3 2.7M19 6.8l-3.3 2.7M5 17.2l3.3-2.7M19 17.2l-3.3-2.7M12 4.2v3M12 16.8v3"/></svg></div><h3>עיבוד AI</h3><p>קיצוץ, מיקום, יישור — אוטומטי לחלוטין. ערוך אם תרצה.</p></div>
+        <div class="how-step reveal reveal-delay-1"><span class="step-num">2</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6.5" width="5.5" height="9" rx="0.8" opacity="0.55"/><rect x="16" y="6.5" width="5.5" height="9" rx="0.8" opacity="0.55"/><rect x="8.5" y="4.5" width="7" height="13" rx="1" fill="currentColor" opacity="0.18" stroke="none"/><rect x="8.5" y="4.5" width="7" height="13" rx="1"/><circle cx="12" cy="20.5" r="2.6" fill="currentColor" opacity="0.4" stroke="none"/><circle cx="12" cy="20.5" r="2.6"/><path d="M10.8 20.5l1 1 1.8-2"/></svg></div><h3>בחר מסגרת</h3><p>מתוך מאות מסגרות מקצועיות - או הוסף משלך.</p></div>
+        <div class="how-step reveal reveal-delay-2"><span class="step-num">3</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2" fill="currentColor" opacity="0.18" stroke="none"/><circle cx="12" cy="12" r="4.2"/><circle cx="11" cy="11.5" r="0.6" fill="currentColor" stroke="none"/><circle cx="13" cy="11.5" r="0.6" fill="currentColor" stroke="none"/><path d="M10.5 13.5c.5.5 1 .7 1.5.7s1-.2 1.5-.7"/><circle cx="4" cy="6" r="1.2"/><circle cx="20" cy="6" r="1.2"/><circle cx="4" cy="18" r="1.2"/><circle cx="20" cy="18" r="1.2"/><circle cx="12" cy="3.2" r="1"/><circle cx="12" cy="20.8" r="1"/><path d="M5 6.8l3.3 2.7M19 6.8l-3.3 2.7M5 17.2l3.3-2.7M19 17.2l-3.3-2.7M12 4.2v3M12 16.8v3"/></svg></div><h3>עיבוד AI</h3><p>קיצוץ, מיקום, יישור - אוטומטי לחלוטין. ערוך אם תרצה.</p></div>
         <div class="how-step reveal reveal-delay-3"><span class="step-num">4</span><div class="how-emoji"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v6H5z"/><rect x="3" y="10" width="18" height="7" rx="1.5" fill="currentColor" opacity="0.18" stroke="none"/><rect x="3" y="10" width="18" height="7" rx="1.5"/><circle cx="17.5" cy="13.5" r="0.7" fill="currentColor" stroke="none"/><path d="M8 17v3.5h8V17z" fill="currentColor" opacity="0.35" stroke="currentColor"/><path d="M10 19h4M10 20.3h3"/></svg></div><h3>הדפס</h3><p>פריסה חכמה על נייר, חיבור ישיר למדפסת. סיימת.</p></div>
       </div>
     </div>
   </section>
 
-  <!-- AGENT #4 — PRICING -->
+  <!-- AGENT #4 - PRICING -->
   <section class="section" id="pricing">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-eyebrow">💎 תמחור הוגן</span>
-        <h2 class="section-title">מחירים <span class="gradient-text">שקופים</span> — ללא הפתעות</h2>
+        <h2 class="section-title">מחירים <span class="gradient-text">שקופים</span> - ללא הפתעות</h2>
         <p class="section-subtitle">בחר את התוכנית שמתאימה לך. ביטול בכל עת, ללא התחייבות ארוכת טווח.</p>
       </div>
       <div class="pricing-grid">
-        <div class="pricing-card reveal">
-          <h3 class="pricing-name">תוכנית שנתית</h3>
-          <p class="pricing-desc">גמישות מלאה — חידוש כל שנה</p>
+        <div class="pricing-card reveal" onclick="chooseCard(this)">
+          <h3 class="pricing-name">תוכנית חודשית</h3>
+          <p class="pricing-desc">להתנסות או לעונת אירועים - ללא התחייבות</p>
           <div class="price">
-            <span class="price-amount">299</span>
+            <span class="price-amount">39</span>
+            <span class="price-currency">₪</span>
+            <span class="price-period">/ לחודש</span>
+          </div>
+          <span class="price-save" style="color:var(--fg-4)">לפני מע״מ</span>
+          <ul class="pricing-features">
+            <li>עיבוד תמונות ללא הגבלה</li>
+            <li>AI לזיהוי פנים ושיפור תמונה</li>
+            <li>כל המסגרות והתבניות</li>
+            <li>הדפסה ישירה למדפסת</li>
+            <li>תמיכה מקצועית בעברית</li>
+            <li>עדכונים ושיפורים</li>
+          </ul>
+          <button class="btn btn-ghost btn-block pricing-btn" onclick="nav('checkout'); selectPlan('monthly')">
+            <span>בחר תוכנית חודשית</span>
+            <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+          </button>
+        </div>
+        <div class="pricing-card reveal reveal-delay-1" onclick="chooseCard(this)">
+          <h3 class="pricing-name">תוכנית שנתית</h3>
+          <p class="pricing-desc">גמישות מלאה - חידוש כל שנה</p>
+          <div class="price">
+            <span class="price-amount">399</span>
             <span class="price-currency">₪</span>
             <span class="price-period">/ לשנה</span>
           </div>
@@ -2004,23 +2083,22 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <li>הדפסה ישירה למדפסת</li>
             <li>תמיכה מקצועית בעברית</li>
             <li>עדכונים ושיפורים</li>
-            <li>ביטול בכל עת</li>
           </ul>
           <button class="btn btn-ghost btn-block pricing-btn" onclick="nav('checkout'); selectPlan('yearly')">
             <span>בחר תוכנית שנתית</span>
             <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
           </button>
         </div>
-        <div class="pricing-card featured reveal reveal-delay-1">
-          <div class="pricing-badge">⭐ הכי משתלם · חוסכים 946₪</div>
-          <h3 class="pricing-name">תוכנית 5 שנים</h3>
-          <p class="pricing-desc">החיסכון הגדול ביותר — שלוש שנים וחצי כמעט מתנה</p>
+        <div class="pricing-card featured reveal reveal-delay-2" onclick="chooseCard(this)">
+          <div class="pricing-badge"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> הכי משתלם · חוסכים 199₪</div>
+          <h3 class="pricing-name">תוכנית שנתיים</h3>
+          <p class="pricing-desc">המחיר המשתלם ביותר - כמו ‎~300₪ לשנה</p>
           <div class="price">
-            <span class="price-amount">549</span>
+            <span class="price-amount">599</span>
             <span class="price-currency">₪</span>
-            <span class="price-period">/ ל-5 שנים</span>
+            <span class="price-period">/ לשנתיים</span>
           </div>
-          <span class="price-save">💰 שווה ערך ל-110₪ לשנה · לפני מע״מ</span>
+          <span class="price-save"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></svg> שווה ערך ל-‎~300₪ לשנה · לפני מע״מ</span>
           <ul class="pricing-features">
             <li>עיבוד תמונות ללא הגבלה</li>
             <li>AI לזיהוי פנים ושיפור תמונה</li>
@@ -2028,10 +2106,9 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <li>הדפסה ישירה למדפסת</li>
             <li>תמיכה מקצועית בעברית</li>
             <li>עדכונים ושיפורים</li>
-            <li>ביטול בכל עת</li>
           </ul>
-          <button class="btn btn-primary btn-block pricing-btn" onclick="nav('checkout'); selectPlan('fiveyear')">
-            <span><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg> בחר תוכנית 5 שנים</span>
+          <button class="btn btn-primary btn-block pricing-btn" onclick="nav('checkout'); selectPlan('twoyear')">
+            <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> בחר תוכנית שנתיים</span>
             <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
           </button>
         </div>
@@ -2039,13 +2116,13 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
     </div>
   </section>
 
-  <!-- AGENT #7 — FAQ -->
+  <!-- AGENT #7 - FAQ -->
   <section class="section" id="faq">
     <div class="container">
       <div class="section-header reveal">
-        <span class="section-eyebrow">❓ שאלות ותשובות</span>
+        <span class="section-eyebrow"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg> שאלות ותשובות</span>
         <h2 class="section-title">כל מה שרצית <span class="gradient-text">לדעת</span></h2>
-        <p class="section-subtitle">לא מצאת תשובה? דבר איתנו בוואטסאפ — נחזור תוך שעה.</p>
+        <p class="section-subtitle">לא מצאת תשובה? דבר איתנו בוואטסאפ - נחזור תוך שעה.</p>
       </div>
       <div class="faq-list">
         <div class="faq-item reveal">
@@ -2053,14 +2130,14 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <span>על איזה מחשב התוכנה רצה?</span>
             <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
           </button>
-          <div class="faq-a">Windows 10/11 (64-bit). מומלץ 8GB RAM ומעלה. מספיק כרטיס מסך משולב — אין צורך בכרטיס גרפי ייעודי. בעתיד גם Mac.</div>
+          <div class="faq-a">Windows 10/11 (64-bit). מומלץ 8GB RAM ומעלה. מספיק כרטיס מסך משולב - אין צורך בכרטיס גרפי ייעודי. בעתיד גם Mac.</div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q" onclick="toggleFaq(this)">
             <span>צריך אינטרנט כדי להפעיל את התוכנה?</span>
             <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
           </button>
-          <div class="faq-a">אינטרנט נדרש רק להפעלה ראשונה ולוודאות הרישיון פעם בכמה ימים. עיבוד התמונות, ההדפסה והעבודה כולה — לוקאלית לחלוטין. אפשר לעבוד באירוע ללא Wi-Fi.</div>
+          <div class="faq-a">אינטרנט נדרש רק להפעלה ראשונה ולוודאות הרישיון פעם בכמה ימים. עיבוד התמונות, ההדפסה והעבודה כולה - לוקאלית לחלוטין. אפשר לעבוד באירוע ללא Wi-Fi.</div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q" onclick="toggleFaq(this)">
@@ -2081,14 +2158,14 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <span>אפשר להעביר את הרישיון למחשב אחר?</span>
             <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
           </button>
-          <div class="faq-a">כן. שלח לנו בקשת איפוס (במייל או וואטסאפ) ונאפס את הקישור למחשב — תוכל להפעיל את המפתח על מחשב חדש תוך דקות.</div>
+          <div class="faq-a">כן. שלח לנו בקשת איפוס (במייל או וואטסאפ) ונאפס את הקישור למחשב - תוכל להפעיל את המפתח על מחשב חדש תוך דקות.</div>
         </div>
         <div class="faq-item reveal">
           <button class="faq-q" onclick="toggleFaq(this)">
             <span>מה זה תקופת ניסיון?</span>
             <span class="chev"><i data-lucide="chevron-down" style="width:18px;height:18px"></i></span>
           </button>
-          <div class="faq-a">בהפעלה ראשונה תקבל 14 יום ניסיון מלא — כל הפיצ׳רים, ללא הגבלה. בסיום הניסיון רוכשים תוכנית.</div>
+          <div class="faq-a">בהפעלה ראשונה תקבל 14 יום ניסיון מלא - כל הפיצ׳רים, ללא הגבלה. בסיום הניסיון רוכשים תוכנית.</div>
         </div>
       </div>
     </div>
@@ -2125,16 +2202,16 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
         </a>
       </div>
       <p class="download-meta reveal">
-        💾 <strong>גרסה 2.0.0</strong> · ~140 MB · Windows 10/11 (64-bit) · עברית מלאה
+        <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg> <strong>גרסה 2.0.0</strong> · ~140 MB · Windows 10/11 (64-bit) · עברית מלאה
       </p>
     </div>
   </section>
 
-  <!-- AGENT #7 — CTA / CONTACT -->
+  <!-- AGENT #7 - CTA / CONTACT -->
   <section class="cta-section" id="contact">
     <div class="container">
       <div class="cta-card reveal">
-        <h2 class="cta-title">מוכן להתחיל? <svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg></h2>
+        <h2 class="cta-title">מוכן להתחיל? <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg></h2>
         <p class="cta-subtitle">הצטרף ל-500+ צלמים מקצועיים שכבר הפכו את העבודה שלהם למהירה ורווחית יותר.</p>
         <div class="cta-actions">
           <a class="btn btn-primary btn-lg" onclick="nav('home', 'pricing')">
@@ -2142,14 +2219,14 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <i data-lucide="arrow-left" style="width:18px;height:18px"></i>
           </a>
           <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank">
-            <span>💬 דבר איתנו בוואטסאפ</span>
+            <span><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg> דבר איתנו בוואטסאפ</span>
           </a>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- AGENT #7 — FOOTER -->
+  <!-- AGENT #7 - FOOTER -->
   <footer class="footer">
     <div class="container">
       <div class="footer-grid">
@@ -2185,7 +2262,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
       </div>
       <div class="footer-bottom">
         <span>© 2026 Magnet Frame PRO. כל הזכויות שמורות.</span>
-        <span>תוצרת ישראל 🇮🇱 · נבנה באהבה לצלמים</span>
+        <span>תוצרת ישראל <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg> · נבנה באהבה לצלמים</span>
       </div>
     </div>
   </footer>
@@ -2198,7 +2275,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
   <div class="checkout-wrap">
     <div class="container">
       <div class="checkout-header reveal">
-        <h1>🛒 סיום רכישה</h1>
+        <h1><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> סיום רכישה</h1>
         <p>עוד רגע ואתה מתחיל להשתמש ב-Magnet Frame PRO</p>
       </div>
 
@@ -2215,6 +2292,11 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
         <div class="stepper-line"></div>
         <div class="stepper-item" data-step="3">
           <div class="stepper-bubble">3</div>
+          <span>תשלום</span>
+        </div>
+        <div class="stepper-line"></div>
+        <div class="stepper-item" data-step="4">
+          <div class="stepper-bubble">4</div>
           <span>אישור</span>
         </div>
       </div>
@@ -2225,13 +2307,17 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             <div class="checkout-card">
               <h2><span class="num">1</span> בחר תוכנית</h2>
               <div class="plan-pick">
-                <label class="plan-option" onclick="selectPlanOption(this, 'yearly')">
-                  <div class="po-title">📅 שנתי</div>
-                  <div class="po-price">₪299 <small>/ שנה</small></div>
+                <label class="plan-option" data-plan="monthly" onclick="selectPlanOption(this, 'monthly')">
+                  <div class="po-title"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg> חודשי</div>
+                  <div class="po-price">₪39 <small>/ חודש</small></div>
                 </label>
-                <label class="plan-option selected" onclick="selectPlanOption(this, 'fiveyear')">
-                  <div class="po-title">💎 5 שנים</div>
-                  <div class="po-price">₪549 <small>/ 5 שנים</small></div>
+                <label class="plan-option" data-plan="yearly" onclick="selectPlanOption(this, 'yearly')">
+                  <div class="po-title"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></svg> שנתי</div>
+                  <div class="po-price">₪399 <small>/ שנה</small></div>
+                </label>
+                <label class="plan-option selected" data-plan="twoyear" onclick="selectPlanOption(this, 'twoyear')">
+                  <div class="po-title"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg> שנתיים</div>
+                  <div class="po-price">₪599 <small>/ שנתיים</small></div>
                 </label>
               </div>
             </div>
@@ -2251,12 +2337,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
               <div class="form-group">
                 <label>אימייל <span class="req">*</span></label>
                 <input type="email" name="email" class="form-input" required placeholder="you@email.com" autocomplete="email" dir="ltr">
-                <span class="form-help">📧 לכאן יישלח מפתח הרישיון מיד עם השלמת הרכישה</span>
-              </div>
-              <div class="form-group">
-                <label>תעודת זהות / ת.ז (אופציונלי)</label>
-                <input type="text" name="idNumber" class="form-input" placeholder="000000000" autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="9" dir="ltr">
-                <span class="form-help">🪪 משמש להנפקת חשבונית מס לעוסק פטור / יחיד</span>
+                <span class="form-help"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> לכאן יישלח מפתח הרישיון מיד עם השלמת הרכישה</span>
               </div>
               <div class="form-row">
                 <div class="form-group">
@@ -2271,24 +2352,38 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
             </div>
 
             <div class="checkout-card" style="margin-top: 1.25rem">
-              <h2><span class="num">3</span> אישור והשלמת רכישה</h2>
-              <p style="color: var(--fg-3); font-size: 0.93rem; line-height: 1.65; margin-bottom: 1.25rem">
-                בלחיצה על הכפתור — נוצרת הזמנה במערכת, מונפק מפתח רישיון אישי, ונשלח אליך מייל אישור עם המפתח. הכל אוטומטי, תוך שניות.
+              <h2><span class="num">3</span> אמצעי תשלום</h2>
+              <p style="color: var(--fg-3); font-size: 0.93rem; line-height: 1.65; margin-bottom: 1rem">
+                התשלום מתבצע בדף מאובטח של חברת הסליקה. <strong style="color:var(--fg-2)">פרטי האשראי מוקלדים ישירות אצל חברת הסליקה - ולעולם לא נשמרים אצלנו.</strong>
               </p>
-
-              <div id="checkoutError" role="alert" class="checkout-error"></div>
-
-              <button id="submitBtn" type="submit" class="btn btn-primary btn-lg btn-block">
-                <span id="btnText">🔐 השלם רכישה וקבל מפתח</span>
-              </button>
-
-              <div class="security-strip">
-                <div class="ico">🔒</div>
+              <div class="pay-methods">
+                <span class="pay-method">ויזה</span>
+                <span class="pay-method">מאסטרקארד</span>
+                <span class="pay-method">אמריקן אקספרס</span>
+                <span class="pay-method">Bit</span>
+                <span class="pay-method">Apple&nbsp;Pay</span>
+                <span class="pay-method">Google&nbsp;Pay</span>
+              </div>
+              <div class="security-strip" style="margin-top:1.25rem">
+                <div class="ico"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
                 <div>
                   <strong style="color:var(--fg-1);font-weight:700">תשלום מאובטח</strong>
                   <div style="font-size:0.82rem;color:var(--fg-3)">חיבור SSL מוצפן · תקן PCI-DSS · ללא שמירת פרטי אשראי אצלנו</div>
                 </div>
               </div>
+            </div>
+
+            <div class="checkout-card" style="margin-top: 1.25rem">
+              <h2><span class="num">4</span> אישור והשלמת רכישה</h2>
+              <p style="color: var(--fg-3); font-size: 0.93rem; line-height: 1.65; margin-bottom: 1.25rem">
+                בלחיצה על הכפתור נמשיך להשלמת הרכישה. מפתח הרישיון יישלח אליך למייל מיד עם אישור התשלום.
+              </p>
+
+              <div id="checkoutError" role="alert" class="checkout-error"></div>
+
+              <button id="submitBtn" type="submit" class="btn btn-primary btn-lg btn-block">
+                <span id="btnText"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><circle cx="12" cy="16" r="1"/><rect x="3" y="10" width="18" height="12" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></svg> המשך לרכישה מאובטחת</span>
+              </button>
 
               <p style="font-size:0.78rem;color:var(--fg-4);margin-top:1rem;text-align:center">
                 בלחיצה על הכפתור אני מאשר/ת את <a onclick="nav('terms')" style="color:var(--brand-purple-bright);cursor:pointer">תנאי השימוש</a> ואת <a onclick="nav('privacy')" style="color:var(--brand-purple-bright);cursor:pointer">מדיניות הפרטיות</a>.
@@ -2298,22 +2393,22 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 
           <aside class="checkout-summary">
             <div class="summary-card">
-              <h3>📋 סיכום הזמנה</h3>
+              <h3><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg> סיכום הזמנה</h3>
               <div class="summary-row">
                 <span>תוכנית</span>
-                <span id="planLabel" style="font-weight:700;color:var(--fg-1)">תוכנית 5 שנים</span>
+                <span id="planLabel" style="font-weight:700;color:var(--fg-1)">תוכנית שנתיים</span>
               </div>
               <div class="summary-row">
                 <span>מחיר התוכנית</span>
-                <span id="planPrice" style="font-weight:700;color:var(--fg-1)">₪549</span>
+                <span id="planPrice" style="font-weight:700;color:var(--fg-1)">₪599</span>
               </div>
               <div class="summary-row">
                 <span>מע״מ (18%)</span>
-                <span id="vatAmount" style="font-weight:700;color:var(--fg-1)">₪98.82</span>
+                <span id="vatAmount" style="font-weight:700;color:var(--fg-1)">₪107.82</span>
               </div>
               <div class="summary-row total">
                 <span>סה״כ לתשלום</span>
-                <span class="v" id="totalAmount">₪647.82</span>
+                <span class="v" id="totalAmount">₪706.82</span>
               </div>
               <ul class="summary-features">
                 <li>הפעלה מיידית במייל</li>
@@ -2339,12 +2434,12 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 <div class="page" id="page-success">
   <div class="success-wrap">
     <div class="container">
-      <div class="success-burst">🎉</div>
+      <div class="success-burst"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg></div>
       <h1 class="success-title">תודה רבה על הרכישה!</h1>
-      <p class="success-subtitle">המפתח שלך מוכן ופעיל. שמרת עותק במייל — אבל אפשר להעתיק ישירות מכאן.</p>
+      <p class="success-subtitle">המפתח שלך מוכן ופעיל. שמרת עותק במייל - אבל אפשר להעתיק ישירות מכאן.</p>
 
       <div class="license-card">
-        <div class="license-label">🔑 מפתח הרישיון שלך</div>
+        <div class="license-label"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></svg> מפתח הרישיון שלך</div>
         <div class="license-key" id="licenseKey">MFP-XXXX-XXXX-XXXX</div>
         <button class="copy-btn" onclick="copyLicense()" id="copyBtn">
           <i data-lucide="copy" style="width:16px;height:16px"></i>
@@ -2353,28 +2448,28 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
       </div>
 
       <div class="details-grid">
-        <div class="detail-row"><div class="detail-label">תוכנית</div><div class="detail-value" id="planNameSuccess">—</div></div>
-        <div class="detail-row"><div class="detail-label">תאריך רכישה</div><div class="detail-value" id="purchaseDate">—</div></div>
-        <div class="detail-row"><div class="detail-label">תוקף עד</div><div class="detail-value" id="expiryDate">—</div></div>
-        <div class="detail-row"><div class="detail-label">מספר הזמנה</div><div class="detail-value" id="orderNumber">—</div></div>
-        <div class="detail-row"><div class="detail-label">תאריך הפעלה</div><div class="detail-value" id="activationDate">—</div></div>
-        <div class="detail-row"><div class="detail-label">סכום ששולם</div><div class="detail-value" id="amount">—</div></div>
+        <div class="detail-row"><div class="detail-label">תוכנית</div><div class="detail-value" id="planNameSuccess">-</div></div>
+        <div class="detail-row"><div class="detail-label">תאריך רכישה</div><div class="detail-value" id="purchaseDate">-</div></div>
+        <div class="detail-row"><div class="detail-label">תוקף עד</div><div class="detail-value" id="expiryDate">-</div></div>
+        <div class="detail-row"><div class="detail-label">מספר הזמנה</div><div class="detail-value" id="orderNumber">-</div></div>
+        <div class="detail-row"><div class="detail-label">תאריך הפעלה</div><div class="detail-value" id="activationDate">-</div></div>
+        <div class="detail-row"><div class="detail-label">סכום ששולם</div><div class="detail-value" id="amount">-</div></div>
       </div>
 
       <div class="next-steps">
-        <h4><svg viewBox="0 0 24 24" width="1em" height="1em" style="vertical-align:-0.18em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 19c.5 2 1 3 2 4 1-1 1.5-2 2-4-.6.4-1.3.6-2 .6s-1.4-.2-2-.6z" fill="#F59E0B"/><path d="M11 19.5c.3 1.4.6 2 1 2.5.4-.5.7-1.1 1-2.5-.3.2-.7.3-1 .3s-.7-.1-1-.3z" fill="#EF4444"/><path d="M8 14L4 19v-3l4-2z" fill="#3B82F6"/><path d="M16 14l4 5v-3l-4-2z" fill="#3B82F6"/><path d="M12 2c-2.5 3-4 7-4 12v5h8v-5c0-5-1.5-9-4-12z" fill="#F1F5F9"/><path d="M12 2c-1.5 1.5-2.5 3.5-3 5.5h6c-.5-2-1.5-4-3-5.5z" fill="#EF4444"/><circle cx="12" cy="11" r="2.2" fill="#7DD3FC"/><circle cx="12" cy="11" r="2.2" fill="none" stroke="#0C4A6E" stroke-width="0.5"/><circle cx="11.2" cy="10.3" r="0.7" fill="#FFFFFF" opacity="0.6"/><path d="M8 16.5h8v1.5H8z" fill="#EF4444"/></svg> השלבים הבאים</h4>
+        <h4><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0;margin-inline-end:0.15em" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg> השלבים הבאים</h4>
         <ol>
           <li>פתח את התוכנה Magnet Frame PRO במחשב שלך.</li>
           <li>במסך הראשון, בחר ״הזן מפתח רישיון״.</li>
           <li>הדבק את המפתח שהעתקת ולחץ ״הפעל״.</li>
-          <li>זהו — כל הפיצ׳רים נפתחו. עיבוד ראשון תוך 3 שניות!</li>
+          <li>זהו - כל הפיצ׳רים נפתחו. עיבוד ראשון תוך 3 שניות!</li>
         </ol>
       </div>
 
       <div class="success-actions">
         <a class="btn btn-primary btn-lg" onclick="nav('home')">חזרה לעמוד הבית</a>
         <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank">
-          💬 צריך עזרה? דבר איתנו
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg> צריך עזרה? דבר איתנו
         </a>
       </div>
     </div>
@@ -2387,12 +2482,12 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 <div class="page" id="page-cancel">
   <div class="success-wrap">
     <div class="container">
-      <div class="success-burst" style="background:linear-gradient(135deg,#F59E0B,#EF4444);box-shadow:0 30px 80px -10px rgba(245,158,11,0.6),0 0 0 8px rgba(245,158,11,0.1)">😔</div>
+      <div class="success-burst" style="background:linear-gradient(135deg,#F59E0B,#EF4444);box-shadow:0 30px 80px -10px rgba(245,158,11,0.6),0 0 0 8px rgba(245,158,11,0.1)"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg></div>
       <h1 class="success-title">העסקה בוטלה</h1>
-      <p class="success-subtitle">לא חויב כלום. אם הייתה תקלה — אנחנו פה לעזור.</p>
+      <p class="success-subtitle">לא חויב כלום. אם הייתה תקלה - אנחנו פה לעזור.</p>
       <div class="success-actions">
         <a class="btn btn-primary btn-lg" onclick="nav('home', 'pricing')">חזרה לבחירת תוכנית</a>
-        <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank">💬 דבר עם תמיכה</a>
+        <a class="btn btn-ghost btn-lg" href="https://wa.me/972524184525" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/></svg> דבר עם תמיכה</a>
       </div>
     </div>
   </div>
@@ -2405,7 +2500,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
   <div class="legal-wrap">
     <div class="container">
       <div class="legal-hero">
-        <h1>📜 תנאי שימוש</h1>
+        <h1><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg> תנאי שימוש</h1>
         <p class="date">בתוקף מתאריך: אפריל 2026</p>
       </div>
       <div class="legal-content">
@@ -2413,12 +2508,11 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
         <div class="legal-section"><h2><span class="num">2</span> הסכמה לתנאים</h2><p>השימוש בשירות מהווה הסכמה מלאה לתנאים אלה ולמדיניות הפרטיות שלנו. אישור התנאים בעת ההרשמה או בעת התשלום מהווה חוזה מחייב.</p></div>
         <div class="legal-section"><h2><span class="num">3</span> תיאור השירות</h2><p>Magnet Frame PRO היא תוכנה מקצועית לצלמי מגנטים באירועים, הכוללת עיבוד תמונות אוטומטי, ספריית מסגרות, כלי עריכה, הדפסה ישירה, ותמיכה טכנית.</p></div>
         <div class="legal-section"><h2><span class="num">4</span> רישיון שימוש</h2><p>בכפוף לתשלום דמי המנוי, החברה מעניקה לך רישיון מוגבל, לא בלעדי, לא ניתן להעברה, לשימוש בתוכנה למטרות עסקיות. הרישיון תקף למחשב אחד בלבד.</p></div>
-        <div class="legal-section"><h2><span class="num">5</span> מנוי ותשלום</h2><p>השירות ניתן במסגרת מנוי שנתי (299 ₪) או 5-שנים (549 ₪). המחירים אינם כוללים מע״מ. החיוב מתבצע מראש ומיד עם הרכישה.</p></div>
+        <div class="legal-section"><h2><span class="num">5</span> מנוי ותשלום</h2><p>השירות ניתן במסגרת מנוי חודשי (39 ₪), שנתי (399 ₪) או דו-שנתי (599 ₪). המחירים אינם כוללים מע״מ. החיוב מתבצע מראש ומיד עם הרכישה.</p></div>
         <div class="legal-section"><h2><span class="num">6</span> חובות המשתמש</h2><p>אתה מתחייב לספק מידע מדויק, לשמור על סודיות פרטי ההתחברות, לא להשתמש בשירות לכל מטרה בלתי חוקית, ולכבד זכויות יוצרים של תוכן שאתה מעלה.</p></div>
         <div class="legal-section"><h2><span class="num">7</span> קניין רוחני</h2><p>כל הזכויות בתוכנה, קוד המקור, העיצוב, והשמות המסחריים הם קניינה הבלעדי של החברה. התוכן שאתה יוצר באמצעות התוכנה הוא בבעלותך המלאה.</p></div>
         <div class="legal-section"><h2><span class="num">8</span> הגבלת אחריות</h2><p>השירות ניתן ״כפי שהוא״. החברה אינה אחראית לנזק עקיף, אובדן רווחים, או תקלות טכניות. אחריותה הכוללת לא תעלה על סכום התשלום ב-12 החודשים האחרונים.</p></div>
-        <div class="legal-section"><h2><span class="num">9</span> סיום השירות</h2><p>המשתמש רשאי לבטל את המנוי בכל עת. הביטול ייכנס לתוקף בתום תקופת החיוב הנוכחית.</p></div>
-        <div class="legal-section"><h2><span class="num">10</span> יצירת קשר</h2><p>לשאלות: מייל — PHOTO.ME.PM1@GMAIL.COM | וואטסאפ — 052-4184525. הדין החל הוא הדין הישראלי.</p></div>
+        <div class="legal-section"><h2><span class="num">9</span> יצירת קשר</h2><p>לשאלות: מייל - PHOTO.ME.PM1@GMAIL.COM | וואטסאפ - 052-4184525.</p></div>
       </div>
     </div>
   </div>
@@ -2431,16 +2525,16 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
   <div class="legal-wrap">
     <div class="container">
       <div class="legal-hero">
-        <h1>🔐 מדיניות פרטיות</h1>
+        <h1><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><circle cx="12" cy="16" r="1"/><rect x="3" y="10" width="18" height="12" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></svg> מדיניות פרטיות</h1>
         <p class="date">בתוקף מתאריך: אפריל 2026</p>
       </div>
       <div class="legal-content">
-        <div class="legal-section"><h2><span class="num">1</span> איזה מידע אנחנו אוספים</h2><p>פרטי זיהוי (שם, מייל, טלפון), פרטי עסק (שם העסק, ח.פ), פרטי תשלום (מעובדים דרך סולק חיצוני מאובטח — לא נשמרים אצלנו), ומידע טכני לצורך שיפור השירות.</p></div>
-        <div class="legal-section"><h2><span class="num">2</span> התמונות שלך נשארות אצלך</h2><p>כל עיבוד התמונות מתבצע באופן מקומי על המחשב שלך בלבד. אנחנו לא מעלים, לא שומרים ולא רואים אף תמונה שלך — לעולם.</p></div>
+        <div class="legal-section"><h2><span class="num">1</span> איזה מידע אנחנו אוספים</h2><p>פרטי זיהוי (שם, מייל, טלפון), פרטי עסק (שם העסק, ח.פ), פרטי תשלום (מעובדים דרך סולק חיצוני מאובטח - לא נשמרים אצלנו), ומידע טכני לצורך שיפור השירות.</p></div>
+        <div class="legal-section"><h2><span class="num">2</span> התמונות שלך נשארות אצלך</h2><p>כל עיבוד התמונות מתבצע באופן מקומי על המחשב שלך בלבד. אנחנו לא מעלים, לא שומרים ולא רואים אף תמונה שלך - לעולם.</p></div>
         <div class="legal-section"><h2><span class="num">3</span> למה אנחנו משתמשים במידע</h2><p>אספקת השירות, עיבוד תשלומים, מתן תמיכה טכנית, שליחת עדכונים חשובים, שיפור המוצר, ועמידה בדרישות חוקיות.</p></div>
         <div class="legal-section"><h2><span class="num">4</span> שיתוף מידע עם צדדים שלישיים</h2><p>אנחנו לא מוכרים ולא משכירים את המידע שלך. שיתוף מתבצע רק עם ספקי שירות מאובטחים (סולקי תשלום), או לפי דרישה חוקית.</p></div>
         <div class="legal-section"><h2><span class="num">5</span> אבטחת מידע</h2><p>הצפנת SSL/TLS, סליקה בתקן PCI-DSS, גיבויים תקופתיים, והגבלת גישה לעובדים מורשים בלבד.</p></div>
-        <div class="legal-section"><h2><span class="num">6</span> הזכויות שלך</h2><p>זכות עיון, תיקון, מחיקה, והתנגדות לשימוש במידע. לפנייה: PHOTO.ME.PM1@GMAIL.COM — נשיב תוך 14 יום.</p></div>
+        <div class="legal-section"><h2><span class="num">6</span> הזכויות שלך</h2><p>זכות עיון, תיקון, מחיקה, והתנגדות לשימוש במידע. לפנייה: PHOTO.ME.PM1@GMAIL.COM - נשיב תוך 14 יום.</p></div>
         <div class="legal-section"><h2><span class="num">7</span> יצירת קשר</h2><p>מייל: PHOTO.ME.PM1@GMAIL.COM | וואטסאפ: 052-4184525</p></div>
       </div>
     </div>
@@ -2454,15 +2548,15 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
   <div class="legal-wrap">
     <div class="container">
       <div class="legal-hero">
-        <h1>↩️ מדיניות ביטולים והחזרים</h1>
+        <h1><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.14em;display:inline-block;flex-shrink:0" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg> מדיניות ביטולים והחזרים</h1>
         <p class="date">בתוקף מתאריך: אפריל 2026</p>
       </div>
       <div class="legal-content">
-        <div class="legal-section"><h2><span class="num">1</span> ביטול עסקה לפי חוק</h2><p>בהתאם לחוק הגנת הצרכן, ניתן לבטל עסקה תוך 14 ימים מיום ביצוע הרכישה. החזר כספי מלא בניכוי דמי ביטול של 5% או 100 ₪ — הנמוך מביניהם. הביטול ייכנס לתוקף מיידי וההחזר תוך 14 יום.</p></div>
+        <div class="legal-section"><h2><span class="num">1</span> ביטול עסקה לפי חוק</h2><p>בהתאם לחוק הגנת הצרכן, ניתן לבטל עסקה תוך 14 ימים מיום ביצוע הרכישה. החזר כספי מלא בניכוי דמי ביטול של 5% או 100 ₪ - הנמוך מביניהם. הביטול ייכנס לתוקף מיידי וההחזר תוך 14 יום.</p></div>
         <div class="legal-section"><h2><span class="num">2</span> ביטול מנוי שנתי</h2><p>תוך 14 יום מרכישה: החזר מלא. לאחר 14 עד 60 יום: החזר יחסי בניכוי דמי שימוש לפי תעריף ממוצע חודשי. לאחר 60 יום: המנוי יסתיים בתום השנה ללא החזר.</p></div>
-        <div class="legal-section"><h2><span class="num">3</span> ביטול מנוי 5 שנים</h2><p>תוך 14 יום מרכישה: החזר מלא. לאחר 14 עד 60 יום: החזר יחסי בניכוי דמי שימוש לפי תעריף ממוצע חודשי. לאחר 60 יום: המנוי יסתיים בתום תקופת ה-5 שנים ללא החזר.</p></div>
+        <div class="legal-section"><h2><span class="num">3</span> ביטול מנוי דו-שנתי</h2><p>תוך 14 יום מרכישה: החזר מלא. לאחר 14 עד 60 יום: החזר יחסי בניכוי דמי שימוש לפי תעריף ממוצע חודשי. לאחר 60 יום: המנוי יסתיים בתום תקופת השנתיים ללא החזר.</p></div>
         <div class="legal-section"><h2><span class="num">4</span> איך לבטל</h2><p>שלוש דרכים: מייל (PHOTO.ME.PM1@GMAIL.COM), וואטסאפ (052-4184525), או טלפון (א׳-ה׳ 9:00-17:00). ציין שם מלא ומספר הזמנה.</p></div>
-        <div class="legal-section"><h2><span class="num">5</span> החזר כספי</h2><p>ההחזר יבוצע לאותו אמצעי תשלום. אשראי — זיכוי תוך 3-7 ימי עסקים. ביט/PayBox — החזר תוך 24-48 שעות. תקבל מייל אישור עם חשבונית זיכוי.</p></div>
+        <div class="legal-section"><h2><span class="num">5</span> החזר כספי</h2><p>ההחזר יבוצע לאותו אמצעי תשלום. אשראי - זיכוי תוך 3-7 ימי עסקים. ביט/PayBox - החזר תוך 24-48 שעות. תקבל מייל אישור עם חשבונית זיכוי.</p></div>
         <div class="legal-section"><h2><span class="num">6</span> יצירת קשר</h2><p>מייל ביטולים: PHOTO.ME.PM1@GMAIL.COM | תמיכה כללית: PHOTO.ME.PM1@GMAIL.COM | וואטסאפ: 052-4184525</p></div>
       </div>
     </div>
@@ -2479,7 +2573,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 </a>
 
 <!-- ============================================================
-     ACCESSIBILITY WIDGET — Floating button + Panel
+     ACCESSIBILITY WIDGET - Floating button + Panel
      ============================================================ -->
 <div class="a11y-fab">
   <button id="a11yOpen" aria-label="פתח לוח נגישות" title="נגישות (Alt+0)" aria-expanded="false">
@@ -2567,7 +2661,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 </section>
 
 <!-- ============================================================
-     AGENT #9 + #10 — SCRIPT
+     AGENT #9 + #10 - SCRIPT
      ============================================================ -->
 <script>
   // Initialize icons after Lucide loads
@@ -2577,7 +2671,7 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
     initFeatureCardLight();
   });
 
-  let selectedPlan = 'fiveyear';
+  let selectedPlan = 'twoyear';
 
   // ========== NAVIGATION ==========
   function nav(pageId, sectionId) {
@@ -2589,19 +2683,27 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
       setTimeout(() => {
         const el = document.getElementById(sectionId);
         if (el) {
-          const pos = el.getBoundingClientRect().top + window.pageYOffset - 80;
+          // For the tall pricing section, anchor on the cards themselves so all
+          // 3 plans (with their buttons) get the full viewport height instead of
+          // landing on the header and pushing the buttons below the fold.
+          let anchor = el;
+          if (sectionId === 'pricing') {
+            const grid = el.querySelector('.pricing-grid');
+            if (grid) anchor = grid;
+          }
+          const pos = anchor.getBoundingClientRect().top + window.pageYOffset - 90;
           window.scrollTo({ top: pos, behavior: 'smooth' });
         }
       }, 100);
     }
     const titles = {
-      home: 'Magnet Frame PRO — דף הבית',
-      checkout: 'סיום רכישה — Magnet Frame PRO',
-      success: 'תודה על הרכישה! — Magnet Frame PRO',
-      cancel: 'העסקה בוטלה — Magnet Frame PRO',
-      terms: 'תנאי שימוש — Magnet Frame PRO',
-      privacy: 'מדיניות פרטיות — Magnet Frame PRO',
-      cancellation: 'מדיניות ביטולים — Magnet Frame PRO'
+      home: 'Magnet Frame PRO - דף הבית',
+      checkout: 'סיום רכישה - Magnet Frame PRO',
+      success: 'תודה על הרכישה! - Magnet Frame PRO',
+      cancel: 'העסקה בוטלה - Magnet Frame PRO',
+      terms: 'תנאי שימוש - Magnet Frame PRO',
+      privacy: 'מדיניות פרטיות - Magnet Frame PRO',
+      cancellation: 'מדיניות ביטולים - Magnet Frame PRO'
     };
     document.title = titles[pageId] || 'Magnet Frame PRO';
     setTimeout(() => { if (window.lucide) lucide.createIcons(); initReveal(); }, 50);
@@ -2610,6 +2712,12 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 
   function toggleMobileMenu() {
     document.getElementById('mobileMenu').classList.toggle('open');
+  }
+
+  // Mark the clicked plan card as selected (deselects the others).
+  function chooseCard(card) {
+    document.querySelectorAll('.pricing-card').forEach(function(c){ c.classList.remove('chosen'); });
+    if (card) card.classList.add('chosen');
   }
 
   function toggleFaq(btn) {
@@ -2659,18 +2767,18 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
   // plan name as seeded in server/app/database.py so the lookup at
   // /checkout/plans resolves to the right numeric id.
   const PLANS = {
-    yearly:   { priceILS: 299,   days: 365,  label: 'תוכנית שנתית',   successLabel: 'Magnet Frame PRO — שנתי',   dbName: 'שנתי' },
-    fiveyear: { priceILS: 549,   days: 1825, label: 'תוכנית 5 שנים',  successLabel: 'Magnet Frame PRO — 5 שנים', dbName: '5 שנים' }
+    monthly: { priceILS: 39,  days: 30,  label: 'תוכנית חודשית', successLabel: 'Magnet Frame PRO - חודשי',  dbName: 'חודשי' },
+    yearly:  { priceILS: 399, days: 365, label: 'תוכנית שנתית',  successLabel: 'Magnet Frame PRO - שנתי',   dbName: 'שנתי' },
+    twoyear: { priceILS: 599, days: 730, label: 'תוכנית שנתיים', successLabel: 'Magnet Frame PRO - שנתיים', dbName: 'שנתיים' }
   };
   function planOrFallback(name) { return PLANS[name] || PLANS.yearly; }
 
   function selectPlan(plan) {
     if (!PLANS[plan]) plan = 'yearly';
     selectedPlan = plan;
-    const options = document.querySelectorAll('.plan-option');
-    options.forEach(o => o.classList.remove('selected'));
-    if (plan === 'yearly'   && options[0]) options[0].classList.add('selected');
-    if (plan === 'fiveyear' && options[1]) options[1].classList.add('selected');
+    // Highlight by data-plan so it stays correct no matter the card order.
+    document.querySelectorAll('.plan-option').forEach(o =>
+      o.classList.toggle('selected', o.getAttribute('data-plan') === plan));
     updatePrices();
     updateStepper();
   }
@@ -2705,10 +2813,13 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
     const hasEmail = (document.querySelector('[name=email]')?.value || '').trim().length > 0;
     items.forEach(i => { i.classList.remove('active', 'done'); });
     lines.forEach(l => l.classList.remove('done'));
+    // Step 1 (plan) is always satisfied once the wizard is shown.
     items[0].classList.add('done'); lines[0]?.classList.add('done');
     if (hasName && hasEmail) {
+      // Details filled → payment step reachable; confirm becomes active.
       items[1].classList.add('done'); lines[1]?.classList.add('done');
-      items[2].classList.add('active');
+      items[2] && items[2].classList.add('done'); lines[2]?.classList.add('done');
+      items[3] && items[3].classList.add('active');
     } else {
       items[1].classList.add('active');
     }
@@ -2741,14 +2852,15 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
     const btn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
     const errorEl = document.getElementById('checkoutError');
+    const originalBtnHtml = btnText.innerHTML;
     btn.disabled = true;
-    btnText.innerHTML = '<span class="spinner"></span> מעבד רכישה...';
+    btnText.innerHTML = '<span class="spinner"></span> מעבד...';
     if (errorEl) errorEl.style.display = 'none';
     issuedLicense = null;
 
     const showError = (msg) => {
       btn.disabled = false;
-      btnText.innerHTML = '🔐 השלם רכישה וקבל מפתח';
+      btnText.innerHTML = originalBtnHtml;
       if (errorEl) {
         errorEl.textContent = msg;
         errorEl.style.display = 'block';
@@ -2793,39 +2905,55 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
       return match.id;
     })
     .then(planId => {
-      return fetchWithTimeout(submitUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan_id:            planId,
-          customer_name:      customerName,
-          customer_email:     customerEmail,
-          customer_phone:     customerPhone,
-          customer_id_number: idNumber,
-          business_name:      businessName,
-          business_id:        businessId,
-        }),
-      }, 15000);
-    })
-    .then(async resp => {
-      const text = await resp.text();
-      let body = {};
-      try { body = text ? JSON.parse(text) : {}; } catch (_) { body = { detail: text }; }
-      if (!resp.ok) {
-        const detail = body && body.detail
-          ? (typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail))
-          : '';
-        throw new Error('השרת השיב ' + resp.status + (detail ? (' — ' + detail) : ''));
-      }
-      return body;
-    })
-    .then(license => {
-      const key = license && (license.license_key || license.serial_key);
-      if (!key) throw new Error('השרת לא החזיר מפתח רישיון. נסה שוב או צור קשר עם התמיכה.');
-      issuedLicense = license;
-      nav('success');
-      btn.disabled = false;
-      btnText.innerHTML = '🔐 השלם רכישה וקבל מפתח';
+      const payload = JSON.stringify({
+        plan_id:            planId,
+        customer_name:      customerName,
+        customer_email:     customerEmail,
+        customer_phone:     customerPhone,
+        customer_id_number: idNumber,
+        business_name:      businessName,
+        business_id:        businessId,
+      });
+      const readBody = async (resp) => {
+        const text = await resp.text();
+        let body = {};
+        try { body = text ? JSON.parse(text) : {}; } catch (_) { body = { detail: text }; }
+        if (!resp.ok) {
+          const d = body && body.detail
+            ? (typeof body.detail === 'string' ? body.detail : JSON.stringify(body.detail))
+            : '';
+          throw new Error('השרת השיב ' + resp.status + (d ? (' - ' + d) : ''));
+        }
+        return body;
+      };
+      // Ask the server which path to use: a real payment provider (redirect to
+      // its secure hosted page) vs the dev issue-without-charge fallback.
+      return fetchWithTimeout(base + '/checkout/config', { method: 'GET' }, 8000)
+        .then(r => r.ok ? r.json() : { payment_configured: false })
+        .catch(() => ({ payment_configured: false }))
+        .then(cfg => {
+          if (cfg && cfg.payment_configured) {
+            // REAL PAYMENT — create the order, then redirect to the provider.
+            // Card details are entered on the PROVIDER's page, never here.
+            return fetchWithTimeout(base + '/checkout/create', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload,
+            }, 15000).then(readBody).then(body => {
+              if (body && body.next_step) { window.location.href = body.next_step; return; }
+              throw new Error('לא התקבל קישור תשלום מהשרת. נסה שוב או צור קשר עם התמיכה.');
+            });
+          }
+          // DEV MODE — issue without charge (temporary, until a provider is wired).
+          return fetchWithTimeout(submitUrl, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload,
+          }, 15000).then(readBody).then(body => {
+            const key = body && (body.license_key || body.serial_key);
+            if (!key) throw new Error('השרת לא החזיר מפתח רישיון. נסה שוב או צור קשר עם התמיכה.');
+            issuedLicense = body;
+            nav('success');
+            btn.disabled = false;
+            btnText.innerHTML = originalBtnHtml;
+          });
+        });
     })
     .catch(err => {
       console.error('Checkout failed:', err);
@@ -2951,6 +3079,33 @@ html.a11y-bigger-targets body > div.page button { min-height: 44px; min-width: 4
 
   // Init initial prices
   updatePrices();
+
+  // Render Lucide icons reliably. The CDN script loads with ``defer``, so a
+  // one-off setTimeout can fire BEFORE it's ready and leave empty icon boxes
+  // (e.g. the ☰ menu button). The ``load`` event fires only after every
+  // deferred script has executed, guaranteeing ``window.lucide`` exists.
+  function renderIcons() { if (window.lucide) { try { lucide.createIcons(); } catch (_) {} } }
+  window.addEventListener('load', renderIcons);
+  // Extra safety net for slow/flaky CDNs: retry a few times if it wasn't ready.
+  (function retryIcons(n){
+    if (window.lucide) { renderIcons(); return; }
+    if (n <= 0) return;
+    setTimeout(function(){ retryIcons(n - 1); }, 300);
+  })(8);
+
+  // Handle the customer returning from the payment provider's hosted page.
+  // The provider redirects to /site/?status=success&order=N (or ?status=cancel).
+  // Unused in dev mode (the dev flow shows success inline). Once a real provider
+  // is wired, its webhook issues the license + emails the key; the success page's
+  // key display on this path is a TODO to finish at that point.
+  (function handlePaymentReturn(){
+    try {
+      var q = new URLSearchParams(window.location.search || '');
+      var status = q.get('status');
+      if (status === 'success') nav('success');
+      else if (status === 'cancel') nav('cancel');
+    } catch (_) {}
+  })();
 
   // ============================================================
   // ACCESSIBILITY WIDGET

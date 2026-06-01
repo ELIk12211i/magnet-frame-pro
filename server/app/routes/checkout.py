@@ -31,6 +31,7 @@ from ..schemas import CheckoutCreateRequest, CheckoutCreateResponse, PublicPlan
 from ..services import email_service
 from ..services import license_service as licsvc
 from ..services import orders_service as orders
+from ..services import payments_service as payments
 from ..services import plans_service as plans
 
 
@@ -80,6 +81,24 @@ def public_plans():
             "sort_order":   int(r.get("sort_order") or 0),
         })
     return out
+
+
+# ---------------------------------------------------------------------------
+# GET /checkout/config
+# ---------------------------------------------------------------------------
+@router.get("/config")
+def public_config():
+    """Tell the website which checkout path to use.
+
+    ``payment_configured=True`` → the site should POST to ``/checkout/create``
+    and redirect the customer to the returned ``next_step`` (the provider's
+    secure hosted page). ``False`` → no provider wired up yet; the site uses
+    the dev ``/checkout/complete-dev`` issue-without-charge fallback.
+    """
+    return {
+        "payment_configured": payments.is_configured(),
+        "provider": payments.provider_name(),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -156,17 +175,48 @@ def create_checkout(req: CheckoutCreateRequest, request: Request):
         order_id, plan_id, _mask_email(email), amount_cents,
     )
 
-    # ``next_step`` is where the website should redirect the customer.
-    # Until a payment provider is wired up, we return an empty string
-    # and the website can show a "coming soon" message OR treat the
-    # endpoint as a lead-capture only.
+    # Ask the payment layer for a hosted-payment-page URL. The customer
+    # enters their card on the PROVIDER's secure page — never here. If no
+    # provider is wired up yet (dev mode) we return an empty ``next_step``
+    # and the website falls back to the dev issue-without-charge flow.
+    origin = str(request.base_url).rstrip("/")
+    return_url = f"{origin}/site/?status=success&order={order_id}"
+    cancel_url = f"{origin}/site/?status=cancel&order={order_id}"
+
+    payment_url = ""
+    provider = payments.provider_name()
+    configured = payments.is_configured()
+    if configured:
+        try:
+            session = payments.create_payment_session(
+                order=row,
+                amount_cents=amount_cents,
+                currency="ILS",
+                return_url=return_url,
+                cancel_url=cancel_url,
+                customer_name=name,
+                customer_email=email,
+                customer_phone=phone,
+                description=str(plan.get("name") or "Magnet Frame PRO"),
+            )
+            payment_url = str(session.get("payment_url") or "")
+        except payments.PaymentNotConfigured as exc:
+            logger.warning("checkout/create: payment provider not ready: %s", exc)
+            configured = False
+        except Exception as exc:
+            logger.error("checkout/create: payment session failed: %s", exc)
+            configured = False
+
     return {
         "order_id": order_id,
         "status":   row.get("status") or "pending",
         "amount_cents": amount_cents,
         "currency": "ILS",
-        "next_step": "",  # TODO: fill with provider-specific checkout URL
-        "message":  "הזמנה נוצרה. אנא המשיכו לתשלום.",
+        "next_step": payment_url,           # redirect target (empty in dev mode)
+        "provider":  provider,
+        "payment_configured": configured,
+        "message":  ("הזמנה נוצרה - ממשיכים לתשלום מאובטח."
+                     if payment_url else "הזמנה נוצרה."),
     }
 
 

@@ -126,31 +126,33 @@ def _seed_default_plans(conn: sqlite3.Connection) -> None:
     """
     now = _now_iso()
     defaults = [
-        # (name, days, license_type, sort_order, is_system)
+        # (name, days, license_type, price_ils, sort_order, is_system)
         # "תוכנית ניסיון" is flagged as system so the admin can edit its
         # fields but not delete it — it's the plan the desktop client's
         # "התחל תוכנית ניסיון" button maps to.
-        ("תוכנית ניסיון",    14,   "trial_14_days", 10, 1),
-        ("חודשי",            30,   "yearly",        20, 0),
-        ("3 חודשים",         90,   "yearly",        30, 0),
-        ("6 חודשים",         180,  "yearly",        40, 0),
-        ("שנתי",             365,  "yearly",        50, 0),
-        # "5 שנים" matches the second plan card on the purchase site
-        # (1825 days). The site's plan-key mapping uses the Hebrew name
-        # verbatim so changing this string requires an update to
-        # ``site/index.html`` as well.
-        ("5 שנים",           1825, "yearly",        55, 0),
-        ("לצמיתות",          None, "lifetime",      60, 0),
+        #
+        # The three website plans (חודשי / שנתי / שנתיים) carry a price that
+        # MUST stay in sync with the hardcoded PLANS object in
+        # ``server/site/index.html``. Other plans are admin-priced (0).
+        ("תוכנית ניסיון",    14,   "trial_14_days", 0,    10, 1),
+        ("חודשי",            30,   "yearly",        39,   20, 0),
+        ("3 חודשים",         90,   "yearly",        0,    30, 0),
+        ("6 חודשים",         180,  "yearly",        0,    40, 0),
+        ("שנתי",             365,  "yearly",        399,  50, 0),
+        # "שנתיים" (730 days) is the second/featured purchase-site card.
+        # Changing this Hebrew name requires updating ``site/index.html`` too.
+        ("שנתיים",           730,  "yearly",        599,  55, 0),
+        ("לצמיתות",          None, "lifetime",      0,    60, 0),
     ]
-    for name, days, lic_type, sort_order, is_system in defaults:
+    for name, days, lic_type, price_ils, sort_order, is_system in defaults:
         conn.execute(
             """
             INSERT OR IGNORE INTO subscription_plans
-            (name, days, license_type, is_active, sort_order,
+            (name, days, license_type, price_ils, is_active, sort_order,
              created_at, updated_at, is_system)
-            VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
             """,
-            (name, days, lic_type, sort_order, now, now, is_system),
+            (name, days, lic_type, price_ils, sort_order, now, now, is_system),
         )
 
 
@@ -389,42 +391,47 @@ def init_db() -> None:
             except Exception:
                 pass
 
-        # Additive migration — ensure the two website-card plans
-        # ("שנתי" 365-day + "5 שנים" 1825-day) exist and are active
-        # on every boot. The site's pricing cards reference these
-        # specifically; if the admin deactivated or deleted them in
-        # an older session the website couldn't resolve a plan_id at
-        # checkout. INSERT OR IGNORE keeps any custom name/price the
-        # admin set; the UPDATE below force-reactivates a row that
-        # exists but was hidden via is_active=0.
+        # Additive migration — guarantee the three website-card plans
+        # (חודשי 30d / שנתי 365d / שנתיים 730d) exist, are active, and carry
+        # the canonical price on every boot. The purchase site treats these
+        # prices as the source of truth, so price_ils is force-synced to the
+        # hardcoded PLANS object in ``server/site/index.html`` (admins manage
+        # OTHER plans freely). Keep these values in sync with that file.
         try:
             now = _now_iso()
-            for _name, _days, _sort in (
-                ("שנתי",   365,  50),
-                ("5 שנים", 1825, 55),
+            for _name, _days, _price, _sort in (
+                ("חודשי",  30,  39.0,  20),
+                ("שנתי",   365, 399.0, 50),
+                ("שנתיים", 730, 599.0, 55),
             ):
                 conn.execute(
                     """
                     INSERT OR IGNORE INTO subscription_plans
-                    (name, days, license_type, is_active, sort_order,
+                    (name, days, license_type, price_ils, is_active, sort_order,
                      created_at, updated_at, is_system)
-                    VALUES (?, ?, 'yearly', 1, ?, ?, ?, 0)
+                    VALUES (?, ?, 'yearly', ?, 1, ?, ?, ?, 0)
                     """,
-                    (_name, _days, _sort, now, now),
+                    (_name, _days, _price, _sort, now, now),
                 )
-                # Re-activate a row that already existed but was
-                # marked is_active=0 by an admin — the website needs
-                # both cards live regardless of admin toggles.
+                # Force canonical price + re-activate (site is authoritative),
+                # regardless of any earlier admin edit / hide.
                 conn.execute(
                     """
                     UPDATE subscription_plans
-                       SET is_active = 1
-                     WHERE days = ?
-                       AND license_type = 'yearly'
-                       AND is_active = 0
+                       SET price_ils = ?, is_active = 1, updated_at = ?
+                     WHERE name = ? AND license_type = 'yearly'
                     """,
-                    (_days,),
+                    (_price, now, _name),
                 )
+            # Retire the legacy "5 שנים" (1825-day) card — replaced by שנתיים.
+            conn.execute(
+                """
+                UPDATE subscription_plans
+                   SET is_active = 0, updated_at = ?
+                 WHERE name = '5 שנים' AND days = 1825
+                """,
+                (now,),
+            )
         except Exception:
             pass
 
