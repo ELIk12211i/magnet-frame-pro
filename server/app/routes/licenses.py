@@ -228,6 +228,33 @@ def whoami(request: Request):
     return {"ip": ip}
 
 
+@router.get("/latest-version")
+def latest_version():
+    """Public: the latest published app version.
+
+    The desktop client's Settings → "בדוק עדכונים" calls this and compares the
+    returned version with its own ``APP_VERSION``.  Empty string means the
+    admin hasn't published a version yet (client treats that as "up to date").
+    """
+    from .. import database as _db
+    return {"latest_version": _db.get_config("latest_version", "")}
+
+
+class SetVersionRequest(BaseModel):
+    version: str = Field(..., min_length=1, max_length=40)
+
+
+@router.post("/latest-version", dependencies=[Depends(require_admin_api)])
+def set_latest_version(req: SetVersionRequest, request: Request):
+    """Admin-only: publish the latest app version clients should update to."""
+    from .. import database as _db
+    ver = (req.version or "").strip()
+    if not ver:
+        raise HTTPException(status_code=400, detail="version required")
+    _db.set_config("latest_version", ver)
+    return {"success": True, "latest_version": ver}
+
+
 @router.post("/license-info", response_model=LicenseResponse)
 def license_info(req: LicenseInfoRequest, request: Request):
     """POST alternative to ``GET /license/info/{key}`` — same PII policy."""

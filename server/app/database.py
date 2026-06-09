@@ -118,6 +118,30 @@ def _now_iso() -> str:
     return _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat()
 
 
+def get_config(key: str, default: str = "") -> str:
+    """Read a value from the generic ``config`` key/value table."""
+    try:
+        with get_connection() as conn:
+            row = conn.execute(
+                "SELECT value FROM config WHERE key = ?", (key,)
+            ).fetchone()
+        if row is not None:
+            return str(row["value"])
+    except Exception:
+        pass
+    return default
+
+
+def set_config(key: str, value: str) -> None:
+    """Upsert a value into the generic ``config`` key/value table."""
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO config (key, value, updated_at) "
+            "VALUES (?, ?, ?)",
+            (key, str(value), _now_iso()),
+        )
+
+
 def _seed_default_plans(conn: sqlite3.Connection) -> None:
     """Insert the out-of-the-box subscription plans on first DB boot.
 
@@ -526,6 +550,21 @@ def init_db() -> None:
             );
             CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires
                 ON admin_sessions(expires_at);
+            """
+        )
+
+        # ------------------------------------------------------------------
+        # Generic key/value config table — holds server-wide settings such
+        # as the latest published app version (used by the desktop client's
+        # "בדוק עדכונים" check).
+        # ------------------------------------------------------------------
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS config (
+                key        TEXT PRIMARY KEY,
+                value      TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """
         )
 
