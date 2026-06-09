@@ -378,42 +378,16 @@ def dashboard(request: Request):
 
 @router.get("/app-version", response_class=HTMLResponse, include_in_schema=False)
 def app_version_page(request: Request, saved: Optional[str] = Query(None)):
-    _require_user_or_redirect(request)
-    import html as _html
+    user = _require_user_or_redirect(request)
     from .. import database as _db
-    current = _html.escape(_db.get_config("latest_version", ""))
-    note = ""
-    if saved:
-        note = ("<p style='color:#5bd16b;font-weight:700'>נשמר בהצלחה: "
-                f"{_html.escape(saved)}</p>")
-    body = (
-        "<!doctype html><html lang='he' dir='rtl'><head>"
-        "<meta charset='utf-8'>"
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-        "<title>גרסת אפליקציה — Magnet Frame Pro</title><style>"
-        "body{font-family:Segoe UI,Arial,sans-serif;background:#0f151d;"
-        "color:#e6edf6;display:flex;justify-content:center;padding:40px}"
-        ".card{background:#141c27;border:1px solid #243041;border-radius:14px;"
-        "padding:28px;max-width:460px;width:100%}"
-        "h1{font-size:20px;margin:0 0 6px}p{color:#9ab3cc}"
-        "label{font-size:14px;color:#9ab3cc}"
-        "input{width:100%;padding:10px;border-radius:8px;border:1px solid "
-        "#34465c;background:#0f151d;color:#fff;font-size:16px;"
-        "box-sizing:border-box;margin:8px 0 16px}"
-        "button{background:#2e7d32;color:#fff;border:none;border-radius:8px;"
-        "padding:12px 18px;font-size:15px;font-weight:700;cursor:pointer;"
-        "width:100%}a{color:#7fb2f0}</style></head><body><div class='card'>"
-        "<h1>גרסת אפליקציה עדכנית</h1>"
-        "<p>הגרסה שתפורסם ללקוחות בבדיקת-העדכונים שבתוכנה.</p>"
-        + note +
-        "<form method='post' action='/admin/app-version'>"
-        "<label>גרסה עדכנית (למשל 2.1.0)</label>"
-        f"<input name='version' value='{current}' placeholder='2.1.0' required>"
-        "<button type='submit'>שמור</button></form>"
-        "<p style='margin-top:16px'><a href='/admin/dashboard'>"
-        "← חזרה ללוח הבקרה</a></p></div></body></html>"
-    )
-    return HTMLResponse(body)
+    ctx = {
+        "page_title": "App Version",
+        "active_nav": "app_version",
+        "user": user,
+        "current": _db.get_config("latest_version", ""),
+        "saved": saved or "",
+    }
+    return _render(request, "admin/app_version.html", ctx)
 
 
 @router.post("/app-version", include_in_schema=False)

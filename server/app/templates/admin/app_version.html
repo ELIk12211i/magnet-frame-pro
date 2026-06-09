@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}App Version{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">גרסת אפליקציה</h1>
+    <p class="page-sub">הגרסה שתפורסם ללקוחות בבדיקת-העדכונים שבתוכנה</p>
+  </div>
+</div>
+
+{% if saved %}
+<div class="alert alert-success">נשמר בהצלחה: {{ saved }}</div>
+{% endif %}
+
+<div class="card" style="max-width:520px">
+  <div class="card-body">
+    <form method="post" action="/admin/app-version">
+      <label class="form-label">גרסה עדכנית (למשל 2.1.0)</label>
+      <input name="version" value="{{ current }}" placeholder="2.1.0"
+             class="form-control" required autofocus>
+      <button type="submit" class="btn btn-primary mt-3">שמור</button>
+    </form>
+    <p class="text-muted small mt-3" style="margin-top:1rem">
+      גרסה נוכחית מפורסמת: <strong>{{ current or "— (ריק = לקוחות רואים שהם מעודכנים)" }}</strong>
+    </p>
+  </div>
+</div>
+{% endblock %}
