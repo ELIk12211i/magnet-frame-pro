@@ -361,12 +361,27 @@ def logout(request: Request):
 @router.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
 def dashboard(request: Request):
     user = _require_user_or_redirect(request)
+    recent = _stats.recent_licenses(n=10)
+    # Attach AI-credit balance + lifetime usage to each recent license so the
+    # dashboard table shows the same wallet info as the full licenses list.
+    try:
+        _summ = _credits.credit_summaries_for_serials(
+            [lic.get("serial_key") for lic in recent if lic.get("serial_key")])
+        for lic in recent:
+            s = _summ.get(lic.get("serial_key"),
+                          {"balance_agorot": 0, "used_agorot": 0})
+            lic["ai_balance_ils"] = s["balance_agorot"] / 100.0
+            lic["ai_used_ils"] = s["used_agorot"] / 100.0
+    except Exception:
+        for lic in recent:
+            lic.setdefault("ai_balance_ils", 0.0)
+            lic.setdefault("ai_used_ils", 0.0)
     ctx = {
         "page_title": "Dashboard",
         "active_nav": "dashboard",
         "user": user,
         "stats": _stats.overview(),
-        "recent_licenses": _stats.recent_licenses(n=10),
+        "recent_licenses": recent,
         "recent_events": _evt.recent_events(n=20),
     }
     return _render(request, "admin/dashboard.html", ctx)

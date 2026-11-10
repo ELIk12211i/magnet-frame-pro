@@ -108,6 +108,7 @@
               <th>מפתח</th>
               <th>סוג</th>
               <th>סטטוס</th>
+              <th>קרדיט AI</th>
               <th>לקוח</th>
               <th>נוצר</th>
             </tr>
@@ -120,11 +121,19 @@
               </td>
               <td>{% include "admin/_type_badge.html" %}</td>
               <td>{% include "admin/_status_badge.html" %}</td>
+              <td class="small" style="white-space: nowrap;">
+                <div style="font-weight: 700; color: #1a7f37;">
+                  {{ '%.2f'|format(lic.ai_balance_ils|default(0)) }} ₪
+                </div>
+                <div class="text-muted">
+                  נוצל: {{ '%.2f'|format(lic.ai_used_ils|default(0)) }} ₪
+                </div>
+              </td>
               <td class="text-truncate" style="max-width: 150px;">{{ lic.customer_name or '—' }}</td>
               <td class="text-muted small">{{ lic.created_at|localdate }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="5" class="text-center text-muted py-4">אין רישיונות עדיין.</td></tr>
+            <tr><td colspan="6" class="text-center text-muted py-4">אין רישיונות עדיין.</td></tr>
           {% endfor %}
           </tbody>
         </table>
