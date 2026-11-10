@@ -335,6 +335,66 @@ def _ensure_ailab_catalog(conn: sqlite3.Connection) -> None:
         )
 
 
+def _seed_preview_images(conn: sqlite3.Connection) -> None:
+    """Load bundled preview images (server/app/seed_previews/<key>.png) into
+    the DB on boot, so the filter catalogue ships WITH its artwork.
+
+    Idempotent + non-destructive: an image is seeded for a filter only when
+    (a) that filter exists, and (b) no image is stored for it yet — so an
+    admin upload is never overwritten by the bundled default. preview_url is
+    pointed at the public serving route the same way an upload would.
+    """
+    seed_dir = Path(__file__).resolve().parent / "seed_previews"
+    if not seed_dir.is_dir():
+        return
+    now = _now_iso()
+    ver = "".join(ch for ch in now if ch.isdigit())
+    for path in sorted(seed_dir.glob("*.png")):
+        key = path.stem
+        row = conn.execute(
+            "SELECT 1 FROM ai_filters WHERE filter_key = ?", (key,)
+        ).fetchone()
+        if row is None:
+            continue
+        has_img = conn.execute(
+            "SELECT 1 FROM ai_filter_images WHERE filter_key = ?", (key,)
+        ).fetchone()
+        if has_img is not None:
+            continue
+        try:
+            data = path.read_bytes()
+        except Exception:
+            continue
+        if not data:
+            continue
+        conn.execute(
+            "INSERT OR REPLACE INTO ai_filter_images "
+            "(filter_key, mime, data, updated_at) VALUES (?, ?, ?, ?)",
+            (key, "image/png", sqlite3.Binary(data), now),
+        )
+        # preview_url lives INSIDE params_json (no dedicated column) — merge it
+        # in without clobbering the routing keys (ailab_kind / image_field /
+        # form). We only reach here when no image was stored yet, so there is
+        # no admin-set custom URL to preserve.
+        frow = conn.execute(
+            "SELECT params_json FROM ai_filters WHERE filter_key = ?", (key,)
+        ).fetchone()
+        cfg = {}
+        if frow and frow["params_json"]:
+            try:
+                cfg = json.loads(frow["params_json"]) or {}
+            except Exception:
+                cfg = {}
+        if not isinstance(cfg, dict):
+            cfg = {}
+        cfg["preview_url"] = f"/ai/filter-image/{key}?v={ver}"
+        conn.execute(
+            "UPDATE ai_filters SET params_json = ?, updated_at = ? "
+            "WHERE filter_key = ?",
+            (json.dumps(cfg, ensure_ascii=False), now, key),
+        )
+
+
 def init_db() -> None:
     """Create (or migrate) the tables. Idempotent — safe on every boot."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -865,6 +925,11 @@ def init_db() -> None:
         # idempotent: new filters are added, unused placeholders removed, and
         # existing rows (with their admin-set prices/enabled) are preserved.
         _ensure_ailab_catalog(conn)
+
+        # Seed bundled preview images for filters that don't have one yet
+        # (admin uploads always win). Runs after the catalogue so the filter
+        # rows exist.
+        _seed_preview_images(conn)
 
         # ------------------------------------------------------------------
         # Seed a default admin user if the table is empty.
