@@ -26,7 +26,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Form, HTTPException, Query, Request
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -1166,6 +1166,43 @@ def ai_filters_toggle(request: Request, filter_key: str):
     except Exception:
         pass
     return RedirectResponse("/admin/ai-filters", status_code=303)
+
+
+@router.post("/ai-filters/{filter_key}/upload-image", include_in_schema=False)
+async def ai_filters_upload_image(
+    request: Request, filter_key: str, image: UploadFile = File(...),
+):
+    """Upload a preview image from the admin's computer.
+
+    Stored in the DB (persists across redeploys) and served publicly at
+    /ai/filter-image/<key> for both the dashboard and the app.
+    """
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        data = await image.read()
+        if not data:
+            raise ValueError("קובץ ריק")
+        if len(data) > 8 * 1024 * 1024:
+            raise ValueError("התמונה גדולה מדי (מקסימום 8MB)")
+        is_jpeg = data[:3] == b"\xff\xd8\xff"
+        is_png = data[:8] == b"\x89PNG\r\n\x1a\n"
+        is_webp = data[:4] == b"RIFF" and data[8:12] == b"WEBP"
+        if is_jpeg:
+            mime = "image/jpeg"
+        elif is_png:
+            mime = "image/png"
+        elif is_webp:
+            mime = "image/webp"
+        else:
+            raise ValueError("יש להעלות קובץ תמונה (JPG / PNG / WEBP)")
+        if not _aiadmin.set_filter_image(filter_key, data, mime):
+            raise ValueError("הפילטר לא נמצא")
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('התמונה הועלתה.')}", status_code=303)
 
 
 # ---------------------------------------------------------------------------

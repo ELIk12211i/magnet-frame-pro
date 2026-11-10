@@ -813,6 +813,17 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_ai_filters_enabled
                 ON ai_filters(is_enabled);
 
+            -- Preview images uploaded from the admin dashboard. Stored IN THE
+            -- DB (not on disk) so they survive Railway redeploys, which wipe
+            -- the container filesystem but keep the mounted DB volume. Served
+            -- publicly at /ai/filter-image/<key> for both admin and the app.
+            CREATE TABLE IF NOT EXISTS ai_filter_images (
+                filter_key  TEXT PRIMARY KEY,
+                mime        TEXT NOT NULL DEFAULT 'image/jpeg',
+                data        BLOB NOT NULL,
+                updated_at  TEXT NOT NULL
+            );
+
             -- One row per AI generation attempt (metering + history).
             -- idempotency_key is UNIQUE: a client retry with the same key
             -- reuses this row instead of charging / calling twice.

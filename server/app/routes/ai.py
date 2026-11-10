@@ -17,10 +17,11 @@ import json
 from typing import Optional
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from .. import config as _cfg
 from ..services import ai_service as _ai
+from ..services import ai_admin_service as _aiadmin
 from ..services import credits_service as _credits
 from ..services import license_service as _lic
 
@@ -42,6 +43,20 @@ def _client_ip(request: Request) -> str:
 def filters():
     """Catalogue of enabled filters (name + sale price). No secrets."""
     return {"success": True, "filters": _ai.list_enabled_filters()}
+
+
+@router.get("/filter-image/{filter_key}")
+def filter_image(filter_key: str):
+    """Serve an admin-uploaded preview image (stored in the DB).
+
+    Public: both the admin dashboard and the desktop app load previews from
+    here. No secrets — just the picture. 404 when none is set.
+    """
+    img = _aiadmin.get_filter_image(filter_key)
+    if not img:
+        return Response(status_code=404)
+    return Response(content=img["data"], media_type=img["mime"],
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 @router.post("/balance")

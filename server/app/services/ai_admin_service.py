@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json as _json
+import sqlite3
 from typing import Any, Dict, List, Optional
 
 from ..database import get_connection
@@ -217,6 +218,51 @@ def update_filter(
             list(updates.values()) + [filter_key],
         )
     return res.rowcount > 0
+
+
+def set_filter_image(filter_key: str, data: bytes, mime: str) -> bool:
+    """Store an uploaded preview image (in the DB) and point the filter's
+    ``preview_url`` at the public serving route. Returns True on success.
+
+    Persisting the bytes in the DB (not on disk) keeps the image across
+    Railway redeploys. A ``?v=`` cache-buster is appended so browsers and the
+    app reload the new image immediately after replacement.
+    """
+    filter_key = (filter_key or "").strip()
+    if not filter_key or not data:
+        return False
+    now = _now_iso()
+    with get_connection() as conn:
+        exists = conn.execute(
+            "SELECT 1 FROM ai_filters WHERE filter_key = ?", (filter_key,)
+        ).fetchone()
+        if exists is None:
+            return False
+        conn.execute(
+            "INSERT INTO ai_filter_images (filter_key, mime, data, updated_at) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(filter_key) DO UPDATE SET "
+            "mime = excluded.mime, data = excluded.data, "
+            "updated_at = excluded.updated_at",
+            (filter_key, mime or "image/jpeg", sqlite3.Binary(data), now),
+        )
+    # point preview_url at the serving route (cache-busted by updated time)
+    ver = "".join(ch for ch in now if ch.isdigit())
+    update_filter(filter_key,
+                  preview_url=f"/ai/filter-image/{filter_key}?v={ver}")
+    return True
+
+
+def get_filter_image(filter_key: str) -> Optional[Dict[str, Any]]:
+    """Return {'mime', 'data'} for a stored preview image, or None."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT mime, data FROM ai_filter_images WHERE filter_key = ?",
+            ((filter_key or "").strip(),),
+        ).fetchone()
+    if row is None:
+        return None
+    return {"mime": row["mime"] or "image/jpeg", "data": bytes(row["data"])}
 
 
 def toggle_filter(filter_key: str) -> bool:

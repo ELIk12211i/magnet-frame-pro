@@ -37,10 +37,6 @@
                        list-style:none; user-select:none; }
   .ai-edit > summary::-webkit-details-marker { display:none; }
   .ai-edit[open] > summary { margin-bottom:6px; }
-  .ai-cat-head { grid-column:1/-1; margin:10px 2px 2px; font-weight:800;
-                 font-size:17px; color:#334155; display:flex; align-items:center;
-                 gap:8px; }
-  .ai-cat-head .count { font-size:12px; font-weight:600; color:#94a3b8; }
 </style>
 
 <div class="page-header">
@@ -68,13 +64,6 @@
 
 <div class="ai-grid">
 {% for f in filters %}
-  {% if loop.first or f.category != loop.previtem.category %}
-    <div class="ai-cat-head">
-      {{ f.category_label }}
-      <span class="count">({{ filters | selectattr('category','equalto',f.category) | list | length }} פילטרים)</span>
-    </div>
-  {% endif %}
-
   {% set grad = palette[loop.index0 % (palette|length)].split(',') %}
   <div class="ai-card {% if not f.is_enabled %}off{% endif %}">
     <div class="ai-thumb"
@@ -100,6 +89,18 @@
 
       <details class="ai-edit">
         <summary><i class="bi bi-sliders"></i> הגדרות ומחיר</summary>
+
+        <form method="post" enctype="multipart/form-data"
+              action="/admin/ai-filters/{{ f.filter_key }}/upload-image"
+              class="mb-2">
+          <label class="form-label mb-0" style="font-size:11px;">תמונת תצוגה (העלאה מהמחשב)</label>
+          <input type="file" name="image" accept="image/*"
+                 class="form-control form-control-sm" required>
+          <button type="submit" class="btn btn-sm btn-outline-primary w-100 mt-1">
+            <i class="bi bi-upload"></i> העלה תמונה
+          </button>
+        </form>
+
         <form method="post" action="/admin/ai-filters/{{ f.filter_key }}/edit"
               class="row g-2">
           <div class="col-12">
@@ -117,12 +118,6 @@
             <label class="form-label mb-0" style="font-size:11px;">תקרת עלות (₪)</label>
             <input type="number" name="cost_ceiling_ils" step="0.01" min="0" dir="ltr"
                    value="{{ '%.2f'|format(f.cost_ceiling_ils) }}"
-                   class="form-control form-control-sm">
-          </div>
-          <div class="col-12">
-            <label class="form-label mb-0" style="font-size:11px;">תמונת תצוגה (קישור URL)</label>
-            <input type="text" name="preview_url" value="{{ f.preview_url }}"
-                   dir="ltr" placeholder="https://..."
                    class="form-control form-control-sm">
           </div>
           <div class="col-12 ai-meta">
@@ -146,6 +141,6 @@
 <p class="text-muted mt-3" style="font-size:12.5px;">
   <i class="bi bi-info-circle"></i>
   "עלות משוערת מרבית" = קרדיטים × $0.006 × 3.8₪ × מרווח 1.5. אם היא חורגת מתקרת העלות — הבקשה נחסמת לפני קריאה לספק.
-  תמונת התצוגה היא להמחשה בניהול בלבד.
+  התמונה שתעלה מופיעה כאן בניהול וגם כריבוע האפקט בתוכנה.
 </p>
 {% endblock %}
