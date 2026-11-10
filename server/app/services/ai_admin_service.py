@@ -14,6 +14,7 @@ admin actually tops up / adjusts.
 from __future__ import annotations
 
 import datetime as _dt
+import json as _json
 from typing import Any, Dict, List, Optional
 
 from ..database import get_connection
@@ -110,12 +111,48 @@ def adjust_ils(serial: str, amount_ils_signed: float, actor: str,
 # ---------------------------------------------------------------------------
 # Filter catalogue management
 # ---------------------------------------------------------------------------
+# Human-readable labels for the AILabTools routing kinds (admin display).
+_KIND_LABELS = {
+    "cartoon": "קריקטורה / סגנון (portrait-animation)",
+    "emotion": "שינוי הבעה (emotion-editor)",
+    "emotion_all": "הבעה לכל הפנים (emotion + face-analyzer)",
+    "emotion_adaptive": "הבעה חכמה לכל הפנים",
+}
+
+
+def _enrich_filter(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Add derived, display-only routing fields parsed from params_json.
+
+    ``ailab_kind``, ``ailab_kind_label``, ``ailab_code`` (the style/emotion
+    code actually sent to the provider). Never written back — read-only hints
+    for the admin card.
+    """
+    kind = ""
+    code = ""
+    raw = d.get("params_json") or ""
+    if raw:
+        try:
+            cfg = _json.loads(raw)
+            if isinstance(cfg, dict):
+                kind = str(cfg.get("ailab_kind") or "")
+                form = cfg.get("form") or {}
+                if isinstance(form, dict):
+                    code = str(form.get("type")
+                               or form.get("service_choice") or "")
+        except Exception:
+            pass
+    d["ailab_kind"] = kind
+    d["ailab_kind_label"] = _KIND_LABELS.get(kind, kind or "—")
+    d["ailab_code"] = code
+    return d
+
+
 def list_filters() -> List[Dict[str, Any]]:
     with get_connection() as conn:
         rows = conn.execute(
             "SELECT * FROM ai_filters ORDER BY sort_order, display_name"
         ).fetchall()
-    return [_row_to_dict(r) for r in rows]
+    return [_enrich_filter(_row_to_dict(r)) for r in rows]
 
 
 def update_filter(

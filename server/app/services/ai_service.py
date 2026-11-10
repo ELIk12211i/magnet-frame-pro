@@ -127,9 +127,37 @@ def _mock_apply(image_bytes: bytes, params: Dict[str, Any]) -> ProviderResult:
 # Never called in dev. Verified against the official docs (see the
 # reference memo) but NOT exercised until an explicit go-ahead.
 # ---------------------------------------------------------------------------
+def _filter_routing(filt: Dict[str, Any]) -> Dict[str, Any]:
+    """Parse the per-filter AILabTools routing config out of ``params_json``.
+
+    Shape (set by the admin catalogue seed):
+        {"ailab_kind": "cartoon"|"emotion"|...,
+         "image_field": "image"|"image_target",
+         "form": {"type": "pixar"} | {"service_choice": "3"}}
+    Returns safe defaults when absent/malformed so a missing config degrades
+    to a plain portrait-animation call rather than crashing.
+    """
+    import json
+    raw = filt.get("params_json") or ""
+    try:
+        cfg = json.loads(raw) if raw else {}
+    except Exception:
+        cfg = {}
+    if not isinstance(cfg, dict):
+        cfg = {}
+    image_field = str(cfg.get("image_field") or "image").strip() or "image"
+    form_raw = cfg.get("form") or {}
+    form = {str(k): str(v) for k, v in form_raw.items()} \
+        if isinstance(form_raw, dict) else {}
+    return {
+        "kind": str(cfg.get("ailab_kind") or "").strip(),
+        "image_field": image_field,
+        "form": form,
+    }
+
+
 def _ailabtools_apply(
-    provider_path: str, result_kind: str,
-    image_bytes: bytes, params: Dict[str, Any],
+    filt: Dict[str, Any], image_bytes: bytes, client_params: Dict[str, Any],
 ) -> ProviderResult:
     import httpx  # lazy import — only needed in prod
 
@@ -141,11 +169,17 @@ def _ailabtools_apply(
             error_code="NO_API_KEY",
             error_detail="AILABTOOLS_API_KEY is not configured",
         )
+    provider_path = filt["provider_path"]
+    result_kind = filt.get("result_kind", "image_url")
+    route = _filter_routing(filt)
     url = f"{_cfg.AILABTOOLS_BASE_URL}/{provider_path.lstrip('/')}"
     headers = {"ailabapi-api-key": api_key}
-    files = {"image": ("image.jpg", image_bytes, "application/octet-stream")}
-    data = {k: str(v) for k, v in (params or {}).items()
-            if k != "mock_force"}
+    # The multipart image field name and the provider control params (type /
+    # service_choice / ...) come ONLY from the admin-configured catalogue —
+    # NEVER from the client request — so a client cannot steer the provider.
+    files = {route["image_field"]:
+             ("image.jpg", image_bytes, "application/octet-stream")}
+    data = dict(route["form"])
     try:
         with httpx.Client(timeout=_cfg.AI_REQUEST_TIMEOUT_SECS) as client:
             resp = client.post(url, headers=headers, files=files, data=data)
@@ -194,21 +228,38 @@ def _ailabtools_apply(
 def _extract_image(data: Dict[str, Any], result_kind: str) -> Optional[bytes]:
     """Pull image bytes out of an AILabTools ``data`` object.
 
-    Handles the two documented shapes: ``image_url`` (fetch it) and
-    ``binary_data_base64`` (decode it).
+    Handles the documented shapes across all three endpoints:
+      * portrait-animation  → ``data.image_url`` (fetch it).
+      * emotion-editor      → ``data.image`` is base64 (decode it).
+      * legacy              → ``data.binary_data_base64`` (decode it).
+    ``result_kind`` ("image_url" | "base64") decides which to try first; both
+    fall through to the other shape defensively.
     """
-    import httpx
-    if result_kind == "base64" or data.get("binary_data_base64"):
-        b64 = data.get("binary_data_base64")
-        if isinstance(b64, list):
-            b64 = b64[0] if b64 else ""
-        if b64:
+    def _try_b64(val) -> Optional[bytes]:
+        if isinstance(val, list):
+            val = val[0] if val else ""
+        if isinstance(val, str) and val and not val.startswith("http"):
             try:
-                return base64.b64decode(b64)
+                return base64.b64decode(val)
             except Exception:
                 return None
+        return None
+
+    if result_kind == "base64":
+        # emotion-editor returns base64 inline in ``image`` (or legacy field).
+        out = _try_b64(data.get("image")) or _try_b64(
+            data.get("binary_data_base64"))
+        if out:
+            return out
+    elif data.get("binary_data_base64"):
+        out = _try_b64(data.get("binary_data_base64"))
+        if out:
+            return out
+
+    # URL shape (portrait-animation ``image_url``; ``image`` may be a URL).
     url = data.get("image_url") or data.get("image") or ""
-    if url:
+    if isinstance(url, str) and url.startswith("http"):
+        import httpx  # lazy — only prod URL responses need the HTTP client
         try:
             with httpx.Client(timeout=_cfg.AI_REQUEST_TIMEOUT_SECS) as client:
                 r = client.get(url)
@@ -223,10 +274,7 @@ def _call_provider(
     filt: Dict[str, Any], image_bytes: bytes, params: Dict[str, Any]
 ) -> ProviderResult:
     if _cfg.AI_PROVIDER == "ailabtools":
-        return _ailabtools_apply(
-            filt["provider_path"], filt.get("result_kind", "image_url"),
-            image_bytes, params,
-        )
+        return _ailabtools_apply(filt, image_bytes, params)
     return _mock_apply(image_bytes, params)
 
 

@@ -39,6 +39,10 @@
         </div>
 
         <div class="mb-2 text-muted" style="font-size:12px;">
+          סוג: <span class="badge bg-info-subtle text-dark">{{ f.ailab_kind_label }}</span>
+          {% if f.ailab_code %}
+            · קוד סגנון: <code style="font-size:11px;">{{ f.ailab_code }}</code>
+          {% endif %}<br>
           נתיב ספק: <code style="font-size:11px;">{{ f.provider_path }}</code><br>
           קרדיטים ספק: <strong>{{ f.provider_credits }}</strong> ·
           עלות משוערת מרבית:

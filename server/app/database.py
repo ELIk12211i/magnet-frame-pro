@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import contextlib
 import datetime as _dt
+import json
 import os
 import sqlite3
 from pathlib import Path
@@ -204,55 +205,131 @@ def _seed_default_plans(conn: sqlite3.Connection) -> None:
         )
 
 
-def _seed_default_ai_filters(conn: sqlite3.Connection) -> None:
-    """Seed a starter catalogue of AILabTools cloud filters on first boot.
+# ---------------------------------------------------------------------------
+# AILabTools filter catalogue (the real, user-approved filters).
+# ---------------------------------------------------------------------------
+# Three ready AILabTools endpoints — no free prompt. Routing metadata for each
+# filter lives in ``params_json`` so no schema change is ever needed:
+#   {"ailab_kind": <cartoon|emotion|emotion_all|emotion_adaptive>,
+#    "image_field": <multipart field name for the image>,
+#    "form": {<extra provider form fields: type / service_choice / ...>}}
+#
+# Phase 1 ships the 28 single-call filters (21 cartoon + 7 base emotion),
+# enabled by default. The 4 "all faces" variants (face-analyzer orchestration
+# + recompose) are Phase 2 and are NOT seeded yet.
+#
+# Pricing (all money is integer agorot — never float), admin-editable:
+#   provider_credits = 20  (AILabTools bills ~20 credits / successful image)
+#   worst-case supplier cost = 20 × $0.006 × 3.8 × 1.5 × 100 ≈ 69 agorot
+#   cost_ceiling_agorot = 100  (1.00 ₪ — comfortably above worst-case)
+#   sale_price_agorot   = 300 cartoon (3.00 ₪) · 200 emotion (2.00 ₪)
+_AILAB_PA_PATH = "portrait/effects/portrait-animation"   # base url already ends /api
+_AILAB_EE_PATH = "portrait/effects/emotion-editor"
+_AILAB_CREDITS = 20
+_AILAB_CEILING = 100
 
-    All prices are **admin-editable** from the dashboard afterwards.
+# (style code, Hebrew display name) — portrait-animation `type`
+_AILAB_CARTOON_STYLES = [
+    ("3d_cartoon", "תלת-ממד קרטון"),
+    ("pixar", "פיקסאר"),
+    ("pixar_plus", "פיקסאר פרו"),
+    ("3d", "תלת-ממד"),
+    ("amcartoon", "קומיקס אמריקאי"),
+    ("ukiyoe_cartoon", "אוקיו-אה"),
+    ("angel", "מלאך"),
+    ("angel_plus", "מלאך פרו"),
+    ("demon", "שד"),
+    ("famous", "דמות מפורסמת"),
+    ("3d_game", "דמות משחק תלת-ממד"),
+    ("anime", "אנימה"),
+    ("jpcartoon", "מנגה יפנית"),
+    ("comic", "קומיקס"),
+    ("handdrawn", "ציור יד"),
+    ("sketch", "סקיצה"),
+    ("claborate", "ציור סיני עדין"),
+    ("hongkong", "קומיקס הונג-קונג"),
+    ("animation3d", "אנימציה תלת-ממד"),
+    ("classic_cartoon", "קרטון קלאסי"),
+    ("artstyle", "סגנון אמנותי"),
+]
 
-    Columns of note (all money is in integer agorot — never float):
-      * ``provider_credits``    — AILabTools credits charged per SUCCESSFUL
-                                  call, taken from the official billing docs.
-      * ``cost_ceiling_agorot`` — hard upper bound on the supplier cost we
-                                  will tolerate for this filter; the request
-                                  is BLOCKED before calling if the computed
-                                  worst-case supplier cost exceeds it.
-      * ``sale_price_agorot``   — what the customer's wallet is charged.
-      * ``result_kind``         — how the provider returns the image for this
-                                  endpoint (``image_url`` or ``base64``);
-                                  verified per-endpoint before any real call.
+# (name, Hebrew display name, service_choice) — emotion-editor
+_AILAB_EMOTION_SERVICES = [
+    ("smile", "חיוך", 3),
+    ("dimple", "חיוך עם גומות", 10),
+    ("grin", "חיוך רחב", 12),
+    ("laugh", "צחוק גדול", 0),
+    ("forced", "חיוך מאולץ", 16),
+    ("pout", "שפתיים מכווצות", 1),
+    ("teeth", "חיוך עם שיניים", 13),
+]
 
-    Supplier-cost reference used for the seeded ceilings: worst credit tier
-    $0.006/credit, USD→ILS ≈ 3.7, ×1.5 safety margin ⇒ ≈ 3.33 agorot/credit
-    (rounded up). These are placeholders — tune in the admin panel.
+# Legacy placeholder filters shipped in the first server cut — removed (only
+# when never used) in favour of the real catalogue below.
+_AILAB_OLD_PLACEHOLDERS = (
+    "remove_bg", "colorize", "skin_beauty", "upscale", "face_enhance",
+    "cartoon",
+)
+
+
+def _ailab_catalog_rows() -> list[tuple]:
+    """Return the canonical Phase-1 catalogue as INSERT tuples.
+
+    Tuple: (filter_key, display_name, provider_path, result_kind,
+            provider_credits, sale_price, cost_ceiling, params_json,
+            sort_order)
+    """
+    rows: list[tuple] = []
+    # Emotions first (sort 10..), then cartoons (sort 100..).
+    for i, (name, disp, svc) in enumerate(_AILAB_EMOTION_SERVICES):
+        params = json.dumps(
+            {"ailab_kind": "emotion", "image_field": "image_target",
+             "form": {"service_choice": str(svc)}},
+            ensure_ascii=False,
+        )
+        rows.append((f"emotion_{name}", disp, _AILAB_EE_PATH, "base64",
+                     _AILAB_CREDITS, 200, _AILAB_CEILING, params, 10 + i))
+    for i, (code, disp) in enumerate(_AILAB_CARTOON_STYLES):
+        params = json.dumps(
+            {"ailab_kind": "cartoon", "image_field": "image",
+             "form": {"type": code}},
+            ensure_ascii=False,
+        )
+        rows.append((f"cartoon_{code}", disp, _AILAB_PA_PATH, "image_url",
+                     _AILAB_CREDITS, 300, _AILAB_CEILING, params, 100 + i))
+    return rows
+
+
+def _ensure_ailab_catalog(conn: sqlite3.Connection) -> None:
+    """Idempotently install the real AILabTools catalogue.
+
+    Runs on EVERY boot (not just first) so a redeploy brings new filters in:
+      * removes the old placeholder filters, but only if they were never used
+        (no ai_requests reference them) — keeps history intact;
+      * INSERT OR IGNORE each canonical filter, so admin edits to prices /
+        enabled / display names made in the dashboard are preserved across
+        redeploys (existing rows are never overwritten here).
     """
     now = _now_iso()
-    # (key, display_name, provider_path, result_kind, provider_credits,
-    #  sale_price_agorot, cost_ceiling_agorot, sort_order)
-    defaults = [
-        ("remove_bg", "הסרת רקע", "ai-cutout/portrait/portrait-background-removal",
-         "image_url", 1, 100, 10, 10),
-        ("colorize", "צביעת תמונה", "ai-image/effects/image-colorization",
-         "image_url", 2, 150, 10, 20),
-        ("skin_beauty", "החלקת עור", "ai-portrait/effects/smart-skin",
-         "image_url", 5, 200, 20, 30),
-        ("upscale", "שיפור והגדלה", "ai-image/enhance/image-lossless-enlargement",
-         "image_url", 5, 200, 20, 40),
-        ("face_enhance", "שיפור פנים", "ai-portrait/effects/ai-face-enhancer",
-         "image_url", 15, 300, 55, 50),
-        ("cartoon", "קריקטורה", "ai-image/effects/ai-anime-generator",
-         "image_url", 10, 300, 40, 60),
-    ]
-    for (key, name, path, kind, credits, sale, ceiling, sort_order) in defaults:
+    placeholders = ",".join("?" for _ in _AILAB_OLD_PLACEHOLDERS)
+    conn.execute(
+        f"""DELETE FROM ai_filters
+             WHERE filter_key IN ({placeholders})
+               AND filter_key NOT IN (SELECT filter_key FROM ai_requests)""",
+        _AILAB_OLD_PLACEHOLDERS,
+    )
+    for (key, name, path, kind, credits, sale, ceiling, params,
+         sort_order) in _ailab_catalog_rows():
         conn.execute(
             """
             INSERT OR IGNORE INTO ai_filters
             (filter_key, display_name, provider, provider_path, result_kind,
              provider_credits, sale_price_agorot, cost_ceiling_agorot,
              params_json, is_enabled, sort_order, created_at, updated_at)
-            VALUES (?, ?, 'ailabtools', ?, ?, ?, ?, ?, '', 1, ?, ?, ?)
+            VALUES (?, ?, 'ailabtools', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
             """,
-            (key, name, path, kind, credits, sale, ceiling, sort_order,
-             now, now),
+            (key, name, path, kind, credits, sale, ceiling, params,
+             sort_order, now, now),
         )
 
 
@@ -771,11 +848,10 @@ def init_db() -> None:
             """
         )
 
-        # Seed the starter filter catalogue on first run only (admins edit
-        # prices/ceilings/enabled afterwards from the dashboard).
-        row = conn.execute("SELECT COUNT(*) AS c FROM ai_filters").fetchone()
-        if (row["c"] if row else 0) == 0:
-            _seed_default_ai_filters(conn)
+        # Install / refresh the real AILabTools catalogue every boot. This is
+        # idempotent: new filters are added, unused placeholders removed, and
+        # existing rows (with their admin-set prices/enabled) are preserved.
+        _ensure_ailab_catalog(conn)
 
         # ------------------------------------------------------------------
         # Seed a default admin user if the table is empty.
