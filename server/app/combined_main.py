@@ -50,7 +50,7 @@ from fastapi.templating import Jinja2Templates
 
 from .auth import RedirectToLogin, purge_expired_sessions
 from .database import DB_PATH, init_db
-from .routes import admin_api, admin_pages, checkout, licenses, webhooks
+from .routes import admin_api, admin_pages, ai, checkout, licenses, webhooks
 from .security import SecurityMiddleware
 
 
@@ -143,6 +143,7 @@ app.state.templates = templates
 # Routers — public + admin together.
 # ---------------------------------------------------------------------------
 app.include_router(licenses.router,    prefix="/license",    tags=["license"])
+app.include_router(ai.router,          prefix="/ai",         tags=["ai"])
 app.include_router(checkout.router,    prefix="/checkout",   tags=["checkout"])
 app.include_router(webhooks.router,    prefix="/webhook",    tags=["webhook"])
 app.include_router(admin_api.router,   prefix="/admin/api",  tags=["admin-api"])

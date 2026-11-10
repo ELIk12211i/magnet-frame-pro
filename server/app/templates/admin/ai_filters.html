@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}פילטרי AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">ניהול פילטרי AI</h1>
+    <p class="page-sub">מחיר מכירה (₪), תקרת עלות ספק (₪) והפעלה/השבתה לכל פילטר. שינויים מיידיים.</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/ai-requests" class="btn btn-outline-secondary">
+      <i class="bi bi-list-check ms-1"></i> בקשות AI
+    </a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}</div>
+{% endif %}
+{% if success %}
+  <div class="alert alert-success"><i class="bi bi-check-circle-fill ms-1"></i> {{ success }}</div>
+{% endif %}
+
+<div class="row g-3">
+{% for f in filters %}
+  <div class="col-12 col-lg-6">
+    <div class="card shadow-sm h-100 {% if not f.is_enabled %}border-secondary{% endif %}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div>
+            <h5 class="mb-0">{{ f.display_name }}</h5>
+            <code class="text-muted" style="font-size:11px;">{{ f.filter_key }}</code>
+          </div>
+          {% if f.is_enabled %}
+            <span class="badge bg-success">פעיל</span>
+          {% else %}
+            <span class="badge bg-secondary">מושבת</span>
+          {% endif %}
+        </div>
+
+        <div class="mb-2 text-muted" style="font-size:12px;">
+          נתיב ספק: <code style="font-size:11px;">{{ f.provider_path }}</code><br>
+          קרדיטים ספק: <strong>{{ f.provider_credits }}</strong> ·
+          עלות משוערת מרבית:
+          <strong>~{{ '%.2f'|format(f.provider_credits * 0.006 * 3.8 * 1.5) }} ₪</strong>
+        </div>
+
+        <form method="post" action="/admin/ai-filters/{{ f.filter_key }}/edit"
+              class="row g-2 align-items-end">
+          <div class="col-12">
+            <label class="form-label mb-1" style="font-size:12px;">שם תצוגה</label>
+            <input type="text" name="display_name" value="{{ f.display_name }}"
+                   class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:12px;">מחיר מכירה (₪)</label>
+            <input type="number" name="sale_price_ils" step="0.01" min="0" dir="ltr"
+                   value="{{ '%.2f'|format((f.sale_price_agorot or 0)/100) }}"
+                   class="form-control form-control-sm">
+          </div>
+          <div class="col-6">
+            <label class="form-label mb-1" style="font-size:12px;">תקרת עלות ספק (₪)</label>
+            <input type="number" name="cost_ceiling_ils" step="0.01" min="0" dir="ltr"
+                   value="{{ '%.2f'|format((f.cost_ceiling_agorot or 0)/100) }}"
+                   class="form-control form-control-sm">
+          </div>
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-sm btn-primary">
+              <i class="bi bi-save"></i> שמור שינויים
+            </button>
+          </div>
+        </form>
+
+        <form method="post" action="/admin/ai-filters/{{ f.filter_key }}/toggle"
+              class="mt-2">
+          <button type="submit"
+                  class="btn btn-sm {% if f.is_enabled %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
+            {% if f.is_enabled %}<i class="bi bi-pause"></i> השבת פילטר{% else %}<i class="bi bi-play"></i> הפעל פילטר{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="col-12"><p class="text-muted text-center py-4">אין פילטרים.</p></div>
+{% endfor %}
+</div>
+
+<p class="text-muted mt-3" style="font-size:12.5px;">
+  <i class="bi bi-info-circle"></i>
+  "עלות משוערת מרבית" = קרדיטים × $0.006 × 3.8₪ × מרווח 1.5. אם היא חורגת מתקרת העלות — הבקשה נחסמת לפני קריאה לספק.
+</p>
+{% endblock %}

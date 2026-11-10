@@ -39,7 +39,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from .database import DB_PATH, init_db
-from .routes import checkout, licenses, webhooks
+from .routes import ai, checkout, licenses, webhooks
 from .security import SecurityMiddleware
 
 
@@ -120,6 +120,7 @@ except Exception:
 # via app.admin_main on a separate port.
 # ---------------------------------------------------------------------------
 app.include_router(licenses.router, prefix="/license", tags=["license"])
+app.include_router(ai.router,       prefix="/ai",       tags=["ai"])
 app.include_router(checkout.router, prefix="/checkout", tags=["checkout"])
 app.include_router(webhooks.router, prefix="/webhook", tags=["webhook"])
 

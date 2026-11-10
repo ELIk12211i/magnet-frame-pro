@@ -33,6 +33,8 @@ from fastapi.templating import Jinja2Templates
 from .. import auth as _auth
 from .. import config as _cfg
 from ..database import get_connection
+from ..services import ai_admin_service as _aiadmin
+from ..services import credits_service as _credits
 from ..services import events_service as _evt
 from ..services import license_service as svc
 from ..services import stats_service as _stats
@@ -988,6 +990,14 @@ def license_detail(request: Request, serial_key: str):
     license_dict["last_seen_at"]          = last_seen_public
     license_dict["unique_machines_count"] = len(unique_machines)
 
+    # Credit wallet + AI-request history for this license (read-only — never
+    # provisions a wallet just by viewing the page).
+    try:
+        credits_overview = _aiadmin.license_credit_overview(serial_key)
+    except Exception:
+        credits_overview = None
+
+    qp = request.query_params
     ctx = {
         "page_title": f"License {serial_key}",
         "active_nav": "licenses",
@@ -998,8 +1008,213 @@ def license_detail(request: Request, serial_key: str):
         "unique_machines_count": len(unique_machines),
         "migrated_machines": migrated_machines,
         "events": events,
+        "credits": credits_overview,
+        "credit_error":   qp.get("credit_error") or None,
+        "credit_success": qp.get("credit_success") or None,
     }
     return _render(request, "admin/license_detail.html", ctx)
+
+
+# ---------------------------------------------------------------------------
+# Credit wallet actions (manual top-up / adjust) — admin only.
+# ---------------------------------------------------------------------------
+
+@router.post("/licenses/{serial_key}/credits/topup", include_in_schema=False)
+def license_credits_topup(
+    request: Request,
+    serial_key: str,
+    amount_ils: str = Form(...),
+    reason: str = Form(""),
+):
+    """Manually add credits to a license's wallet. Amount entered in ₪."""
+    from urllib.parse import quote as _q
+    user = _require_user_or_redirect(request)
+    try:
+        amount = float((amount_ils or "").strip().replace(",", "."))
+    except ValueError:
+        amount = 0.0
+    if amount <= 0:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error={_q('סכום לא תקין.')}",
+            status_code=303)
+    try:
+        _aiadmin.topup_ils(serial_key, amount, actor=user, reason=reason or "")
+    except _credits.CreditsError as err:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error={_q(str(err))}",
+            status_code=303)
+    try:
+        _evt.log_event(serial_key, None, "ai_credits_topup",
+                       message=f"+{amount:.2f} ILS by {user}; {reason or ''}",
+                       ip=_client_ip(request), actor=user)
+    except Exception:
+        pass
+    return RedirectResponse(
+        f"/admin/licenses/{serial_key}?credit_success="
+        f"{_q('נטענו ' + format(amount, '.2f') + ' ₪ בהצלחה.')}",
+        status_code=303)
+
+
+@router.post("/licenses/{serial_key}/credits/adjust", include_in_schema=False)
+def license_credits_adjust(
+    request: Request,
+    serial_key: str,
+    amount_ils: str = Form(...),
+    reason: str = Form(""),
+):
+    """Correct a wallet balance up or down (signed ₪). Cannot go negative."""
+    from urllib.parse import quote as _q
+    user = _require_user_or_redirect(request)
+    try:
+        amount = float((amount_ils or "").strip().replace(",", "."))
+    except ValueError:
+        amount = 0.0
+    if amount == 0:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error={_q('סכום לא תקין.')}",
+            status_code=303)
+    try:
+        _aiadmin.adjust_ils(serial_key, amount, actor=user, reason=reason or "")
+    except _credits.InsufficientCredits:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error="
+            f"{_q('התיקון יוביל ליתרה שלילית — נדחה.')}",
+            status_code=303)
+    except _credits.CreditsError as err:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error={_q(str(err))}",
+            status_code=303)
+    try:
+        _evt.log_event(serial_key, None, "ai_credits_adjust",
+                       message=f"{amount:+.2f} ILS by {user}; {reason or ''}",
+                       ip=_client_ip(request), actor=user)
+    except Exception:
+        pass
+    return RedirectResponse(
+        f"/admin/licenses/{serial_key}?credit_success={_q('היתרה תוקנה.')}",
+        status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# AI filter catalogue management
+# ---------------------------------------------------------------------------
+
+@router.get("/ai-filters", response_class=HTMLResponse, include_in_schema=False)
+def ai_filters_page(request: Request):
+    user = _require_user_or_redirect(request)
+    qp = request.query_params
+    ctx = {
+        "page_title": "פילטרי AI",
+        "active_nav": "ai_filters",
+        "user": user,
+        "filters": _aiadmin.list_filters(),
+        "error":   qp.get("error")   or None,
+        "success": qp.get("success") or None,
+    }
+    return _render(request, "admin/ai_filters.html", ctx)
+
+
+@router.post("/ai-filters/{filter_key}/edit", include_in_schema=False)
+def ai_filters_edit(
+    request: Request,
+    filter_key: str,
+    display_name: str = Form(""),
+    sale_price_ils: str = Form(""),
+    cost_ceiling_ils: str = Form(""),
+    sort_order: str = Form(""),
+):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+
+    def _ils_to_agorot(v: str):
+        v = (v or "").strip().replace(",", ".")
+        if not v:
+            return None
+        try:
+            return int(round(float(v) * 100))
+        except ValueError:
+            return None
+
+    sale = _ils_to_agorot(sale_price_ils)
+    ceiling = _ils_to_agorot(cost_ceiling_ils)
+    try:
+        so = int(sort_order) if (sort_order or "").strip() else None
+    except ValueError:
+        so = None
+    try:
+        _aiadmin.update_filter(
+            filter_key,
+            display_name=display_name or None,
+            sale_price_agorot=sale,
+            cost_ceiling_agorot=ceiling,
+            sort_order=so,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('הפילטר עודכן.')}", status_code=303)
+
+
+@router.post("/ai-filters/{filter_key}/toggle", include_in_schema=False)
+def ai_filters_toggle(request: Request, filter_key: str):
+    _require_user_or_redirect(request)
+    try:
+        _aiadmin.toggle_filter(filter_key)
+    except Exception:
+        pass
+    return RedirectResponse("/admin/ai-filters", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# AI request history + unknown-request reconciliation
+# ---------------------------------------------------------------------------
+
+@router.get("/ai-requests", response_class=HTMLResponse, include_in_schema=False)
+def ai_requests_page(
+    request: Request,
+    status: Optional[str] = Query(None),
+):
+    user = _require_user_or_redirect(request)
+    qp = request.query_params
+    ctx = {
+        "page_title": "בקשות AI",
+        "active_nav": "ai_requests",
+        "user": user,
+        "status_filter": status or "",
+        "items": _aiadmin.list_requests(status=status or None, limit=300),
+        "unknown_count": _aiadmin.count_unknown(),
+        "error":   qp.get("error")   or None,
+        "success": qp.get("success") or None,
+    }
+    return _render(request, "admin/ai_requests.html", ctx)
+
+
+@router.post("/ai-requests/{req_id}/resolve", include_in_schema=False)
+def ai_requests_resolve(
+    request: Request,
+    req_id: int,
+    outcome: str = Form(...),
+):
+    """Controlled close of an 'unknown' request — 'succeeded' keeps the
+    charge; 'failed' refunds exactly once (idempotent)."""
+    from urllib.parse import quote as _q
+    user = _require_user_or_redirect(request)
+    try:
+        res = _aiadmin.resolve_unknown(req_id, outcome, actor=user)
+    except (ValueError, LookupError) as exc:
+        return RedirectResponse(
+            f"/admin/ai-requests?status=unknown&error={_q(str(exc))}",
+            status_code=303)
+    try:
+        _evt.log_event(None, None, "ai_request_resolved",
+                       message=f"req={req_id} -> {res.get('status')} by {user}",
+                       ip=_client_ip(request), actor=user)
+    except Exception:
+        pass
+    return RedirectResponse(
+        f"/admin/ai-requests?status=unknown&success={_q('הבקשה נסגרה: ' + res.get('status',''))}",
+        status_code=303)
 
 
 # ---------------------------------------------------------------------------

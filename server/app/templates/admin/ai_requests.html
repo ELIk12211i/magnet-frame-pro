@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}בקשות AI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">בקשות AI</h1>
+    <p class="page-sub">היסטוריית בקשות העיבוד, סטטוסים וטיפול מבוקר בבקשות במצב "לא ידוע".</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/ai-filters" class="btn btn-outline-secondary">
+      <i class="bi bi-sliders ms-1"></i> ניהול פילטרים
+    </a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}</div>
+{% endif %}
+{% if success %}
+  <div class="alert alert-success"><i class="bi bi-check-circle-fill ms-1"></i> {{ success }}</div>
+{% endif %}
+
+<div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+  <a href="/admin/ai-requests"
+     class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">הכל</a>
+  <a href="/admin/ai-requests?status=succeeded"
+     class="btn btn-sm {% if status_filter == 'succeeded' %}btn-success{% else %}btn-outline-success{% endif %}">הצליחו</a>
+  <a href="/admin/ai-requests?status=failed"
+     class="btn btn-sm {% if status_filter == 'failed' %}btn-danger{% else %}btn-outline-danger{% endif %}">נכשלו</a>
+  <a href="/admin/ai-requests?status=unknown"
+     class="btn btn-sm {% if status_filter == 'unknown' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+     לא ידוע
+     {% if unknown_count %}<span class="badge bg-danger ms-1">{{ unknown_count }}</span>{% endif %}
+  </a>
+</div>
+
+{% if status_filter == 'unknown' and items %}
+  <div class="alert alert-warning" style="font-size:13px;">
+    <i class="bi bi-exclamation-triangle-fill ms-1"></i>
+    בקשות אלו נקטעו (timeout/חוסר תשובה) והקרדיט <strong>לא הוחזר</strong>, כי ייתכן שהעיבוד הצליח אצל הספק.
+    בדוק מול הספק וסגור ידנית: "אושר שהצליח" ישמור את החיוב; "אושר שנכשל" יחזיר את הקרדיט (פעם אחת בלבד).
+  </div>
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" style="font-size:13px;">
+        <thead class="table-light">
+          <tr>
+            <th>זמן</th>
+            <th>לקוח</th>
+            <th>רישיון</th>
+            <th>פילטר</th>
+            <th>סטטוס</th>
+            <th class="text-center">מחיר</th>
+            <th>פרטי שגיאה (מנהל)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in items %}
+          <tr>
+            <td class="text-muted" style="white-space:nowrap;">{{ r.created_at|localdt }}</td>
+            <td><code style="font-size:11px;">{{ r.customer_public_id or '—' }}</code></td>
+            <td><a href="/admin/licenses/{{ r.license_serial }}"><code style="font-size:11px;">{{ r.license_serial or '—' }}</code></a></td>
+            <td>{{ r.filter_name or r.filter_key }}</td>
+            <td>
+              {% if r.status == 'succeeded' %}<span class="badge bg-success">הצליח</span>
+              {% elif r.status == 'failed' %}<span class="badge bg-danger">נכשל</span>
+              {% elif r.status == 'unknown' %}<span class="badge bg-warning text-dark">לא ידוע</span>
+              {% elif r.status == 'charged' %}<span class="badge bg-info text-dark">בעיבוד</span>
+              {% else %}<span class="badge bg-secondary">{{ r.status }}</span>{% endif %}
+            </td>
+            <td class="text-center" dir="ltr" style="font-variant-numeric:tabular-nums;">
+              {{ '%.2f'|format((r.sale_price_agorot or 0)/100) }} ₪
+            </td>
+            <td class="text-muted" style="font-size:11.5px;max-width:220px;word-break:break-word;">
+              {% if r.error_code %}<code>{{ r.error_code }}</code> {% endif %}{{ r.error_detail or '' }}
+            </td>
+            <td style="white-space:nowrap;">
+              {% if r.status == 'unknown' %}
+                <form method="post" action="/admin/ai-requests/{{ r.id }}/resolve" class="d-inline">
+                  <input type="hidden" name="outcome" value="succeeded">
+                  <button type="submit" class="btn btn-sm btn-outline-success"
+                          onclick="return confirm('לאשר שהבקשה הצליחה? החיוב יישמר.');">
+                    אושר שהצליח
+                  </button>
+                </form>
+                <form method="post" action="/admin/ai-requests/{{ r.id }}/resolve" class="d-inline">
+                  <input type="hidden" name="outcome" value="failed">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"
+                          onclick="return confirm('לאשר שהבקשה נכשלה? הקרדיט יוחזר ללקוח (פעם אחת).');">
+                    אושר שנכשל
+                  </button>
+                </form>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">אין בקשות.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

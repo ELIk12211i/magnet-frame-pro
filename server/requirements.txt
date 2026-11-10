@@ -8,3 +8,6 @@ itsdangerous>=2.1
 # tzdata: required so ``zoneinfo`` can resolve "Asia/Jerusalem" on Windows
 # (Linux/macOS already ship an IANA tz database by default).
 tzdata>=2024.1
+# httpx: used ONLY by the real AILabTools provider (AI_PROVIDER=ailabtools).
+# The default "mock" provider needs no network, so dev doesn't require it.
+httpx>=0.27

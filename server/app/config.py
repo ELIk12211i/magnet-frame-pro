@@ -58,3 +58,51 @@ try:
     SESSION_LIFETIME_DAYS = int(os.environ.get("SESSION_LIFETIME_DAYS", "30"))
 except Exception:
     SESSION_LIFETIME_DAYS = 30
+
+
+# ---------------------------------------------------------------------------
+# Commercial AI filters (AILabTools).
+#
+# SECURITY: AILABTOOLS_API_KEY is read from the environment ONLY and must
+# never be returned to the client or written to logs. The desktop client
+# never sees it — it calls OUR /ai/* endpoints and the server proxies to
+# AILabTools.
+#
+# AI_PROVIDER selects the backend:
+#   "mock"       (default) — in-process fake provider, NO network, NO cost.
+#                            Used for all development/testing (phases 1-6).
+#   "ailabtools"           — the real provider. Only switch to this after an
+#                            explicit go-ahead, with a funded key set.
+# ---------------------------------------------------------------------------
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "mock").strip().lower()
+AILABTOOLS_API_KEY = os.environ.get("AILABTOOLS_API_KEY", "")
+AILABTOOLS_BASE_URL = os.environ.get(
+    "AILABTOOLS_BASE_URL", "https://www.ailabapi.com/api"
+).rstrip("/")
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, str(default)))
+    except Exception:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, str(default)))
+    except Exception:
+        return default
+
+
+# Network / payload guards for AI requests.
+AI_REQUEST_TIMEOUT_SECS = _env_int("AI_REQUEST_TIMEOUT_SECS", 60)
+AI_MAX_IMAGE_MB = _env_int("AI_MAX_IMAGE_MB", 6)
+
+# Supplier-cost → ILS conversion used to enforce the per-filter cost
+# ceiling BEFORE a request is made (point: "compute max cost incl. currency
+# conversion + safety margin; block if the ceiling can't be guaranteed").
+# Worst (cheapest-tier) AILabTools credit price is $0.006/credit.
+AI_CREDIT_USD = _env_float("AI_CREDIT_USD", 0.006)
+AI_USD_TO_ILS = _env_float("AI_USD_TO_ILS", 3.8)
+AI_COST_SAFETY_MARGIN = _env_float("AI_COST_SAFETY_MARGIN", 1.5)

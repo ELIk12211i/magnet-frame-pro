@@ -82,6 +82,30 @@ def get_connection() -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+@contextlib.contextmanager
+def immediate_transaction() -> Iterator[sqlite3.Connection]:
+    """Yield a connection inside an IMMEDIATE write transaction.
+
+    ``BEGIN IMMEDIATE`` takes the database's write lock up-front, so two
+    concurrent credit mutations are fully serialized (the second waits on
+    ``busy_timeout`` instead of reading a stale balance). Commits on normal
+    exit, rolls back on any exception. Used for all money-mutating work so a
+    check-then-debit can never race.
+    """
+    conn = _connect()
+    conn.isolation_level = None  # take manual control of transactions
+    try:
+        conn.execute("BEGIN IMMEDIATE;")
+        yield conn
+        conn.execute("COMMIT;")
+    except Exception:
+        with contextlib.suppress(Exception):
+            conn.execute("ROLLBACK;")
+        raise
+    finally:
+        conn.close()
+
+
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
     return any(r["name"] == column for r in rows)
@@ -177,6 +201,58 @@ def _seed_default_plans(conn: sqlite3.Connection) -> None:
             VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
             """,
             (name, days, lic_type, price_ils, sort_order, now, now, is_system),
+        )
+
+
+def _seed_default_ai_filters(conn: sqlite3.Connection) -> None:
+    """Seed a starter catalogue of AILabTools cloud filters on first boot.
+
+    All prices are **admin-editable** from the dashboard afterwards.
+
+    Columns of note (all money is in integer agorot — never float):
+      * ``provider_credits``    — AILabTools credits charged per SUCCESSFUL
+                                  call, taken from the official billing docs.
+      * ``cost_ceiling_agorot`` — hard upper bound on the supplier cost we
+                                  will tolerate for this filter; the request
+                                  is BLOCKED before calling if the computed
+                                  worst-case supplier cost exceeds it.
+      * ``sale_price_agorot``   — what the customer's wallet is charged.
+      * ``result_kind``         — how the provider returns the image for this
+                                  endpoint (``image_url`` or ``base64``);
+                                  verified per-endpoint before any real call.
+
+    Supplier-cost reference used for the seeded ceilings: worst credit tier
+    $0.006/credit, USD→ILS ≈ 3.7, ×1.5 safety margin ⇒ ≈ 3.33 agorot/credit
+    (rounded up). These are placeholders — tune in the admin panel.
+    """
+    now = _now_iso()
+    # (key, display_name, provider_path, result_kind, provider_credits,
+    #  sale_price_agorot, cost_ceiling_agorot, sort_order)
+    defaults = [
+        ("remove_bg", "הסרת רקע", "ai-cutout/portrait/portrait-background-removal",
+         "image_url", 1, 100, 10, 10),
+        ("colorize", "צביעת תמונה", "ai-image/effects/image-colorization",
+         "image_url", 2, 150, 10, 20),
+        ("skin_beauty", "החלקת עור", "ai-portrait/effects/smart-skin",
+         "image_url", 5, 200, 20, 30),
+        ("upscale", "שיפור והגדלה", "ai-image/enhance/image-lossless-enlargement",
+         "image_url", 5, 200, 20, 40),
+        ("face_enhance", "שיפור פנים", "ai-portrait/effects/ai-face-enhancer",
+         "image_url", 15, 300, 55, 50),
+        ("cartoon", "קריקטורה", "ai-image/effects/ai-anime-generator",
+         "image_url", 10, 300, 40, 60),
+    ]
+    for (key, name, path, kind, credits, sale, ceiling, sort_order) in defaults:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO ai_filters
+            (filter_key, display_name, provider, provider_path, result_kind,
+             provider_credits, sale_price_agorot, cost_ceiling_agorot,
+             params_json, is_enabled, sort_order, created_at, updated_at)
+            VALUES (?, ?, 'ailabtools', ?, ?, ?, ?, ?, '', 1, ?, ?, ?)
+            """,
+            (key, name, path, kind, credits, sale, ceiling, sort_order,
+             now, now),
         )
 
 
@@ -279,6 +355,12 @@ def init_db() -> None:
                                "TEXT DEFAULT ''")
         _add_column_if_missing(conn, "licenses", "validation_message",
                                "TEXT DEFAULT ''")
+        # ----- Commercial AI filters: link a license to a stable,
+        # server-side customer record that owns the credit wallet. A
+        # license may be re-linked (on renewal / replacement) to an
+        # existing customer so the credit balance survives. NULL until a
+        # customer is assigned (lazily on first wallet use or at issue).
+        _add_column_if_missing(conn, "licenses", "customer_id", "INTEGER")
 
         # ----- Trial table: ensure ``serial_key`` exists on legacy DBs.
         # Older deploys created ``trials`` with only (machine_id,
@@ -567,6 +649,133 @@ def init_db() -> None:
             );
             """
         )
+
+        # ==================================================================
+        # Commercial AI filters (AILabTools) — credit wallet + metering.
+        # All additive; money stored as INTEGER agorot (never float).
+        # ==================================================================
+        conn.executescript(
+            """
+            -- Stable, server-side customer identity that owns the wallet.
+            -- NOT derived from client-sent email/phone; assigned by the
+            -- server and linked to one or more license serials.
+            CREATE TABLE IF NOT EXISTS customers (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                public_id   TEXT UNIQUE NOT NULL,
+                label       TEXT NOT NULL DEFAULT '',
+                email       TEXT NOT NULL DEFAULT '',
+                phone       TEXT NOT NULL DEFAULT '',
+                created_at  TEXT NOT NULL,
+                updated_at  TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_customers_email
+                ON customers(email);
+
+            -- One wallet per customer. Balance can never go negative
+            -- (enforced here AND in the service layer).
+            CREATE TABLE IF NOT EXISTS wallets (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id    INTEGER NOT NULL UNIQUE,
+                balance_agorot INTEGER NOT NULL DEFAULT 0
+                               CHECK (balance_agorot >= 0),
+                created_at     TEXT NOT NULL,
+                updated_at     TEXT NOT NULL,
+                FOREIGN KEY (customer_id) REFERENCES customers(id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_wallets_customer
+                ON wallets(customer_id);
+
+            -- Append-only money ledger. amount_agorot is SIGNED:
+            -- +topup / +refund / -charge; adjust can be either.
+            -- balance_after is the wallet balance right after this entry.
+            -- idempotency_key (when present) is UNIQUE so a retried
+            -- charge/topup cannot be applied twice.
+            CREATE TABLE IF NOT EXISTS credit_ledger (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                wallet_id       INTEGER NOT NULL,
+                customer_id     INTEGER NOT NULL,
+                entry_type      TEXT NOT NULL,
+                amount_agorot   INTEGER NOT NULL,
+                balance_after   INTEGER NOT NULL,
+                reason          TEXT NOT NULL DEFAULT '',
+                actor           TEXT NOT NULL DEFAULT '',
+                ai_request_id   INTEGER,
+                idempotency_key TEXT,
+                created_at      TEXT NOT NULL,
+                FOREIGN KEY (wallet_id) REFERENCES wallets(id),
+                FOREIGN KEY (customer_id) REFERENCES customers(id)
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_idem
+                ON credit_ledger(idempotency_key)
+                WHERE idempotency_key IS NOT NULL AND idempotency_key != '';
+            CREATE INDEX IF NOT EXISTS idx_ledger_wallet
+                ON credit_ledger(wallet_id);
+            CREATE INDEX IF NOT EXISTS idx_ledger_customer
+                ON credit_ledger(customer_id);
+            CREATE INDEX IF NOT EXISTS idx_ledger_created
+                ON credit_ledger(created_at DESC);
+
+            -- Admin-editable catalogue of sellable cloud filters.
+            CREATE TABLE IF NOT EXISTS ai_filters (
+                filter_key          TEXT PRIMARY KEY,
+                display_name        TEXT NOT NULL,
+                provider            TEXT NOT NULL DEFAULT 'ailabtools',
+                provider_path       TEXT NOT NULL DEFAULT '',
+                result_kind         TEXT NOT NULL DEFAULT 'image_url',
+                provider_credits    INTEGER NOT NULL DEFAULT 0,
+                sale_price_agorot   INTEGER NOT NULL DEFAULT 0,
+                cost_ceiling_agorot INTEGER NOT NULL DEFAULT 0,
+                params_json         TEXT NOT NULL DEFAULT '',
+                is_enabled          INTEGER NOT NULL DEFAULT 1,
+                sort_order          INTEGER NOT NULL DEFAULT 0,
+                created_at          TEXT NOT NULL,
+                updated_at          TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_ai_filters_enabled
+                ON ai_filters(is_enabled);
+
+            -- One row per AI generation attempt (metering + history).
+            -- idempotency_key is UNIQUE: a client retry with the same key
+            -- reuses this row instead of charging / calling twice.
+            CREATE TABLE IF NOT EXISTS ai_requests (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id         INTEGER NOT NULL,
+                wallet_id           INTEGER NOT NULL,
+                license_serial      TEXT NOT NULL DEFAULT '',
+                machine_uuid        TEXT NOT NULL DEFAULT '',
+                filter_key          TEXT NOT NULL,
+                provider            TEXT NOT NULL DEFAULT 'ailabtools',
+                provider_request_id TEXT NOT NULL DEFAULT '',
+                provider_log_id     TEXT NOT NULL DEFAULT '',
+                status              TEXT NOT NULL DEFAULT 'pending',
+                sale_price_agorot   INTEGER NOT NULL DEFAULT 0,
+                provider_credits    INTEGER NOT NULL DEFAULT 0,
+                idempotency_key     TEXT NOT NULL,
+                error_code          TEXT NOT NULL DEFAULT '',
+                error_detail        TEXT NOT NULL DEFAULT '',
+                created_at          TEXT NOT NULL,
+                finished_at         TEXT,
+                FOREIGN KEY (customer_id) REFERENCES customers(id),
+                FOREIGN KEY (wallet_id) REFERENCES wallets(id)
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_requests_idem
+                ON ai_requests(idempotency_key);
+            CREATE INDEX IF NOT EXISTS idx_ai_requests_customer
+                ON ai_requests(customer_id);
+            CREATE INDEX IF NOT EXISTS idx_ai_requests_status
+                ON ai_requests(status);
+            CREATE INDEX IF NOT EXISTS idx_ai_requests_created
+                ON ai_requests(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_ai_requests_filter
+                ON ai_requests(filter_key);
+            """
+        )
+
+        # Seed the starter filter catalogue on first run only (admins edit
+        # prices/ceilings/enabled afterwards from the dashboard).
+        row = conn.execute("SELECT COUNT(*) AS c FROM ai_filters").fetchone()
+        if (row["c"] if row else 0) == 0:
+            _seed_default_ai_filters(conn)
 
         # ------------------------------------------------------------------
         # Seed a default admin user if the table is empty.

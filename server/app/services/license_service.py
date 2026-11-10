@@ -925,6 +925,71 @@ def get_info(serial: str) -> Dict[str, Any]:
         return _response(data, "", status=status_enum, is_demo=is_demo)
 
 
+def authorize_for_ai(serial: str, machine_uuid: str = "",
+                     mid: str = "") -> Dict[str, Any]:
+    """Server-side gate for cloud-AI usage.
+
+    Enforces the commercial rule: AI is allowed ONLY when the license is
+    present, bound to this machine (HWID), currently ``active`` and not
+    expired. Expired / disabled / wrong-machine / unused → blocked, even if
+    the wallet has credits. Never trusts the client's local license state.
+
+    Returns ``{"ok": bool, "serial_key", "status", "reason"}``. ``ok`` True
+    means the caller may proceed to meter + run the filter. A past-expiry
+    license is flipped to ``expired`` here so the admin view stays accurate.
+    """
+    serial = normalize_serial(serial)
+    incoming_hwid = (machine_uuid or "").strip()
+    mid = (mid or "").strip()
+    if not serial:
+        return {"ok": False, "serial_key": serial,
+                "status": STATUS_NOT_FOUND, "reason": "missing serial"}
+
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM licenses WHERE serial_key = ?", (serial,)
+        ).fetchone()
+        if row is None:
+            return {"ok": False, "serial_key": serial,
+                    "status": STATUS_NOT_FOUND, "reason": "not found"}
+        data = _row_to_dict(row)
+
+        if data.get("status") == STATUS_DISABLED:
+            return {"ok": False, "serial_key": serial,
+                    "status": STATUS_DISABLED, "reason": "disabled"}
+
+        # Machine binding — HWID first, legacy IP fallback (mirrors validate).
+        bound_mid = (data.get("machine_id") or "").strip()
+        bound_hwid = (data.get("hardware_id") or "").strip()
+        if bound_hwid and incoming_hwid:
+            mismatch = bound_hwid != incoming_hwid
+        elif bound_hwid and not incoming_hwid:
+            mismatch = bool(bound_mid) and bool(mid) and bound_mid != mid
+        else:
+            mismatch = bool(bound_mid) and bool(mid) and bound_mid != mid
+        if mismatch:
+            return {"ok": False, "serial_key": serial,
+                    "status": STATUS_MACHINE_MISMATCH,
+                    "reason": "wrong machine"}
+
+        if _is_expired(data.get("expires_at")):
+            # Keep the row honest for the admin dashboard.
+            conn.execute(
+                "UPDATE licenses SET status = 'expired' WHERE serial_key = ?",
+                (serial,),
+            )
+            return {"ok": False, "serial_key": serial,
+                    "status": STATUS_EXPIRED, "reason": "expired"}
+
+        if data.get("status") != STATUS_ACTIVE:
+            return {"ok": False, "serial_key": serial,
+                    "status": str(data.get("status") or STATUS_UNUSED),
+                    "reason": "not active"}
+
+        return {"ok": True, "serial_key": serial,
+                "status": STATUS_ACTIVE, "reason": ""}
+
+
 # ---------------------------------------------------------------------------
 # License creation / admin helpers
 # ---------------------------------------------------------------------------

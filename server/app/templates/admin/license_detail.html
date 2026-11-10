@@ -299,6 +299,151 @@
       </div>
     </section>
 
+    {# Card: AI credits wallet #}
+    <section class="lic-card" id="aiCreditsCard">
+      <header class="lic-card-head">
+        <div class="lic-card-head-icon lic-card-head-icon-green">
+          <i class="bi bi-coin"></i>
+        </div>
+        <h2 class="lic-card-title">קרדיטים ל-AI</h2>
+        {% if credits and credits.public_id %}
+          <span class="lic-chip lic-chip-neutral" title="מזהה לקוח">
+            {{ credits.public_id }}
+          </span>
+        {% endif %}
+      </header>
+      <div class="lic-card-body">
+        {% if credit_success %}
+          <div class="lic-banner" style="background:#E4F7E9;color:#1a7f37;border:1px solid #BFE6CB;margin-bottom:12px;">
+            <i class="bi bi-check-circle-fill"></i><div>{{ credit_success }}</div>
+          </div>
+        {% endif %}
+        {% if credit_error %}
+          <div class="lic-banner lic-banner-danger" style="margin-bottom:12px;">
+            <i class="bi bi-exclamation-triangle-fill"></i><div>{{ credit_error }}</div>
+          </div>
+        {% endif %}
+
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;">
+          <span class="lic-grid" style="color:#7a8aa7;">יתרה נוכחית:</span>
+          <strong style="font-size:24px;color:#0E1B3A;">
+            {{ '%.2f'|format(((credits.balance_agorot if credits else 0) or 0) / 100) }} ₪
+          </strong>
+          {% if credits and credits.counts %}
+            <span class="lic-muted" style="margin-right:auto;font-size:12.5px;">
+              בקשות: {{ credits.counts.sent }} ·
+              הצליחו {{ credits.counts.succeeded }} ·
+              נכשלו {{ credits.counts.failed }}
+              {% if credits.counts.unknown %} · לא ידוע {{ credits.counts.unknown }}{% endif %}
+            </span>
+          {% endif %}
+        </div>
+
+        {# Manual top-up (admin only) #}
+        <form method="post"
+              action="/admin/licenses/{{ license.serial_key }}/credits/topup"
+              style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;">
+          <div style="flex:0 0 140px;">
+            <label class="lic-grid" style="display:block;font-size:12px;color:#7a8aa7;margin-bottom:4px;">טעינת קרדיטים (₪)</label>
+            <input type="number" name="amount_ils" step="0.01" min="0.01" dir="ltr"
+                   class="lm-input lm-input-num" placeholder="50.00" required>
+          </div>
+          <div style="flex:1 1 200px;">
+            <label class="lic-grid" style="display:block;font-size:12px;color:#7a8aa7;margin-bottom:4px;">סיבה (אופציונלי)</label>
+            <input type="text" name="reason" class="lm-input" placeholder="למשל: רכישת חבילה">
+          </div>
+          <button type="submit" class="lic-btn lic-btn-ok">
+            <i class="bi bi-plus-circle"></i><span>טען</span>
+          </button>
+        </form>
+
+        {# Correction (signed) #}
+        <form method="post"
+              action="/admin/licenses/{{ license.serial_key }}/credits/adjust"
+              style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px;">
+          <div style="flex:0 0 140px;">
+            <label class="lic-grid" style="display:block;font-size:12px;color:#7a8aa7;margin-bottom:4px;">תיקון יתרה (₪, ± )</label>
+            <input type="number" name="amount_ils" step="0.01" dir="ltr"
+                   class="lm-input lm-input-num" placeholder="-10.00" required>
+          </div>
+          <div style="flex:1 1 200px;">
+            <label class="lic-grid" style="display:block;font-size:12px;color:#7a8aa7;margin-bottom:4px;">סיבה</label>
+            <input type="text" name="reason" class="lm-input" placeholder="למשל: תיקון">
+          </div>
+          <button type="submit" class="lic-btn lic-btn-ghost">
+            <i class="bi bi-sliders"></i><span>תקן</span>
+          </button>
+        </form>
+
+        {# Ledger history #}
+        {% if credits and credits.ledger %}
+          <div class="lic-act-heading" style="margin-top:14px;">היסטוריית תנועות ({{ credits.ledger|length }})</div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2" style="font-size:12.5px;">
+              <thead><tr>
+                <th>זמן</th><th>סוג</th><th>סכום</th><th>יתרה אחרי</th><th>סיבה</th><th>מבצע</th>
+              </tr></thead>
+              <tbody>
+              {% for e in credits.ledger %}
+                <tr>
+                  <td class="text-muted" style="white-space:nowrap;">{{ e.created_at|localdt }}</td>
+                  <td>
+                    {% if e.entry_type == 'topup' %}<span class="lic-chip lic-chip-ok">טעינה</span>
+                    {% elif e.entry_type == 'charge' %}<span class="lic-chip lic-chip-neutral">חיוב</span>
+                    {% elif e.entry_type == 'refund' %}<span class="lic-chip lic-chip-warn">החזר</span>
+                    {% else %}<span class="lic-chip lic-chip-neutral">תיקון</span>{% endif %}
+                  </td>
+                  <td dir="ltr" style="text-align:right;font-variant-numeric:tabular-nums;">
+                    {{ '%+.2f'|format((e.amount_agorot or 0)/100) }} ₪
+                  </td>
+                  <td dir="ltr" style="text-align:right;font-variant-numeric:tabular-nums;">
+                    {{ '%.2f'|format((e.balance_after or 0)/100) }} ₪
+                  </td>
+                  <td>{{ e.reason or '—' }}</td>
+                  <td class="text-muted">{{ e.actor or '—' }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        {# AI request history #}
+        {% if credits and credits.requests %}
+          <div class="lic-act-heading" style="margin-top:8px;">בקשות AI ({{ credits.requests|length }})</div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0" style="font-size:12.5px;">
+              <thead><tr>
+                <th>זמן</th><th>פילטר</th><th>סטטוס</th><th>מחיר</th>
+              </tr></thead>
+              <tbody>
+              {% for r in credits.requests %}
+                <tr>
+                  <td class="text-muted" style="white-space:nowrap;">{{ r.created_at|localdt }}</td>
+                  <td><code class="mono-small">{{ r.filter_key }}</code></td>
+                  <td>
+                    {% if r.status == 'succeeded' %}<span class="lic-chip lic-chip-ok">הצליח</span>
+                    {% elif r.status == 'failed' %}<span class="lic-chip lic-chip-danger">נכשל</span>
+                    {% elif r.status == 'unknown' %}<span class="lic-chip lic-chip-warn">לא ידוע</span>
+                    {% elif r.status == 'charged' %}<span class="lic-chip lic-chip-neutral">בעיבוד</span>
+                    {% else %}<span class="lic-chip lic-chip-neutral">{{ r.status }}</span>{% endif %}
+                  </td>
+                  <td dir="ltr" style="text-align:right;font-variant-numeric:tabular-nums;">
+                    {{ '%.2f'|format((r.sale_price_agorot or 0)/100) }} ₪
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+
+        {% if not credits or (not credits.ledger and not credits.requests) %}
+          <p class="lic-muted" style="margin:8px 0 0;font-size:13px;">אין עדיין תנועות קרדיטים או בקשות AI עבור רישיון זה.</p>
+        {% endif %}
+      </div>
+    </section>
+
   </div>
 
   {# ── Right column ─────────────────────────────────────────── #}
