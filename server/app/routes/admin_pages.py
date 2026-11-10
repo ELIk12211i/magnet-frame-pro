@@ -1158,6 +1158,23 @@ def ai_filters_edit(
         f"/admin/ai-filters?success={_q('הפילטר עודכן.')}", status_code=303)
 
 
+@router.post("/ai-filters/bulk-toggle", include_in_schema=False)
+def ai_filters_bulk_toggle(request: Request, enabled: str = Form("")):
+    """Master switch: enable or disable ALL filters at once."""
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    on = str(enabled).strip() in ("1", "true", "on", "yes")
+    try:
+        n = _aiadmin.set_all_filters_enabled(on)
+        msg = (f"הופעלו כל {n} הפילטרים." if on
+               else f"הושבתו כל {n} הפילטרים.")
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q(msg)}", status_code=303)
+
+
 @router.post("/ai-filters/{filter_key}/toggle", include_in_schema=False)
 def ai_filters_toggle(request: Request, filter_key: str):
     _require_user_or_redirect(request)

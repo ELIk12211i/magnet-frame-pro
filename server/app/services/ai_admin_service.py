@@ -265,6 +265,18 @@ def get_filter_image(filter_key: str) -> Optional[Dict[str, Any]]:
     return {"mime": row["mime"] or "image/jpeg", "data": bytes(row["data"])}
 
 
+def set_all_filters_enabled(enabled: bool) -> int:
+    """Enable or disable EVERY filter at once. Returns the number of rows
+    changed. Used by the admin master toggle."""
+    val = 1 if enabled else 0
+    with get_connection() as conn:
+        res = conn.execute(
+            "UPDATE ai_filters SET is_enabled = ?, updated_at = ?",
+            (val, _now_iso()),
+        )
+    return res.rowcount
+
+
 def toggle_filter(filter_key: str) -> bool:
     with get_connection() as conn:
         row = conn.execute(

@@ -44,7 +44,20 @@
     <h1 class="page-title">ניהול פילטרי AI</h1>
     <p class="page-sub">מתג ירוק = הפילטר מופיע בתוכנה · מתג אפור = מוסתר. לחץ "הגדרות ומחיר" כדי לקבוע מחיר ותמונת תצוגה.</p>
   </div>
-  <div class="page-actions">
+  <div class="page-actions d-flex gap-2 flex-wrap">
+    <form method="post" action="/admin/ai-filters/bulk-toggle" class="m-0">
+      <input type="hidden" name="enabled" value="1">
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-toggle-on ms-1"></i> הפעל הכול
+      </button>
+    </form>
+    <form method="post" action="/admin/ai-filters/bulk-toggle" class="m-0"
+          onsubmit="return confirm('להשבית את כל הפילטרים? הם לא יופיעו בתוכנה.');">
+      <input type="hidden" name="enabled" value="0">
+      <button type="submit" class="btn btn-outline-danger">
+        <i class="bi bi-toggle-off ms-1"></i> השבת הכול
+      </button>
+    </form>
     <a href="/admin/ai-requests" class="btn btn-outline-secondary">
       <i class="bi bi-list-check ms-1"></i> בקשות AI
     </a>
