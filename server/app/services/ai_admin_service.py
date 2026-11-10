@@ -51,6 +51,7 @@ def license_credit_overview(serial: str) -> Optional[Dict[str, Any]]:
         if not cid:
             return {
                 "customer_id": None, "public_id": "", "balance_agorot": 0,
+                "used_agorot": 0,
                 "ledger": [], "requests": [],
                 "counts": {"sent": 0, "succeeded": 0, "failed": 0,
                            "unknown": 0},
@@ -69,6 +70,16 @@ def license_credit_overview(serial: str) -> Optional[Dict[str, Any]]:
             "SELECT * FROM ai_requests WHERE customer_id = ? "
             "ORDER BY id DESC LIMIT 100", (cid,)
         ).fetchall()
+        # Lifetime net consumption (charges minus refunds) — not limited to
+        # the 100-row ledger window above, so it stays accurate for heavy
+        # users. Charge is negative, refund positive, so a refunded charge
+        # nets to zero.
+        used_row = conn.execute(
+            "SELECT COALESCE(-SUM(amount_agorot), 0) AS used "
+            "FROM credit_ledger WHERE customer_id = ? "
+            "AND entry_type IN ('charge', 'refund')", (cid,)
+        ).fetchone()
+        used_agorot = int(used_row["used"] or 0) if used_row else 0
         counts = {"sent": len(reqs), "succeeded": 0, "failed": 0, "unknown": 0}
         for r in reqs:
             st = r["status"]
@@ -82,6 +93,7 @@ def license_credit_overview(serial: str) -> Optional[Dict[str, Any]]:
         "customer_id": int(cid),
         "public_id": (cust["public_id"] if cust else "") or "",
         "balance_agorot": int(wal["balance_agorot"]) if wal else 0,
+        "used_agorot": used_agorot,
         "ledger": [_row_to_dict(r) for r in ledger],
         "requests": [_row_to_dict(r) for r in reqs],
         "counts": counts,

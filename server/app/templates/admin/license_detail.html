@@ -324,10 +324,14 @@
           </div>
         {% endif %}
 
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
           <span class="lic-grid" style="color:#7a8aa7;">יתרה נוכחית:</span>
-          <strong style="font-size:24px;color:#0E1B3A;">
+          <strong style="font-size:24px;color:#1a7f37;">
             {{ '%.2f'|format(((credits.balance_agorot if credits else 0) or 0) / 100) }} ₪
+          </strong>
+          <span class="lic-grid" style="color:#7a8aa7;margin-right:18px;">סה"כ נוצל:</span>
+          <strong style="font-size:20px;color:#0E1B3A;">
+            {{ '%.2f'|format(((credits.used_agorot if credits else 0) or 0) / 100) }} ₪
           </strong>
           {% if credits and credits.counts %}
             <span class="lic-muted" style="margin-right:auto;font-size:12.5px;">

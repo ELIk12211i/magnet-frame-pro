@@ -242,6 +242,51 @@ def list_ledger(customer_id: int, limit: int = 200) -> List[Dict[str, Any]]:
     return [_row_to_dict(r) for r in rows]
 
 
+def credit_summaries_for_serials(serials: List[str]) -> Dict[str, Dict[str, int]]:
+    """Read-only per-license AI-credit summary for the admin.
+
+    For each serial returns ``{"balance_agorot", "used_agorot"}`` where
+    *used* is net lifetime consumption (charges minus refunds). Does NOT
+    provision wallets — a license with no wallet/ledger yet reports zeros.
+    One query, safe for a page of licenses.
+    """
+    out: Dict[str, Dict[str, int]] = {
+        s: {"balance_agorot": 0, "used_agorot": 0} for s in serials
+    }
+    if not serials:
+        return out
+    qmarks = ",".join("?" * len(serials))
+    with get_connection() as conn:
+        rows = conn.execute(
+            f"""
+            SELECT l.serial_key AS serial,
+                   COALESCE(w.balance_agorot, 0) AS bal,
+                   COALESCE((
+                       SELECT -SUM(cl.amount_agorot)
+                       FROM credit_ledger cl
+                       WHERE cl.customer_id = l.customer_id
+                         AND cl.entry_type IN ('charge', 'refund')
+                   ), 0) AS used
+            FROM licenses l
+            LEFT JOIN wallets w ON w.customer_id = l.customer_id
+            WHERE l.serial_key IN ({qmarks})
+            """,
+            serials,
+        ).fetchall()
+    for r in rows:
+        out[r["serial"]] = {
+            "balance_agorot": int(r["bal"] or 0),
+            "used_agorot": int(r["used"] or 0),
+        }
+    return out
+
+
+def credit_summary_for_serial(serial: str) -> Dict[str, int]:
+    """Single-license variant of :func:`credit_summaries_for_serials`."""
+    return credit_summaries_for_serials([serial]).get(
+        serial, {"balance_agorot": 0, "used_agorot": 0})
+
+
 # ---------------------------------------------------------------------------
 # Public mutations
 # ---------------------------------------------------------------------------

@@ -821,6 +821,24 @@ def licenses_list(
         ).fetchall()
 
     items = [_row_to_dict(r) for r in rows]
+
+    # Attach per-license AI-credit balance + lifetime usage (one query for
+    # the whole page) so each key shows its wallet state in the table.
+    try:
+        _summ = _credits.credit_summaries_for_serials(
+            [it.get("serial_key") for it in items if it.get("serial_key")])
+        for it in items:
+            s = _summ.get(it.get("serial_key"),
+                          {"balance_agorot": 0, "used_agorot": 0})
+            it["ai_balance_agorot"] = s["balance_agorot"]
+            it["ai_used_agorot"] = s["used_agorot"]
+            it["ai_balance_ils"] = s["balance_agorot"] / 100.0
+            it["ai_used_ils"] = s["used_agorot"] / 100.0
+    except Exception:
+        for it in items:
+            it.setdefault("ai_balance_ils", 0.0)
+            it.setdefault("ai_used_ils", 0.0)
+
     pages = max(1, (total + limit - 1) // limit)
 
     ctx = {
