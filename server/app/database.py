@@ -312,10 +312,12 @@ def _ensure_ailab_catalog(conn: sqlite3.Connection) -> None:
     """
     now = _now_iso()
     placeholders = ",".join("?" for _ in _AILAB_OLD_PLACEHOLDERS)
+    # Drop the obsolete placeholder catalogue entries. Safe unconditionally:
+    # ai_requests.filter_key has no FK to ai_filters, so any historical rows
+    # that referenced these keys keep their recorded key + price untouched —
+    # only the sellable catalogue entry goes away so it can't show in the app.
     conn.execute(
-        f"""DELETE FROM ai_filters
-             WHERE filter_key IN ({placeholders})
-               AND filter_key NOT IN (SELECT filter_key FROM ai_requests)""",
+        f"DELETE FROM ai_filters WHERE filter_key IN ({placeholders})",
         _AILAB_OLD_PLACEHOLDERS,
     )
     for (key, name, path, kind, credits, sale, ceiling, params,

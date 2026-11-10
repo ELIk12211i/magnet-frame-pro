@@ -315,17 +315,35 @@ def _load_filter(conn: sqlite3.Connection, filter_key: str):
 
 
 def list_enabled_filters() -> list[Dict[str, Any]]:
-    """Public catalogue for the client — only safe fields (no internal cost)."""
+    """Public catalogue for the client — only safe fields (no internal cost).
+
+    Includes ``preview_url`` + ``category`` (parsed from params_json) so the
+    desktop app can render the same preview squares the admin configures.
+    """
+    import json
     with get_connection() as conn:
         rows = conn.execute(
-            "SELECT filter_key, display_name, sale_price_agorot, sort_order "
-            "FROM ai_filters WHERE is_enabled = 1 ORDER BY sort_order, "
-            "display_name"
+            "SELECT filter_key, display_name, sale_price_agorot, sort_order, "
+            "params_json FROM ai_filters WHERE is_enabled = 1 "
+            "ORDER BY sort_order, display_name"
         ).fetchall()
-    return [{"filter_key": r["filter_key"],
-             "display_name": r["display_name"],
-             "sale_price_agorot": int(r["sale_price_agorot"])}
-            for r in rows]
+    out = []
+    for r in rows:
+        cfg = {}
+        try:
+            cfg = json.loads(r["params_json"] or "") or {}
+            if not isinstance(cfg, dict):
+                cfg = {}
+        except Exception:
+            cfg = {}
+        out.append({
+            "filter_key": r["filter_key"],
+            "display_name": r["display_name"],
+            "sale_price_agorot": int(r["sale_price_agorot"]),
+            "preview_url": str(cfg.get("preview_url") or ""),
+            "category": str(cfg.get("ailab_kind") or ""),
+        })
+    return out
 
 
 # ---------------------------------------------------------------------------
