@@ -1122,6 +1122,7 @@ def ai_filters_edit(
     sale_price_ils: str = Form(""),
     cost_ceiling_ils: str = Form(""),
     sort_order: str = Form(""),
+    preview_url: str = Form(""),
 ):
     from urllib.parse import quote as _q
     _require_user_or_redirect(request)
@@ -1148,6 +1149,7 @@ def ai_filters_edit(
             sale_price_agorot=sale,
             cost_ceiling_agorot=ceiling,
             sort_order=so,
+            preview_url=preview_url,
         )
     except Exception as exc:
         return RedirectResponse(

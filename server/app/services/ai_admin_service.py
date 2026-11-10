@@ -120,30 +120,47 @@ _KIND_LABELS = {
 }
 
 
-def _enrich_filter(d: Dict[str, Any]) -> Dict[str, Any]:
-    """Add derived, display-only routing fields parsed from params_json.
+# Category grouping for the visual admin grid.
+_CATEGORY_LABELS = {
+    "emotion": "הבעות",
+    "emotion_all": "הבעות (כל הפרצופים)",
+    "emotion_adaptive": "הבעות (כל הפרצופים)",
+    "cartoon": "קריקטורות וסגנונות",
+}
 
-    ``ailab_kind``, ``ailab_kind_label``, ``ailab_code`` (the style/emotion
-    code actually sent to the provider). Never written back — read-only hints
-    for the admin card.
+
+def _parse_params(raw: str) -> Dict[str, Any]:
+    if not raw:
+        return {}
+    try:
+        cfg = _json.loads(raw)
+    except Exception:
+        return {}
+    return cfg if isinstance(cfg, dict) else {}
+
+
+def _enrich_filter(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Add derived, display-only fields parsed from params_json.
+
+    ``ailab_kind`` / ``ailab_kind_label`` / ``ailab_code`` (the style/emotion
+    code sent to the provider), ``category`` / ``category_label`` for grid
+    grouping, and ``preview_url`` (admin-set example image). Read-only hints —
+    never written back by the enrich step.
     """
-    kind = ""
+    cfg = _parse_params(d.get("params_json") or "")
+    kind = str(cfg.get("ailab_kind") or "")
+    form = cfg.get("form") or {}
     code = ""
-    raw = d.get("params_json") or ""
-    if raw:
-        try:
-            cfg = _json.loads(raw)
-            if isinstance(cfg, dict):
-                kind = str(cfg.get("ailab_kind") or "")
-                form = cfg.get("form") or {}
-                if isinstance(form, dict):
-                    code = str(form.get("type")
-                               or form.get("service_choice") or "")
-        except Exception:
-            pass
+    if isinstance(form, dict):
+        code = str(form.get("type") or form.get("service_choice") or "")
     d["ailab_kind"] = kind
     d["ailab_kind_label"] = _KIND_LABELS.get(kind, kind or "—")
     d["ailab_code"] = code
+    d["category"] = kind or "other"
+    d["category_label"] = _CATEGORY_LABELS.get(kind, "אחר")
+    d["preview_url"] = str(cfg.get("preview_url") or "")
+    d["sale_price_ils"] = (int(d.get("sale_price_agorot") or 0)) / 100.0
+    d["cost_ceiling_ils"] = (int(d.get("cost_ceiling_agorot") or 0)) / 100.0
     return d
 
 
@@ -163,6 +180,7 @@ def update_filter(
     cost_ceiling_agorot: Optional[int] = None,
     is_enabled: Optional[bool] = None,
     sort_order: Optional[int] = None,
+    preview_url: Optional[str] = None,
 ) -> bool:
     updates: Dict[str, Any] = {}
     if display_name is not None and display_name.strip():
@@ -175,11 +193,25 @@ def update_filter(
         updates["is_enabled"] = 1 if is_enabled else 0
     if sort_order is not None:
         updates["sort_order"] = int(sort_order)
-    if not updates:
-        return False
-    updates["updated_at"] = _now_iso()
-    cols = ", ".join(f"{k} = ?" for k in updates)
     with get_connection() as conn:
+        # Merge preview_url into params_json WITHOUT clobbering the routing
+        # keys (ailab_kind / image_field / form) that the provider relies on.
+        if preview_url is not None:
+            row = conn.execute(
+                "SELECT params_json FROM ai_filters WHERE filter_key = ?",
+                (filter_key,),
+            ).fetchone()
+            cfg = _parse_params(row["params_json"] if row else "")
+            pu = preview_url.strip()
+            if pu:
+                cfg["preview_url"] = pu
+            else:
+                cfg.pop("preview_url", None)
+            updates["params_json"] = _json.dumps(cfg, ensure_ascii=False)
+        if not updates:
+            return False
+        updates["updated_at"] = _now_iso()
+        cols = ", ".join(f"{k} = ?" for k in updates)
         res = conn.execute(
             f"UPDATE ai_filters SET {cols} WHERE filter_key = ?",
             list(updates.values()) + [filter_key],

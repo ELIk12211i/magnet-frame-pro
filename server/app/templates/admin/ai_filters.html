@@ -2,10 +2,51 @@
 {% block title %}פילטרי AI{% endblock %}
 
 {% block content %}
+<style>
+  .ai-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+             gap:14px; }
+  .ai-card { border:1px solid #e5e7eb; border-radius:14px; overflow:hidden;
+             background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06);
+             display:flex; flex-direction:column; transition:box-shadow .15s,transform .15s; }
+  .ai-card:hover { box-shadow:0 6px 18px rgba(0,0,0,.12); transform:translateY(-2px); }
+  .ai-card.off { opacity:.62; }
+  .ai-thumb { position:relative; aspect-ratio:1/1; width:100%;
+              display:flex; align-items:center; justify-content:center;
+              color:#fff; font-weight:700; font-size:15px; text-align:center;
+              padding:8px; text-shadow:0 1px 4px rgba(0,0,0,.35); }
+  .ai-thumb img { position:absolute; inset:0; width:100%; height:100%;
+                  object-fit:cover; }
+  /* pure-form toggle switch (no JS needed) */
+  .ai-switch-form { position:absolute; top:8px; left:8px; margin:0; z-index:2; }
+  .ai-switch { width:46px; height:26px; border:none; border-radius:13px;
+               position:relative; cursor:pointer; padding:0;
+               box-shadow:0 1px 4px rgba(0,0,0,.35); }
+  .ai-switch.on  { background:#22c55e; }
+  .ai-switch.off { background:#94a3b8; }
+  .ai-switch .knob { position:absolute; top:3px; width:20px; height:20px;
+                     border-radius:50%; background:#fff; transition:all .15s;
+                     box-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .ai-switch.on  .knob { right:3px; }
+  .ai-switch.off .knob { left:3px; }
+  .ai-body { padding:10px 12px; display:flex; flex-direction:column; gap:6px; }
+  .ai-name { font-weight:700; font-size:14px; line-height:1.2; }
+  .ai-price { font-size:13px; color:#0ea5e9; font-weight:700; }
+  .ai-meta  { font-size:11px; color:#94a3b8; }
+  .ai-edit  { margin-top:4px; }
+  .ai-edit > summary { cursor:pointer; font-size:12px; color:#6366f1;
+                       list-style:none; user-select:none; }
+  .ai-edit > summary::-webkit-details-marker { display:none; }
+  .ai-edit[open] > summary { margin-bottom:6px; }
+  .ai-cat-head { grid-column:1/-1; margin:10px 2px 2px; font-weight:800;
+                 font-size:17px; color:#334155; display:flex; align-items:center;
+                 gap:8px; }
+  .ai-cat-head .count { font-size:12px; font-weight:600; color:#94a3b8; }
+</style>
+
 <div class="page-header">
   <div>
     <h1 class="page-title">ניהול פילטרי AI</h1>
-    <p class="page-sub">מחיר מכירה (₪), תקרת עלות ספק (₪) והפעלה/השבתה לכל פילטר. שינויים מיידיים.</p>
+    <p class="page-sub">מתג ירוק = הפילטר מופיע בתוכנה · מתג אפור = מוסתר. לחץ "הגדרות ומחיר" כדי לקבוע מחיר ותמונת תצוגה.</p>
   </div>
   <div class="page-actions">
     <a href="/admin/ai-requests" class="btn btn-outline-secondary">
@@ -21,68 +62,80 @@
   <div class="alert alert-success"><i class="bi bi-check-circle-fill ms-1"></i> {{ success }}</div>
 {% endif %}
 
-<div class="row g-3">
+{% set palette = ['#6366f1,#8b5cf6','#ec4899,#f43f5e','#06b6d4,#3b82f6',
+                  '#f59e0b,#ef4444','#10b981,#059669','#8b5cf6,#d946ef',
+                  '#0ea5e9,#6366f1','#f43f5e,#f59e0b'] %}
+
+<div class="ai-grid">
 {% for f in filters %}
-  <div class="col-12 col-lg-6">
-    <div class="card shadow-sm h-100 {% if not f.is_enabled %}border-secondary{% endif %}">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <div>
-            <h5 class="mb-0">{{ f.display_name }}</h5>
-            <code class="text-muted" style="font-size:11px;">{{ f.filter_key }}</code>
-          </div>
-          {% if f.is_enabled %}
-            <span class="badge bg-success">פעיל</span>
-          {% else %}
-            <span class="badge bg-secondary">מושבת</span>
-          {% endif %}
-        </div>
+  {% if loop.first or f.category != loop.previtem.category %}
+    <div class="ai-cat-head">
+      {{ f.category_label }}
+      <span class="count">({{ filters | selectattr('category','equalto',f.category) | list | length }} פילטרים)</span>
+    </div>
+  {% endif %}
 
-        <div class="mb-2 text-muted" style="font-size:12px;">
-          סוג: <span class="badge bg-info-subtle text-dark">{{ f.ailab_kind_label }}</span>
-          {% if f.ailab_code %}
-            · קוד סגנון: <code style="font-size:11px;">{{ f.ailab_code }}</code>
-          {% endif %}<br>
-          נתיב ספק: <code style="font-size:11px;">{{ f.provider_path }}</code><br>
-          קרדיטים ספק: <strong>{{ f.provider_credits }}</strong> ·
-          עלות משוערת מרבית:
-          <strong>~{{ '%.2f'|format(f.provider_credits * 0.006 * 3.8 * 1.5) }} ₪</strong>
-        </div>
+  {% set grad = palette[loop.index0 % (palette|length)].split(',') %}
+  <div class="ai-card {% if not f.is_enabled %}off{% endif %}">
+    <div class="ai-thumb"
+         style="background:linear-gradient(135deg,{{ grad[0] }},{{ grad[1] }});">
+      {% if f.preview_url %}<img src="{{ f.preview_url }}" alt="{{ f.display_name }}">{% endif %}
+      <span style="position:relative;z-index:1;">{% if not f.preview_url %}{{ f.display_name }}{% endif %}</span>
+      <form method="post" action="/admin/ai-filters/{{ f.filter_key }}/toggle"
+            class="ai-switch-form">
+        <button type="submit"
+                class="ai-switch {% if f.is_enabled %}on{% else %}off{% endif %}"
+                title="{% if f.is_enabled %}מופיע בתוכנה — לחץ להסתרה{% else %}מוסתר — לחץ להצגה{% endif %}">
+          <span class="knob"></span>
+        </button>
+      </form>
+    </div>
 
+    <div class="ai-body">
+      <div class="ai-name">{{ f.display_name }}</div>
+      <div class="ai-price">{{ '%.2f'|format(f.sale_price_ils) }} ₪</div>
+      <div class="ai-meta">
+        {{ f.ailab_kind_label }}{% if f.ailab_code %} · <code>{{ f.ailab_code }}</code>{% endif %}
+      </div>
+
+      <details class="ai-edit">
+        <summary><i class="bi bi-sliders"></i> הגדרות ומחיר</summary>
         <form method="post" action="/admin/ai-filters/{{ f.filter_key }}/edit"
-              class="row g-2 align-items-end">
+              class="row g-2">
           <div class="col-12">
-            <label class="form-label mb-1" style="font-size:12px;">שם תצוגה</label>
+            <label class="form-label mb-0" style="font-size:11px;">שם תצוגה</label>
             <input type="text" name="display_name" value="{{ f.display_name }}"
                    class="form-control form-control-sm">
           </div>
           <div class="col-6">
-            <label class="form-label mb-1" style="font-size:12px;">מחיר מכירה (₪)</label>
+            <label class="form-label mb-0" style="font-size:11px;">מחיר (₪)</label>
             <input type="number" name="sale_price_ils" step="0.01" min="0" dir="ltr"
-                   value="{{ '%.2f'|format((f.sale_price_agorot or 0)/100) }}"
+                   value="{{ '%.2f'|format(f.sale_price_ils) }}"
                    class="form-control form-control-sm">
           </div>
           <div class="col-6">
-            <label class="form-label mb-1" style="font-size:12px;">תקרת עלות ספק (₪)</label>
+            <label class="form-label mb-0" style="font-size:11px;">תקרת עלות (₪)</label>
             <input type="number" name="cost_ceiling_ils" step="0.01" min="0" dir="ltr"
-                   value="{{ '%.2f'|format((f.cost_ceiling_agorot or 0)/100) }}"
+                   value="{{ '%.2f'|format(f.cost_ceiling_ils) }}"
                    class="form-control form-control-sm">
           </div>
-          <div class="col-12 mt-2">
-            <button type="submit" class="btn btn-sm btn-primary">
-              <i class="bi bi-save"></i> שמור שינויים
+          <div class="col-12">
+            <label class="form-label mb-0" style="font-size:11px;">תמונת תצוגה (קישור URL)</label>
+            <input type="text" name="preview_url" value="{{ f.preview_url }}"
+                   dir="ltr" placeholder="https://..."
+                   class="form-control form-control-sm">
+          </div>
+          <div class="col-12 ai-meta">
+            קרדיטים ספק: {{ f.provider_credits }} · עלות משוערת מרבית
+            ~{{ '%.2f'|format(f.provider_credits * 0.006 * 3.8 * 1.5) }} ₪
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-sm btn-primary w-100">
+              <i class="bi bi-save"></i> שמור
             </button>
           </div>
         </form>
-
-        <form method="post" action="/admin/ai-filters/{{ f.filter_key }}/toggle"
-              class="mt-2">
-          <button type="submit"
-                  class="btn btn-sm {% if f.is_enabled %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
-            {% if f.is_enabled %}<i class="bi bi-pause"></i> השבת פילטר{% else %}<i class="bi bi-play"></i> הפעל פילטר{% endif %}
-          </button>
-        </form>
-      </div>
+      </details>
     </div>
   </div>
 {% else %}
@@ -93,5 +146,6 @@
 <p class="text-muted mt-3" style="font-size:12.5px;">
   <i class="bi bi-info-circle"></i>
   "עלות משוערת מרבית" = קרדיטים × $0.006 × 3.8₪ × מרווח 1.5. אם היא חורגת מתקרת העלות — הבקשה נחסמת לפני קריאה לספק.
+  תמונת התצוגה היא להמחשה בניהול בלבד.
 </p>
 {% endblock %}
