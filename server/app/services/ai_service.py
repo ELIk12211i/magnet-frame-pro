@@ -298,6 +298,102 @@ def _extract_image(data: Dict[str, Any], result_kind: str) -> Optional[bytes]:
     return None
 
 
+# ---------------------------------------------------------------------------
+# OpenAI adapter (Images API — gpt-image-1 / dall-e-2 "edits"). Differs from
+# the generic adapter in THREE ways, which is why it is its own function:
+#   1. Auth is "Authorization: Bearer <key>" (the generic one sends the key
+#      bare). We add the "Bearer " prefix unless the stored key already has it.
+#   2. The result is data[0].b64_json (an ARRAY), or data[0].url for dall-e-2.
+#   3. Errors come back as {"error": {"message", "type", "code"}}.
+# The image is still a multipart file field, and the per-filter prompt / model
+# / size / input_fidelity ride in the filter's ``form`` — so one OpenAI filter
+# vs another is pure admin config, no code. Adding this vendor needed NO client
+# change (the desktop app just sees another server-driven filter).
+# ---------------------------------------------------------------------------
+def _openai_apply(
+    filt: Dict[str, Any], image_bytes: bytes, client_params: Dict[str, Any],
+    provider: Optional[Dict[str, Any]] = None,
+) -> ProviderResult:
+    import httpx
+
+    prow = provider or {}
+    api_key = str(prow.get("api_key") or "").strip()
+    if not api_key:
+        return ProviderResult(
+            ok=False, definite_failure=True, error_code="NO_API_KEY",
+            error_detail="OpenAI API key is not configured")
+    base_url = (str(prow.get("base_url") or "").strip()
+                or "https://api.openai.com/v1")
+    provider_path = str(filt.get("provider_path") or "").strip() or "images/edits"
+    # OpenAI uses the "Authorization: Bearer" header. Fall back to that even if
+    # the row still carries the AILabTools default header name (easy misconfig).
+    auth_header = str(prow.get("auth_header") or "").strip()
+    if not auth_header or auth_header.lower() == "ailabapi-api-key":
+        auth_header = "Authorization"
+    key_val = (api_key if api_key.lower().startswith("bearer ")
+               else f"Bearer {api_key}")
+    url = f"{base_url.rstrip('/')}/{provider_path.lstrip('/')}"
+    headers = {auth_header: key_val}
+
+    route = _filter_routing(filt)
+    data = dict(route["form"])
+    data.setdefault("model", "gpt-image-1")   # safe default; admin can override
+    # OpenAI edits wants the image as a file part under ``image`` (the catalogue
+    # image_field; defaults to "image"). Label it with its REAL type so OpenAI's
+    # validation accepts JPEG/PNG/WebP as sent (app encodes JPEG).
+    _mime = _sniff_image_mime(image_bytes)
+    _ext = {"image/jpeg": "jpg", "image/png": "png",
+            "image/webp": "webp"}.get(_mime, "png")
+    files = {route["image_field"]:
+             (f"image.{_ext}", image_bytes, _mime)}
+
+    try:
+        with httpx.Client(timeout=_cfg.AI_REQUEST_TIMEOUT_SECS) as client:
+            resp = client.post(url, headers=headers, files=files, data=data)
+    except (httpx.TimeoutException, httpx.TransportError) as exc:
+        raise ProviderTimeout(str(exc)) from exc
+
+    try:
+        body = resp.json()
+    except Exception:
+        body = {}
+
+    if resp.status_code == 200:
+        arr = body.get("data") or []
+        item = (arr[0] if isinstance(arr, list) and arr else {}) or {}
+        b64 = item.get("b64_json")
+        if isinstance(b64, str) and b64:
+            try:
+                out = base64.b64decode(b64)
+            except Exception:
+                out = None
+            if out:
+                return ProviderResult(
+                    ok=True, definite_failure=False, image_bytes=out,
+                    provider_request_id=str(body.get("created") or ""))
+        img_url = item.get("url")
+        if isinstance(img_url, str) and img_url.startswith("http"):
+            try:
+                with httpx.Client(timeout=_cfg.AI_REQUEST_TIMEOUT_SECS) as c2:
+                    r2 = c2.get(img_url)
+                if r2.status_code == 200:
+                    return ProviderResult(
+                        ok=True, definite_failure=False, image_bytes=r2.content,
+                        provider_request_id=str(body.get("created") or ""))
+            except Exception:
+                pass
+        return ProviderResult(
+            ok=False, definite_failure=True,
+            error_code="NO_IMAGE_IN_RESPONSE",
+            error_detail="200 OK but no image in data[]")
+
+    err = body.get("error") or {}
+    return ProviderResult(
+        ok=False, definite_failure=True,
+        error_code=str(err.get("code") or err.get("type") or resp.status_code),
+        error_detail=str(err.get("message") or f"http {resp.status_code}"))
+
+
 def _get_provider_row(provider_key: str) -> Optional[Dict[str, Any]]:
     """Load an ai_providers row as a dict, or None. Used only server-side."""
     key = (provider_key or "").strip()
@@ -331,9 +427,21 @@ def _call_provider(
             ok=False, definite_failure=True, error_code="PROVIDER_DISABLED",
             error_detail="the assigned provider is disabled",
         )
-    adapter = str((prow or {}).get("adapter") or "ailabtools").strip()
+    return _run_adapter(filt, image_bytes, params, prow)
+
+
+def _run_adapter(
+    filt: Dict[str, Any], image_bytes: bytes, params: Dict[str, Any],
+    prow: Optional[Dict[str, Any]],
+) -> ProviderResult:
+    """Pick the request-builder by the provider's ``adapter`` column. Adding a
+    vendor family = one new adapter here; everything else (host/key/routing)
+    stays data-driven, and the client never changes."""
+    adapter = str((prow or {}).get("adapter") or "ailabtools").strip().lower()
     if adapter == "mock":
         return _mock_apply(image_bytes, params)
+    if adapter == "openai":
+        return _openai_apply(filt, image_bytes, params, provider=prow)
     # Default adapter: generic multipart-REST (AILabTools-compatible).
     return _ailabtools_apply(filt, image_bytes, params, provider=prow)
 
@@ -524,11 +632,7 @@ def admin_test_filter(
                                  error_code="PROVIDER_DISABLED",
                                  error_detail="הספק מושבת.")
         else:
-            adapter = str((prow or {}).get("adapter") or "ailabtools").strip()
-            if adapter == "mock":
-                res = _mock_apply(image_bytes, {})
-            else:
-                res = _ailabtools_apply(filt, image_bytes, {}, provider=prow)
+            res = _run_adapter(filt, image_bytes, {}, prow)
     except ProviderTimeout as exc:
         return {"ok": False, "error_code": "TIMEOUT",
                 "error_detail": f"אין תשובה מהספק: {exc}",
