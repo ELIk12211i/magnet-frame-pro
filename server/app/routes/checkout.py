@@ -49,25 +49,37 @@ def _dev_checkout_enabled() -> bool:
     """Whether the unauthenticated ``/checkout/complete-dev`` no-payment
     issuance endpoint is reachable.
 
-    Safe default that preserves the current live flow: enabled only while
-    no real payment provider is configured (``PAYMENT_PROVIDER == "none"``).
-    Once a provider is wired up the endpoint auto-disables (the real
-    ``/checkout/create`` → payment → webhook path owns issuance). The
-    ``MFP_ALLOW_DEV_CHECKOUT`` env var is an explicit override: set it to
-    ``0``/``false``/``no`` to force-disable even in dev, or ``1``/``true``
-    to force-enable.
+    SECURITY (2026-11-11): this endpoint issues a REAL, full paid license
+    (yearly / lifetime) with NO payment and NO per-caller limit, so it is now
+    **disabled by default**. It is reachable ONLY when ``MFP_ALLOW_DEV_CHECKOUT``
+    is explicitly set to a truthy value (``1``/``true``/``yes``/``on``) — e.g.
+    on a local dev machine while exercising the purchase flow. In production
+    (where that env var is unset) it stays closed, so no one can mint free
+    licenses by POSTing a ``plan_id``.
+
+    Unaffected by this gate:
+      * the real purchase flow (``/checkout/create`` → payment → webhook),
+        which owns issuance once a provider is wired up, and
+      * the free, machine-capped *trial* flow (``/license/start-trial``),
+        which is a separate endpoint.
     """
     override = os.environ.get("MFP_ALLOW_DEV_CHECKOUT")
     if override is not None and override.strip() != "":
         return override.strip().lower() in ("1", "true", "yes", "on")
-    return (config.PAYMENT_PROVIDER or "none").strip().lower() == "none"
+    # Closed unless explicitly opted in (was: open while PAYMENT_PROVIDER=none,
+    # which left free-license minting reachable in production).
+    return False
 
 
 def _client_ip(request: Request) -> str:
     try:
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
-            return fwd.split(",")[0].strip()
+            # Real client = LAST XFF entry behind Railway's single proxy
+            # (the first is client-supplied and spoofable).
+            parts = [p.strip() for p in fwd.split(",") if p.strip()]
+            if parts:
+                return parts[-1]
         return request.client.host if request.client else ""
     except Exception:
         return ""

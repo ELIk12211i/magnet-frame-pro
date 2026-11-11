@@ -96,7 +96,11 @@ def _client_ip(request: Request) -> str:
     try:
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
-            return fwd.split(",")[0].strip()
+            # Real client = LAST XFF entry behind Railway's single proxy
+            # (the first is client-supplied and spoofable).
+            parts = [p.strip() for p in fwd.split(",") if p.strip()]
+            if parts:
+                return parts[-1]
         return request.client.host if request.client else ""
     except Exception:
         return ""
@@ -184,8 +188,38 @@ def deactivate(req: ResetRequest, request: Request):
     columns and flip the row to ``status='unused'``.  We tag the
     actor as ``"customer"`` (instead of an admin email) so the
     audit log differentiates the two channels.
+
+    Anti-hijack (NEW-SRV / M-3): because this route is unauthenticated,
+    anyone who merely KNOWS a serial could otherwise release another
+    customer's binding. We therefore require proof that the caller is on
+    the machine the license is currently bound to: when the license has a
+    ``hardware_id``, the request's ``machine_uuid`` must match it. The
+    legitimate "נקה מפתח" button is pressed on the bound machine, so it
+    always carries the matching HWID. A license with no HWID binding
+    (legacy / already unbound) is released as before. The admin-only
+    :func:`reset` route is unaffected and can always release a binding.
     """
     try:
+        incoming_hwid = (req.machine_uuid or "").strip()
+        bound_hwid = ""
+        try:
+            _info = svc.get_info(req.serial_key)
+            bound_hwid = (_info.get("hardware_id") or "").strip()
+        except svc.LicenseError:
+            # Unknown serial — nothing to protect; let svc.reset below
+            # produce the canonical "not found" response.
+            bound_hwid = ""
+        if bound_hwid and bound_hwid != incoming_hwid:
+            _evt.log_event(
+                req.serial_key, None, "deactivate_hwid_mismatch",
+                message="deactivate refused — caller HWID != bound HWID",
+                ip=_client_ip(request), actor="client",
+            )
+            raise HTTPException(
+                status_code=403,
+                detail=("ניתן לנקות את המפתח רק מהמחשב שאליו הוא משויך. "
+                        "אם אין לך גישה למחשב הקודם — פנה לתמיכה."),
+            )
         return svc.reset(
             req.serial_key, ip=_client_ip(request),
             actor=(req.actor or "customer"),
@@ -221,8 +255,11 @@ def whoami(request: Request):
     # ``X-Forwarded-For`` honours front-end proxies / load balancers.
     fwd = (request.headers.get("x-forwarded-for") or "").strip()
     if fwd:
-        # The header can contain multiple IPs — the first is the origin.
-        ip = fwd.split(",")[0].strip()
+        # Behind Railway's single edge proxy the genuine client IP is the
+        # LAST entry (the edge appends the real peer); earlier entries are
+        # client-supplied and spoofable.
+        parts = [p.strip() for p in fwd.split(",") if p.strip()]
+        ip = parts[-1] if parts else ""
     else:
         ip = (request.client.host if request.client else "") or ""
     return {"ip": ip}

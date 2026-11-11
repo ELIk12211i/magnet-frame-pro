@@ -93,7 +93,13 @@ def client_ip(request: Request) -> str:
     try:
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
-            return fwd.split(",")[0].strip()
+            # Behind exactly one trusted proxy (Railway's edge), the edge
+            # APPENDS the real peer IP to any client-supplied XFF, so the
+            # genuine client is the LAST entry. The first entry is
+            # attacker-controlled and must not be used for rate-limit keys.
+            parts = [p.strip() for p in fwd.split(",") if p.strip()]
+            if parts:
+                return parts[-1]
         return request.client.host if request.client else "?"
     except Exception:
         return "?"

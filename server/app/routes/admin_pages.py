@@ -182,7 +182,11 @@ def _client_ip(request: Request) -> str:
     try:
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
-            return fwd.split(",")[0].strip()
+            # Real client = LAST XFF entry behind Railway's single proxy
+            # (the first is client-supplied and spoofable).
+            parts = [p.strip() for p in fwd.split(",") if p.strip()]
+            if parts:
+                return parts[-1]
         return request.client.host if request.client else ""
     except Exception:
         return ""

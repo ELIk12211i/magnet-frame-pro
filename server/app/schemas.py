@@ -49,6 +49,10 @@ class TrialRequest(BaseModel):
 class ResetRequest(BaseModel):
     serial_key: str = Field(..., min_length=1, max_length=64)
     actor: Optional[str] = Field("", max_length=128)
+    # Optional HWID of the calling machine. The customer-facing
+    # ``/license/deactivate`` uses it to prove the caller is on the bound
+    # machine (anti-hijack); the admin ``/license/reset`` ignores it.
+    machine_uuid: Optional[str] = Field("", max_length=128)
 
 
 class LicenseInfoRequest(BaseModel):
