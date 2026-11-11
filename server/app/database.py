@@ -418,6 +418,40 @@ def _seed_preview_images(conn: sqlite3.Connection) -> None:
         )
 
 
+def _heal_missing_preview_urls(conn: sqlite3.Connection) -> None:
+    """Restore the ``preview_url`` pointer for any filter that HAS a stored
+    image BLOB but lost the pointer in params_json.
+
+    An earlier bug let the admin edit-form save wipe ``preview_url`` (the form
+    carried no image field, so it sent an empty value that cleared it). The
+    image bytes in ``ai_filter_images`` were never touched, so we just re-point
+    at the serving route to make the preview reappear. Idempotent — filters
+    that still have a pointer are skipped.
+    """
+    now = _now_iso()
+    ver = "".join(ch for ch in now if ch.isdigit())
+    rows = conn.execute(
+        "SELECT f.filter_key AS k, f.params_json AS pj "
+        "FROM ai_filters f "
+        "JOIN ai_filter_images i ON i.filter_key = f.filter_key"
+    ).fetchall()
+    for r in rows:
+        try:
+            cfg = json.loads(r["pj"] or "") or {}
+            if not isinstance(cfg, dict):
+                cfg = {}
+        except Exception:
+            cfg = {}
+        if str(cfg.get("preview_url") or "").strip():
+            continue  # pointer intact — nothing to heal
+        cfg["preview_url"] = f"/ai/filter-image/{r['k']}?v={ver}"
+        conn.execute(
+            "UPDATE ai_filters SET params_json = ?, updated_at = ? "
+            "WHERE filter_key = ?",
+            (json.dumps(cfg, ensure_ascii=False), now, r["k"]),
+        )
+
+
 def init_db() -> None:
     """Create (or migrate) the tables. Idempotent — safe on every boot."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -980,6 +1014,10 @@ def init_db() -> None:
         # (admin uploads always win). Runs after the catalogue so the filter
         # rows exist.
         _seed_preview_images(conn)
+
+        # Repair any filter whose preview_url pointer was wiped by the old
+        # edit-form bug while its image BLOB is still present. Idempotent.
+        _heal_missing_preview_urls(conn)
 
         # ------------------------------------------------------------------
         # Seed a default admin user if the table is empty.

@@ -1257,7 +1257,6 @@ def ai_filters_edit(
     sale_price_ils: str = Form(""),
     cost_ceiling_ils: str = Form(""),
     sort_order: str = Form(""),
-    preview_url: str = Form(""),
     ui_category: str = Form(""),
 ):
     from urllib.parse import quote as _q
@@ -1279,13 +1278,16 @@ def ai_filters_edit(
     except ValueError:
         so = None
     try:
+        # NOTE: deliberately does NOT pass preview_url. The preview image is
+        # managed only by the separate /upload-image form. The edit form has no
+        # preview_url field, so passing the empty default here used to wipe the
+        # stored preview on every save (e.g. when just picking a category).
         _aiadmin.update_filter(
             filter_key,
             display_name=display_name or None,
             sale_price_agorot=sale,
             cost_ceiling_agorot=ceiling,
             sort_order=so,
-            preview_url=preview_url,
             ui_category=ui_category,
         )
     except Exception as exc:
