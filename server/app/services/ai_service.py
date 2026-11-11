@@ -442,6 +442,126 @@ def list_enabled_filters() -> list[Dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# Admin FILTER LAB — run a provider call from the dashboard to verify a new
+# provider / filter / routing END-TO-END, WITHOUT touching any customer wallet,
+# license gate, or the ai_requests ledger. The vendor still bills its own
+# credits for a real call, so this is an admin-only tool. ``use_mock`` runs the
+# in-process mock (free, no network) to sanity-check wiring first.
+# ---------------------------------------------------------------------------
+def _sniff_image_mime(data: bytes) -> str:
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return "image/jpeg"
+
+
+def admin_test_filter(
+    image_bytes: bytes,
+    *,
+    filter_key: Optional[str] = None,
+    provider_key: str = "",
+    provider_path: str = "",
+    image_field: str = "image",
+    form: Optional[Dict[str, Any]] = None,
+    result_kind: str = "image_url",
+    use_mock: bool = False,
+) -> Dict[str, Any]:
+    """Run one provider call for admin verification. Returns a plain dict with
+    the outcome + (on success) the result image as a base64 data URL ready to
+    drop into an <img>. Never raises for provider errors — they come back in
+    ``error_code`` / ``error_detail``. No wallet / ledger side effects."""
+    import time as _time
+    import json as _json
+
+    if not image_bytes:
+        return {"ok": False, "error_code": "NO_IMAGE",
+                "error_detail": "לא נבחרה תמונת בדיקה.", "latency_ms": 0}
+
+    # Build the filt dict: from a saved filter, or ad-hoc from the form fields.
+    if filter_key:
+        with get_connection() as conn:
+            r = conn.execute(
+                "SELECT filter_key, provider, provider_path, result_kind, "
+                "params_json FROM ai_filters WHERE filter_key = ?",
+                (filter_key,),
+            ).fetchone()
+        if r is None:
+            return {"ok": False, "error_code": "NO_FILTER",
+                    "error_detail": "הפילטר לא נמצא.", "latency_ms": 0}
+        filt = {k: r[k] for k in r.keys()}
+    else:
+        params = {
+            "image_field": (image_field or "image").strip() or "image",
+            "form": form or {},
+        }
+        filt = {
+            "filter_key": "__lab__",
+            "provider": (provider_key or "").strip(),
+            "provider_path": (provider_path or "").strip(),
+            "result_kind": (result_kind or "image_url").strip() or "image_url",
+            "params_json": _json.dumps(params, ensure_ascii=False),
+        }
+
+    prow = _get_provider_row(filt.get("provider"))
+    # Resolve the URL for display (no secret in it).
+    disp_url = ""
+    if prow is not None:
+        base = (str(prow.get("base_url") or "").strip()
+                or _cfg.AILABTOOLS_BASE_URL)
+        disp_url = f"{base.rstrip('/')}/{str(filt.get('provider_path') or '').lstrip('/')}"
+
+    t0 = _time.time()
+    try:
+        if use_mock:
+            res = _mock_apply(image_bytes, {})
+        elif prow is not None and not int(prow.get("is_enabled", 1) or 0):
+            res = ProviderResult(ok=False, definite_failure=True,
+                                 error_code="PROVIDER_DISABLED",
+                                 error_detail="הספק מושבת.")
+        else:
+            adapter = str((prow or {}).get("adapter") or "ailabtools").strip()
+            if adapter == "mock":
+                res = _mock_apply(image_bytes, {})
+            else:
+                res = _ailabtools_apply(filt, image_bytes, {}, provider=prow)
+    except ProviderTimeout as exc:
+        return {"ok": False, "error_code": "TIMEOUT",
+                "error_detail": f"אין תשובה מהספק: {exc}",
+                "latency_ms": int((_time.time() - t0) * 1000),
+                "provider_key": filt.get("provider") or "",
+                "url": disp_url, "used_mock": bool(use_mock)}
+    except Exception as exc:  # defensive — never 500 the admin page
+        return {"ok": False, "error_code": "LAB_ERROR",
+                "error_detail": str(exc),
+                "latency_ms": int((_time.time() - t0) * 1000),
+                "provider_key": filt.get("provider") or "",
+                "url": disp_url, "used_mock": bool(use_mock)}
+
+    latency = int((_time.time() - t0) * 1000)
+    out: Dict[str, Any] = {
+        "ok": bool(res.ok),
+        "latency_ms": latency,
+        "error_code": res.error_code or "",
+        "error_detail": res.error_detail or "",
+        "provider_request_id": res.provider_request_id or "",
+        "provider_key": filt.get("provider") or "",
+        "url": disp_url,
+        "used_mock": bool(use_mock),
+    }
+    if res.ok and res.image_bytes:
+        mime = _sniff_image_mime(res.image_bytes)
+        b64 = base64.b64encode(res.image_bytes).decode("ascii")
+        out["result_data_url"] = f"data:{mime};base64,{b64}"
+        out["result_bytes_len"] = len(res.image_bytes)
+    return out
+
+
+# ---------------------------------------------------------------------------
 # ai_requests helpers
 # ---------------------------------------------------------------------------
 def _get_request_by_idem(conn, idem: str):

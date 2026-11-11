@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}מעבדת פילטרים{% endblock %}
+
+{% block content %}
+<style>
+  .lab-result-img { max-width:100%; border-radius:12px; border:1px solid #e4e9f2; }
+  .lab-kv { font-size:12.5px; color:#5a6b7f; }
+  .lab-kv b { color:#1a2746; }
+  code.lab-url { font-size:11.5px; word-break:break-all; color:#6b7890; }
+  .lab-ph { border:2px dashed #d6dee9; border-radius:14px; padding:40px 16px;
+            text-align:center; color:#9fb0c7; }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">מעבדת פילטרים</h1>
+    <p class="page-sub">בדיקת ספק / פילטר מקצה-לקצה — בלי לגעת בארנק של אף לקוח.
+      "קריאה אמיתית" צורכת קרדיטים אצל הספק; "מצב דמה" חינמי (בודק רק את החיווט).</p>
+  </div>
+  <div class="page-actions">
+    <a href="/admin/ai-filters" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-right ms-1"></i> חזרה לפילטרים
+    </a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill ms-1"></i> {{ error }}</div>
+{% endif %}
+
+<div class="row g-3">
+  <!-- ── input form ─────────────────────────────────────────── -->
+  <div class="col-lg-6">
+    <div class="card" style="border:1px solid #e4e9f2;border-radius:14px;">
+      <div class="card-body">
+        <form method="post" action="/admin/ai-lab/run"
+              enctype="multipart/form-data" id="labForm">
+          <input type="hidden" name="mode" id="labMode" value="filter">
+
+          <div class="btn-group w-100 mb-3" role="group">
+            <input type="radio" class="btn-check" name="modepick" id="mFilter"
+                   autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="mFilter">פילטר קיים</label>
+            <input type="radio" class="btn-check" name="modepick" id="mAdhoc"
+                   autocomplete="off">
+            <label class="btn btn-outline-primary" for="mAdhoc">הגדרה ידנית (ad-hoc)</label>
+          </div>
+
+          <!-- mode: existing filter -->
+          <div id="boxFilter">
+            <label class="form-label mb-0" style="font-size:12px;">בחר פילטר</label>
+            <select name="filter_key" class="form-select form-select-sm mb-2">
+              <option value="">— בחר —</option>
+              {% for f in filters %}
+              <option value="{{ f.filter_key }}"
+                {% if f.filter_key == sel_filter_key %}selected{% endif %}>
+                {{ f.display_name }} · {{ f.provider }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- mode: ad-hoc -->
+          <div id="boxAdhoc" style="display:none;">
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:12px;">ספק</label>
+                <select name="provider" class="form-select form-select-sm" dir="ltr">
+                  {% for p in providers %}
+                  <option value="{{ p.provider_key }}">{{ p.display_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:12px;">סוג תוצאה</label>
+                <select name="result_kind" class="form-select form-select-sm" dir="ltr">
+                  <option value="image_url">image_url</option>
+                  <option value="base64">base64</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label mb-0" style="font-size:12px;">נתיב API</label>
+                <input type="text" name="provider_path" dir="ltr"
+                       placeholder="portrait/effects/portrait-animation"
+                       class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:12px;">שם שדה התמונה</label>
+                <input type="text" name="image_field" dir="ltr" value="image"
+                       class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:12px;">פרמטרים (JSON)</label>
+                <input type="text" name="form_json" dir="ltr"
+                       placeholder='{"type":"3d_cartoon"}'
+                       class="form-control form-control-sm">
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          <label class="form-label mb-0" style="font-size:12px;">תמונת בדיקה</label>
+          <input type="file" name="image" accept="image/*" required
+                 class="form-control form-control-sm mb-2">
+
+          <div class="form-check form-switch mb-3">
+            <input type="checkbox" name="use_mock" value="1" class="form-check-input"
+                   id="useMock">
+            <label class="form-check-label" for="useMock" style="font-size:12.5px;">
+              מצב דמה (חינמי — לא פונה לספק, בודק רק חיווט)</label>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-play-fill"></i> הרץ בדיקה
+          </button>
+          <p class="text-muted mt-2 mb-0" style="font-size:11.5px;">
+            קריאה אמיתית צורכת קרדיטים אצל הספק (לא מחייבת אף לקוח).
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── result ─────────────────────────────────────────────── -->
+  <div class="col-lg-6">
+    <div class="card" style="border:1px solid #e4e9f2;border-radius:14px;">
+      <div class="card-body">
+        <h6 class="mb-3"><i class="bi bi-clipboard-check"></i> תוצאה</h6>
+        {% if result %}
+          {% if result.ok %}
+            <div class="alert alert-success py-2">
+              <i class="bi bi-check-circle-fill ms-1"></i> הצלחה
+              {% if result.used_mock %}<span class="badge bg-secondary">מצב דמה</span>{% endif %}
+              · {{ result.latency_ms }}ms
+            </div>
+            {% if result.result_data_url %}
+              <img class="lab-result-img mb-2" src="{{ result.result_data_url }}"
+                   alt="תוצאה">
+              <a class="btn btn-sm btn-outline-primary w-100 mb-2"
+                 href="{{ result.result_data_url }}" download="lab-result">
+                <i class="bi bi-download"></i> הורד תוצאה
+              </a>
+            {% endif %}
+          {% else %}
+            <div class="alert alert-danger py-2">
+              <i class="bi bi-x-circle-fill ms-1"></i> נכשל
+              {% if result.used_mock %}<span class="badge bg-secondary">מצב דמה</span>{% endif %}
+              · {{ result.latency_ms }}ms
+            </div>
+            <div class="lab-kv mb-1">קוד שגיאה: <b dir="ltr">{{ result.error_code }}</b></div>
+            {% if result.error_detail %}
+            <div class="lab-kv mb-2">פירוט: <span dir="ltr">{{ result.error_detail }}</span></div>
+            {% endif %}
+          {% endif %}
+          <div class="lab-kv mt-2" style="border-top:1px dashed #e4e9f2;padding-top:8px;">
+            {% if result.provider_key %}<div>ספק: <b>{{ result.provider_key }}</b></div>{% endif %}
+            {% if result.url %}<div>כתובת: <code class="lab-url">{{ result.url }}</code></div>{% endif %}
+            {% if result.provider_request_id %}
+            <div>Request ID: <code class="lab-url">{{ result.provider_request_id }}</code></div>
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="lab-ph">
+            <i class="bi bi-image" style="font-size:28px;"></i>
+            <p class="mt-2 mb-0">העלה תמונת בדיקה והרץ — התוצאה תופיע כאן.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var mode = document.getElementById('labMode');
+    var bf = document.getElementById('boxFilter');
+    var ba = document.getElementById('boxAdhoc');
+    var rf = document.getElementById('mFilter');
+    var ra = document.getElementById('mAdhoc');
+    function sync() {
+      var adhoc = ra.checked;
+      mode.value = adhoc ? 'adhoc' : 'filter';
+      ba.style.display = adhoc ? '' : 'none';
+      bf.style.display = adhoc ? 'none' : '';
+    }
+    rf.addEventListener('change', sync);
+    ra.addEventListener('change', sync);
+    sync();
+  })();
+</script>
+{% endblock %}

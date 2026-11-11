@@ -34,6 +34,7 @@ from .. import auth as _auth
 from .. import config as _cfg
 from ..database import get_connection
 from ..services import ai_admin_service as _aiadmin
+from ..services import ai_service as _ai
 from ..services import credits_service as _credits
 from ..services import events_service as _evt
 from ..services import license_service as svc
@@ -1580,6 +1581,80 @@ def ai_filters_toggle(request: Request, filter_key: str):
     except Exception:
         pass
     return RedirectResponse("/admin/ai-filters", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# FILTER LAB — verify a provider / filter end-to-end without touching any
+# customer wallet. Real call (vendor bills its own credits) or free mock.
+# ---------------------------------------------------------------------------
+@router.get("/ai-lab", response_class=HTMLResponse, include_in_schema=False)
+def ai_lab_page(request: Request, filter_key: str = Query("")):
+    user = _require_user_or_redirect(request)
+    filters = _aiadmin.list_filters()
+    providers = _aiadmin.list_providers()
+    ctx = {
+        "page_title": "מעבדת פילטרים",
+        "active_nav": "ai_lab",
+        "user": user,
+        "filters": filters,
+        "providers": providers,
+        "sel_filter_key": (filter_key or "").strip(),
+        "result": None,
+        "error": None,
+    }
+    return _render(request, "admin/ai_lab.html", ctx)
+
+
+@router.post("/ai-lab/run", response_class=HTMLResponse, include_in_schema=False)
+async def ai_lab_run(
+    request: Request,
+    image: UploadFile = File(...),
+    mode: str = Form("filter"),            # "filter" | "adhoc"
+    filter_key: str = Form(""),
+    provider: str = Form(""),
+    provider_path: str = Form(""),
+    image_field: str = Form("image"),
+    result_kind: str = Form("image_url"),
+    form_json: str = Form(""),
+    use_mock: str = Form(""),
+):
+    user = _require_user_or_redirect(request)
+    filters = _aiadmin.list_filters()
+    providers = _aiadmin.list_providers()
+    ctx: Dict[str, Any] = {
+        "page_title": "מעבדת פילטרים",
+        "active_nav": "ai_lab",
+        "user": user,
+        "filters": filters,
+        "providers": providers,
+        "sel_filter_key": (filter_key or "").strip(),
+        "result": None,
+        "error": None,
+    }
+    try:
+        data = await image.read()
+        if not data:
+            raise ValueError("לא נבחרה תמונת בדיקה.")
+        if len(data) > 12 * 1024 * 1024:
+            raise ValueError("התמונה גדולה מדי (מקסימום 12MB).")
+        form_dict, form_err = _parse_form_json(form_json)
+        if form_err:
+            raise ValueError(form_err)
+        is_mock = str(use_mock).strip() in ("1", "on", "true")
+        if (mode or "filter").strip() == "adhoc":
+            result = _ai.admin_test_filter(
+                data, provider_key=provider, provider_path=provider_path,
+                image_field=image_field or "image", form=form_dict,
+                result_kind=result_kind or "image_url", use_mock=is_mock)
+        else:
+            if not (filter_key or "").strip():
+                raise ValueError("יש לבחור פילטר לבדיקה.")
+            result = _ai.admin_test_filter(
+                data, filter_key=filter_key.strip(), use_mock=is_mock)
+        ctx["result"] = result
+    except Exception as exc:
+        ctx["error"] = str(exc)
+    return _render(request, "admin/ai_lab.html", ctx)
 
 
 @router.post("/ai-filters/{filter_key}/upload-image", include_in_schema=False)
