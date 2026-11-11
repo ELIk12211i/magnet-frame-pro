@@ -335,6 +335,27 @@ def _ensure_ailab_catalog(conn: sqlite3.Connection) -> None:
         )
 
 
+def _ensure_ai_providers(conn: sqlite3.Connection) -> None:
+    """Seed the default AILabTools provider once (idempotent).
+
+    api_key is left EMPTY so the runtime falls back to the AILABTOOLS_API_KEY
+    env var — existing deploys keep working with no admin action. The admin can
+    later paste a key here to manage it from the dashboard. INSERT OR IGNORE
+    preserves any admin edits across reboots.
+    """
+    now = _now_iso()
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO ai_providers
+        (provider_key, display_name, base_url, auth_header, api_key, adapter,
+         is_enabled, created_at, updated_at)
+        VALUES (?, ?, ?, ?, '', 'ailabtools', 1, ?, ?)
+        """,
+        ("ailabtools", "AILabTools", "https://www.ailabapi.com/api",
+         "ailabapi-api-key", now, now),
+    )
+
+
 def _ensure_ai_categories(conn: sqlite3.Connection) -> None:
     """Seed the two default display categories once (idempotent).
 
@@ -943,6 +964,27 @@ def init_db() -> None:
                 updated_at    TEXT NOT NULL
             );
 
+            -- Admin-managed AI PROVIDERS. A filter's ``provider`` column points
+            -- here; the request is built at runtime from base_url + auth_header
+            -- + api_key (+ the filter's provider_path/params). ``adapter`` picks
+            -- the request-builder strategy: 'ailabtools' is the generic
+            -- multipart-REST adapter (image multipart + header auth +
+            -- image_url/base64 response) that fits most vendors; 'mock' for dev.
+            -- Adding a vendor with that shape is a NEW ROW — no code, no client
+            -- update. The api_key is a secret: masked in admin, never sent to
+            -- the client, never logged. Empty api_key falls back to env.
+            CREATE TABLE IF NOT EXISTS ai_providers (
+                provider_key  TEXT PRIMARY KEY,
+                display_name  TEXT NOT NULL,
+                base_url      TEXT NOT NULL DEFAULT '',
+                auth_header   TEXT NOT NULL DEFAULT 'ailabapi-api-key',
+                api_key       TEXT NOT NULL DEFAULT '',
+                adapter       TEXT NOT NULL DEFAULT 'ailabtools',
+                is_enabled    INTEGER NOT NULL DEFAULT 1,
+                created_at    TEXT NOT NULL,
+                updated_at    TEXT NOT NULL
+            );
+
             -- Preview images uploaded from the admin dashboard. Stored IN THE
             -- DB (not on disk) so they survive Railway redeploys, which wipe
             -- the container filesystem but keep the mounted DB volume. Served
@@ -1009,6 +1051,9 @@ def init_db() -> None:
         # filters with no explicit ui_category fall into them automatically).
         # INSERT OR IGNORE → admin renames/order are never overwritten.
         _ensure_ai_categories(conn)
+
+        # Seed the default AILabTools provider (api_key empty → env fallback).
+        _ensure_ai_providers(conn)
 
         # Seed bundled preview images for filters that don't have one yet
         # (admin uploads always win). Runs after the catalogue so the filter

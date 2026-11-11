@@ -1216,12 +1216,14 @@ def ai_filters_page(request: Request):
     cost_params = _aiadmin.get_cost_params()
     filters = _aiadmin.add_cost_fields(_aiadmin.list_filters(), cost_params)
     categories = _aiadmin.list_categories()
+    providers = _aiadmin.list_providers()
     ctx = {
         "page_title": "פילטרי AI",
         "active_nav": "ai_filters",
         "user": user,
         "filters": filters,
         "categories": categories,
+        "providers": providers,
         "usd_per_credit": cost_params["usd_per_credit"],
         "usd_ils_rate": cost_params["usd_ils_rate"],
         "error":   qp.get("error")   or None,
@@ -1249,6 +1251,23 @@ def ai_filters_cost_params(
         status_code=303)
 
 
+def _parse_form_json(raw: str):
+    """Parse the optional provider-params JSON from an admin form.
+    Returns (dict_or_None, error_message_or_None). Blank → ({}, None) so the
+    caller clears the stored form; invalid JSON / non-object → ("", message)."""
+    import json as _json2
+    raw = (raw or "").strip()
+    if not raw:
+        return {}, None
+    try:
+        obj = _json2.loads(raw)
+    except Exception:
+        return None, "שדה הפרמטרים (form) אינו JSON תקין."
+    if not isinstance(obj, dict):
+        return None, "שדה הפרמטרים (form) חייב להיות אובייקט JSON { }."
+    return obj, None
+
+
 @router.post("/ai-filters/{filter_key}/edit", include_in_schema=False)
 def ai_filters_edit(
     request: Request,
@@ -1258,6 +1277,12 @@ def ai_filters_edit(
     cost_ceiling_ils: str = Form(""),
     sort_order: str = Form(""),
     ui_category: str = Form(""),
+    provider: str = Form(""),
+    provider_path: str = Form(""),
+    result_kind: str = Form(""),
+    image_field: str = Form(""),
+    form_json: str = Form(""),
+    zooms: str = Form(""),
 ):
     from urllib.parse import quote as _q
     _require_user_or_redirect(request)
@@ -1277,6 +1302,11 @@ def ai_filters_edit(
         so = int(sort_order) if (sort_order or "").strip() else None
     except ValueError:
         so = None
+    # form_json is an optional provider-params JSON object ({} to clear).
+    form_dict, form_err = _parse_form_json(form_json)
+    if form_err:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(form_err)}", status_code=303)
     try:
         # NOTE: deliberately does NOT pass preview_url. The preview image is
         # managed only by the separate /upload-image form. The edit form has no
@@ -1289,6 +1319,12 @@ def ai_filters_edit(
             cost_ceiling_agorot=ceiling,
             sort_order=so,
             ui_category=ui_category,
+            provider=provider or None,
+            provider_path=(provider_path if provider_path.strip() else None),
+            result_kind=result_kind or None,
+            image_field=(image_field if image_field.strip() else None),
+            form=form_dict,
+            zooms=(zooms.strip() in ("1", "on", "true")),
         )
     except Exception as exc:
         return RedirectResponse(
@@ -1354,6 +1390,169 @@ def ai_categories_delete(request: Request, category_key: str):
             f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
     return RedirectResponse(
         f"/admin/ai-filters?success={_q('הקטגוריה נמחקה.')}", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Filter create / delete (admin)
+# ---------------------------------------------------------------------------
+@router.post("/ai-filters/create", include_in_schema=False)
+def ai_filters_create(
+    request: Request,
+    filter_key: str = Form(""),
+    display_name: str = Form(""),
+    provider: str = Form("ailabtools"),
+    provider_path: str = Form(""),
+    result_kind: str = Form("image_url"),
+    image_field: str = Form("image"),
+    form_json: str = Form(""),
+    ailab_kind: str = Form(""),
+    zooms: str = Form(""),
+    sale_price_ils: str = Form(""),
+    cost_ceiling_ils: str = Form(""),
+    ui_category: str = Form(""),
+):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+
+    def _ils_to_agorot(v: str) -> int:
+        v = (v or "").strip().replace(",", ".")
+        if not v:
+            return 0
+        try:
+            return max(0, int(round(float(v) * 100)))
+        except ValueError:
+            return 0
+
+    form_dict, form_err = _parse_form_json(form_json)
+    if form_err:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(form_err)}", status_code=303)
+    try:
+        key = _aiadmin.create_filter(
+            filter_key, display_name,
+            provider=provider or "ailabtools",
+            provider_path=provider_path,
+            result_kind=result_kind or "image_url",
+            image_field=image_field or "image",
+            form=form_dict,
+            ailab_kind=ailab_kind,
+            zooms=(zooms.strip() in ("1", "on", "true")),
+            sale_price_agorot=_ils_to_agorot(sale_price_ils),
+            cost_ceiling_agorot=_ils_to_agorot(cost_ceiling_ils),
+            ui_category=ui_category,
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    if not key:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q('מזהה הפילטר ריק או כבר קיים.')}",
+            status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('הפילטר נוצר. אפשר להעלות לו תמונת נושא.')}",
+        status_code=303)
+
+
+@router.post("/ai-filters/{filter_key}/delete", include_in_schema=False)
+def ai_filters_delete(request: Request, filter_key: str):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        ok = _aiadmin.delete_filter(filter_key)
+        msg = "הפילטר נמחק." if ok else "הפילטר לא נמצא."
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q(msg)}", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# AI providers (ספקים) — admin CRUD. The api_key is a secret: it is never
+# rendered back to the page (only a last-4 mask), and omitting it on edit
+# keeps the stored value.
+# ---------------------------------------------------------------------------
+@router.post("/ai-providers/add", include_in_schema=False)
+def ai_providers_add(
+    request: Request,
+    provider_key: str = Form(""),
+    display_name: str = Form(""),
+    base_url: str = Form(""),
+    auth_header: str = Form("ailabapi-api-key"),
+    api_key: str = Form(""),
+    adapter: str = Form("ailabtools"),
+):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        key = _aiadmin.create_provider(
+            provider_key, display_name,
+            base_url=base_url, auth_header=auth_header or "ailabapi-api-key",
+            api_key=api_key, adapter=adapter or "ailabtools",
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    if not key:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q('מזהה הספק ריק או כבר קיים.')}",
+            status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('הספק נוסף.')}", status_code=303)
+
+
+@router.post("/ai-providers/{provider_key}/edit", include_in_schema=False)
+def ai_providers_edit(
+    request: Request,
+    provider_key: str,
+    display_name: str = Form(""),
+    base_url: str = Form(""),
+    auth_header: str = Form(""),
+    api_key: str = Form(""),
+    adapter: str = Form(""),
+    is_enabled: str = Form(""),
+):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    # api_key: blank field → leave the stored secret UNTOUCHED (None), so the
+    # admin can edit other fields without re-typing the key. A dedicated
+    # "clear key" action sends api_key="__CLEAR__".
+    new_key = None
+    if api_key.strip() == "__CLEAR__":
+        new_key = ""
+    elif api_key.strip():
+        new_key = api_key.strip()
+    try:
+        _aiadmin.update_provider(
+            provider_key,
+            display_name=display_name or None,
+            base_url=base_url,
+            auth_header=auth_header or None,
+            api_key=new_key,
+            adapter=adapter or None,
+            is_enabled=(is_enabled.strip() in ("1", "on", "true")),
+        )
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('הספק עודכן.')}", status_code=303)
+
+
+@router.post("/ai-providers/{provider_key}/delete", include_in_schema=False)
+def ai_providers_delete(request: Request, provider_key: str):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        ok = _aiadmin.delete_provider(provider_key)
+        msg = ("הספק נמחק." if ok
+               else "לא ניתן למחוק ספק שעדיין משויך לפילטרים.")
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    key = "success" if ok else "error"
+    return RedirectResponse(
+        f"/admin/ai-filters?{key}={_q(msg)}", status_code=303)
 
 
 @router.post("/ai-filters/bulk-toggle", include_in_schema=False)

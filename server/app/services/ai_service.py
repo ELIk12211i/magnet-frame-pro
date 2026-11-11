@@ -168,22 +168,40 @@ def _filter_routing(filt: Dict[str, Any]) -> Dict[str, Any]:
 
 def _ailabtools_apply(
     filt: Dict[str, Any], image_bytes: bytes, client_params: Dict[str, Any],
+    provider: Optional[Dict[str, Any]] = None,
 ) -> ProviderResult:
+    """Generic multipart-REST adapter (AILabTools-compatible).
+
+    Everything vendor-specific comes from DATA, never code: the endpoint host
+    + auth-header name + API key from the ``ai_providers`` row (``provider``),
+    and the per-filter sub-path / image-field / form params / result kind from
+    the filter's catalogue row. A new vendor with the same request shape is a
+    new provider row — no code change here.
+    """
     import httpx  # lazy import — only needed in prod
 
-    api_key = _cfg.AILABTOOLS_API_KEY
+    prow = provider or {}
+    # Key: provider row wins; empty falls back to the legacy env var so an
+    # existing AILabTools deploy keeps working before any admin edit. Never
+    # logged, never returned to the client.
+    api_key = (str(prow.get("api_key") or "").strip()
+               or (_cfg.AILABTOOLS_API_KEY or ""))
     if not api_key:
         # Treated as "service unavailable" (definite failure → refund).
         return ProviderResult(
             ok=False, definite_failure=True,
             error_code="NO_API_KEY",
-            error_detail="AILABTOOLS_API_KEY is not configured",
+            error_detail="provider API key is not configured",
         )
+    base_url = (str(prow.get("base_url") or "").strip()
+                or _cfg.AILABTOOLS_BASE_URL)
+    auth_header = (str(prow.get("auth_header") or "").strip()
+                   or "ailabapi-api-key")
     provider_path = filt["provider_path"]
     result_kind = filt.get("result_kind", "image_url")
     route = _filter_routing(filt)
-    url = f"{_cfg.AILABTOOLS_BASE_URL}/{provider_path.lstrip('/')}"
-    headers = {"ailabapi-api-key": api_key}
+    url = f"{base_url.rstrip('/')}/{provider_path.lstrip('/')}"
+    headers = {auth_header: api_key}
     # The multipart image field name and the provider control params (type /
     # service_choice / ...) come ONLY from the admin-configured catalogue —
     # NEVER from the client request — so a client cannot steer the provider.
@@ -280,12 +298,44 @@ def _extract_image(data: Dict[str, Any], result_kind: str) -> Optional[bytes]:
     return None
 
 
+def _get_provider_row(provider_key: str) -> Optional[Dict[str, Any]]:
+    """Load an ai_providers row as a dict, or None. Used only server-side."""
+    key = (provider_key or "").strip()
+    if not key:
+        return None
+    try:
+        with get_connection() as conn:
+            r = conn.execute(
+                "SELECT provider_key, display_name, base_url, auth_header, "
+                "api_key, adapter, is_enabled FROM ai_providers "
+                "WHERE provider_key = ?", (key,),
+            ).fetchone()
+    except Exception:
+        return None
+    return {k: r[k] for k in r.keys()} if r is not None else None
+
+
 def _call_provider(
     filt: Dict[str, Any], image_bytes: bytes, params: Dict[str, Any]
 ) -> ProviderResult:
-    if _cfg.AI_PROVIDER == "ailabtools":
-        return _ailabtools_apply(filt, image_bytes, params)
-    return _mock_apply(image_bytes, params)
+    # Global dev/staging kill-switch: AI_PROVIDER=mock never bills a real
+    # vendor, regardless of the catalogue (keeps non-prod safe).
+    if _cfg.AI_PROVIDER == "mock":
+        return _mock_apply(image_bytes, params)
+    # Data-driven dispatch: the filter names its provider; the provider row
+    # carries host/auth/key/adapter. This is what lets an admin switch or add
+    # a vendor with no code change and no client update.
+    prow = _get_provider_row(filt.get("provider"))
+    if prow is not None and not int(prow.get("is_enabled", 1) or 0):
+        return ProviderResult(
+            ok=False, definite_failure=True, error_code="PROVIDER_DISABLED",
+            error_detail="the assigned provider is disabled",
+        )
+    adapter = str((prow or {}).get("adapter") or "ailabtools").strip()
+    if adapter == "mock":
+        return _mock_apply(image_bytes, params)
+    # Default adapter: generic multipart-REST (AILabTools-compatible).
+    return _ailabtools_apply(filt, image_bytes, params, provider=prow)
 
 
 # ---------------------------------------------------------------------------
@@ -378,6 +428,11 @@ def list_enabled_filters() -> list[Dict[str, Any]]:
                 "preview_url": str(cfg.get("preview_url") or ""),
                 "category": kind,
                 "group": group_label,
+                # Whether this provider zooms/crops to the subject, so the
+                # client pads before upload to avoid cropping heads. Explicit
+                # admin flag wins; else the legacy cartoon heuristic, so a new
+                # zooming provider needs no client update.
+                "zooms": bool(cfg.get("zooms")) or (kind == "cartoon"),
             },
         ))
     # Order by category order first, then the filter's own sort_order, so the

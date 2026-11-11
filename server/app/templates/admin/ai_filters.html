@@ -180,6 +180,205 @@
   </div>
 </div>
 
+{# ── AI providers (ספקים) — add / edit key / enable / delete ───────────── #}
+<div class="card mb-3" style="border:1px solid #e3e8ef;border-radius:12px;">
+  <div class="card-body">
+    <h6 class="mb-2"><i class="bi bi-hdd-network"></i> ספקי AI (API)</h6>
+    <p class="text-muted mb-3" style="font-size:12px;">
+      כל פילטר משויך לספק מכאן. כדי להחליף ספק או להוסיף ספק חדש — הוסף אותו כאן,
+      הזן מפתח API, ושייך אליו פילטרים. <b>אין צורך לעדכן את התוכנה אצל הלקוח.</b>
+      המפתח נשמר מוצפן ומוצג רק ב-4 ספרות אחרונות.
+    </p>
+
+    {% if providers %}
+    <div class="table-responsive mb-3">
+      <table class="table table-sm align-middle mb-0" style="font-size:12.5px;">
+        <thead><tr>
+          <th>ספק</th><th>Base URL</th><th>מפתח</th><th>Adapter</th>
+          <th style="width:90px;">פעיל</th><th style="width:150px;">פעולות</th>
+        </tr></thead>
+        <tbody>
+        {% for p in providers %}
+          <tr>
+            <form method="post" action="/admin/ai-providers/{{ p.provider_key }}/edit">
+            <td>
+              <div style="font-weight:700;">{{ p.display_name }}</div>
+              <code style="font-size:10.5px;color:#a8b3c7;">{{ p.provider_key }}</code>
+            </td>
+            <td>
+              <input type="text" name="base_url" value="{{ p.base_url }}" dir="ltr"
+                     class="form-control form-control-sm" style="min-width:200px;">
+              <input type="hidden" name="display_name" value="{{ p.display_name }}">
+              <input type="hidden" name="adapter" value="{{ p.adapter }}">
+            </td>
+            <td style="min-width:170px;">
+              <div style="font-size:11px;color:#8a96ab;" dir="ltr">
+                {% if p.has_key %}{{ p.api_key_masked }}{% else %}
+                  <span title="ריק — נעשה שימוש במפתח מהסביבה (env)">env ↩</span>{% endif %}
+              </div>
+              <input type="password" name="api_key" autocomplete="new-password"
+                     placeholder="מפתח חדש (ריק = ללא שינוי)" dir="ltr"
+                     class="form-control form-control-sm mt-1">
+            </td>
+            <td><code style="font-size:11px;">{{ p.adapter }}</code></td>
+            <td>
+              <div class="form-check form-switch">
+                <input type="checkbox" name="is_enabled" value="1"
+                       class="form-check-input" {% if p.is_enabled %}checked{% endif %}>
+              </div>
+            </td>
+            <td>
+              <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-1">
+                <i class="bi bi-save"></i> שמור
+              </button>
+            </form>
+              <form method="post" action="/admin/ai-providers/{{ p.provider_key }}/delete"
+                    onsubmit="return confirm('למחוק את הספק? (אפשרי רק אם אין פילטרים שמשויכים אליו)');">
+                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                  <i class="bi bi-trash"></i> מחק
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/admin/ai-providers/add" class="row g-2">
+      <div class="col-12" style="font-size:12px;font-weight:700;color:#1a2746;">
+        <i class="bi bi-plus-circle"></i> הוסף ספק חדש</div>
+      <div class="col-sm-3">
+        <input type="text" name="provider_key" required dir="ltr"
+               placeholder="מזהה (למשל: replicate)"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <input type="text" name="display_name" required
+               placeholder="שם לתצוגה" class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <input type="text" name="base_url" dir="ltr"
+               placeholder="https://api.vendor.com"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <input type="text" name="auth_header" dir="ltr" value="ailabapi-api-key"
+               placeholder="שם כותרת האימות"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-4">
+        <input type="password" name="api_key" autocomplete="new-password" dir="ltr"
+               placeholder="מפתח API (אופציונלי)"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-4">
+        <select name="adapter" class="form-select form-select-sm" dir="ltr">
+          <option value="ailabtools">ailabtools (multipart REST)</option>
+          <option value="mock">mock (בדיקות)</option>
+        </select>
+      </div>
+      <div class="col-sm-4">
+        <button type="submit" class="btn btn-sm btn-success w-100">
+          <i class="bi bi-plus-lg"></i> הוסף ספק
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Create a new filter ──────────────────────────────────────────────── #}
+<div class="card mb-3" style="border:1px solid #e3e8ef;border-radius:12px;">
+  <div class="card-body">
+    <h6 class="mb-2"><i class="bi bi-plus-square"></i> צור פילטר חדש</h6>
+    <p class="text-muted mb-3" style="font-size:12px;">
+      פילטר חדש מופיע בתוכנה מיד (אין צורך לעדכן את התוכנה). אחרי היצירה אפשר
+      להעלות לו תמונת נושא דרך "הגדרות ומחיר" בכרטיס הפילטר.
+    </p>
+    <form method="post" action="/admin/ai-filters/create" class="row g-2">
+      <div class="col-sm-4">
+        <label class="form-label mb-0" style="font-size:11px;">מזהה פילטר (ייחודי)</label>
+        <input type="text" name="filter_key" required dir="ltr"
+               placeholder="cartoon_newstyle" class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label mb-0" style="font-size:11px;">שם תצוגה</label>
+        <input type="text" name="display_name" required
+               placeholder="סגנון חדש" class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label mb-0" style="font-size:11px;">ספק</label>
+        <select name="provider" class="form-select form-select-sm" dir="ltr">
+          {% for p in providers %}
+          <option value="{{ p.provider_key }}">{{ p.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label mb-0" style="font-size:11px;">מחיר (₪)</label>
+        <input type="number" name="sale_price_ils" step="0.01" min="0" dir="ltr"
+               value="0" class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label mb-0" style="font-size:11px;">תקרת עלות (₪)</label>
+        <input type="number" name="cost_ceiling_ils" step="0.01" min="0" dir="ltr"
+               value="0" class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label mb-0" style="font-size:11px;">קטגוריה</label>
+        <select name="ui_category" class="form-select form-select-sm">
+          <option value="">ברירת מחדל (לפי סוג)</option>
+          {% for c in categories %}
+          <option value="{{ c.category_key }}">{{ c.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label mb-0" style="font-size:11px;">סוג תוצאה</label>
+        <select name="result_kind" class="form-select form-select-sm" dir="ltr">
+          <option value="image_url">image_url</option>
+          <option value="base64">base64</option>
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label mb-0" style="font-size:11px;">נתיב API (provider_path)</label>
+        <input type="text" name="provider_path" dir="ltr"
+               placeholder="portrait/effects/portrait-animation"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label mb-0" style="font-size:11px;">שם שדה התמונה</label>
+        <input type="text" name="image_field" dir="ltr" value="image"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label mb-0" style="font-size:11px;">סוג (kind · לעלות/מגירה)</label>
+        <input type="text" name="ailab_kind" dir="ltr"
+               placeholder="cartoon / emotion / other"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label mb-0" style="font-size:11px;">פרמטרים לספק (form · JSON)</label>
+        <input type="text" name="form_json" dir="ltr"
+               placeholder='{"type":"3d_cartoon"}'
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-3 d-flex align-items-end">
+        <div class="form-check" style="font-size:11.5px;">
+          <input type="checkbox" name="zooms" value="1" class="form-check-input" id="new-zoom">
+          <label class="form-check-label" for="new-zoom">מתקרב לנושא</label>
+        </div>
+      </div>
+      <div class="col-sm-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-sm btn-success w-100">
+          <i class="bi bi-plus-lg"></i> צור פילטר
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="ai-grid">
 {% for f in filters %}
   {% set grad = palette[loop.index0 % (palette|length)].split(',') %}
@@ -259,6 +458,61 @@
               {% endfor %}
             </select>
           </div>
+
+          <details class="col-12" style="margin-top:2px;">
+            <summary style="cursor:pointer;font-size:11px;color:#8a96ab;font-weight:600;">
+              <i class="bi bi-hdd-network"></i> ניתוב ספק (למתקדמים)</summary>
+            <div class="row g-2 mt-0">
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:11px;">ספק</label>
+                <select name="provider" class="form-select form-select-sm" dir="ltr">
+                  {% for p in providers %}
+                  <option value="{{ p.provider_key }}"
+                    {% if f.provider == p.provider_key %}selected{% endif %}>
+                    {{ p.display_name }}</option>
+                  {% endfor %}
+                  {% if f.provider and f.provider not in (providers|map(attribute='provider_key')|list) %}
+                  <option value="{{ f.provider }}" selected>{{ f.provider }} (לא מוגדר)</option>
+                  {% endif %}
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:11px;">סוג תוצאה</label>
+                <select name="result_kind" class="form-select form-select-sm" dir="ltr">
+                  <option value="image_url" {% if f.result_kind == 'image_url' %}selected{% endif %}>image_url</option>
+                  <option value="base64" {% if f.result_kind == 'base64' %}selected{% endif %}>base64</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label mb-0" style="font-size:11px;">נתיב API (provider_path)</label>
+                <input type="text" name="provider_path" dir="ltr"
+                       value="{{ f.provider_path }}"
+                       placeholder="portrait/effects/portrait-animation"
+                       class="form-control form-control-sm">
+              </div>
+              <div class="col-6">
+                <label class="form-label mb-0" style="font-size:11px;">שם שדה התמונה</label>
+                <input type="text" name="image_field" dir="ltr"
+                       value="{{ f.image_field }}" placeholder="image"
+                       class="form-control form-control-sm">
+              </div>
+              <div class="col-6 d-flex align-items-end">
+                <div class="form-check" style="font-size:11.5px;">
+                  <input type="checkbox" name="zooms" value="1" class="form-check-input"
+                         id="zoom-{{ f.filter_key }}" {% if f.zooms %}checked{% endif %}>
+                  <label class="form-check-label" for="zoom-{{ f.filter_key }}">
+                    הספק מתקרב לנושא (מניעת חיתוך ראש)</label>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label mb-0" style="font-size:11px;">פרמטרים לספק (form · JSON)</label>
+                <input type="text" name="form_json" dir="ltr"
+                       value='{{ f.form_json }}' placeholder='{"type":"3d_cartoon"}'
+                       class="form-control form-control-sm">
+              </div>
+            </div>
+          </details>
+
           <div class="col-12 ai-meta">
             קרדיטים בפועל: {{ f.real_credits }} · עלות ספק:
             <span dir="ltr">${{ '%.3f'|format(f.cost_usd) }}</span> =

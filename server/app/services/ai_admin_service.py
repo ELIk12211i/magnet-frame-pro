@@ -181,6 +181,17 @@ def _enrich_filter(d: Dict[str, Any]) -> Dict[str, Any]:
     # anti-crop zoom heuristic), so renaming the drawer never changes behaviour.
     d["ui_category"] = str(cfg.get("ui_category") or "")
     d["preview_url"] = str(cfg.get("preview_url") or "")
+    # Routing fields (editable in admin) — provider/provider_path/result_kind
+    # are columns already in ``d``; image_field / form / zooms live in cfg.
+    d["image_field"] = str(cfg.get("image_field") or "")
+    # EFFECTIVE zoom state (matches the client catalogue): explicit admin flag
+    # OR the legacy cartoon heuristic. So the edit-form checkbox shows the true
+    # behaviour for seeded cartoon filters that have no explicit flag yet.
+    d["zooms"] = bool(cfg.get("zooms")) or (kind == "cartoon")
+    d["form_json"] = (
+        _json.dumps(form, ensure_ascii=False)
+        if isinstance(form, dict) and form else ""
+    )
     d["sale_price_ils"] = (int(d.get("sale_price_agorot") or 0)) / 100.0
     d["cost_ceiling_ils"] = (int(d.get("cost_ceiling_agorot") or 0)) / 100.0
     return d
@@ -364,7 +375,20 @@ def update_filter(
     sort_order: Optional[int] = None,
     preview_url: Optional[str] = None,
     ui_category: Optional[str] = None,
+    provider: Optional[str] = None,
+    provider_path: Optional[str] = None,
+    result_kind: Optional[str] = None,
+    image_field: Optional[str] = None,
+    form: Optional[Dict[str, Any]] = None,
+    zooms: Optional[bool] = None,
+    ailab_kind: Optional[str] = None,
 ) -> bool:
+    """Update an AI filter. Column fields (display_name, prices, provider,
+    provider_path, result_kind, ...) write directly; routing/display fields
+    kept in params_json (image_field, form, zooms, preview_url, ui_category,
+    ailab_kind) are merged in WITHOUT clobbering the keys left untouched.
+    Every argument is optional — only the ones passed are changed.
+    """
     updates: Dict[str, Any] = {}
     if display_name is not None and display_name.strip():
         updates["display_name"] = display_name.strip()
@@ -376,11 +400,21 @@ def update_filter(
         updates["is_enabled"] = 1 if is_enabled else 0
     if sort_order is not None:
         updates["sort_order"] = int(sort_order)
+    if provider is not None and provider.strip():
+        updates["provider"] = provider.strip()
+    if provider_path is not None:
+        updates["provider_path"] = provider_path.strip()
+    if result_kind is not None and result_kind.strip():
+        updates["result_kind"] = result_kind.strip()
+    # params_json merge is needed if ANY of these routing/display keys is set
+    _merge_params = any(
+        v is not None
+        for v in (preview_url, ui_category, image_field, form, zooms, ailab_kind)
+    )
     with get_connection() as conn:
-        # Merge preview_url / ui_category into params_json WITHOUT clobbering
-        # the routing keys (ailab_kind / image_field / form) the provider
-        # relies on. Both are optional and read the current JSON once.
-        if preview_url is not None or ui_category is not None:
+        # Merge selected keys into params_json WITHOUT clobbering the routing
+        # keys the provider relies on. Read the current JSON once.
+        if _merge_params:
             row = conn.execute(
                 "SELECT params_json FROM ai_filters WHERE filter_key = ?",
                 (filter_key,),
@@ -398,6 +432,28 @@ def update_filter(
                     cfg["ui_category"] = uc
                 else:
                     cfg.pop("ui_category", None)
+            if image_field is not None:
+                f = image_field.strip()
+                if f:
+                    cfg["image_field"] = f
+                else:
+                    cfg.pop("image_field", None)
+            if ailab_kind is not None:
+                k = ailab_kind.strip()
+                if k:
+                    cfg["ailab_kind"] = k
+                else:
+                    cfg.pop("ailab_kind", None)
+            if form is not None:
+                if form:
+                    cfg["form"] = form
+                else:
+                    cfg.pop("form", None)
+            if zooms is not None:
+                if zooms:
+                    cfg["zooms"] = True
+                else:
+                    cfg.pop("zooms", None)
             updates["params_json"] = _json.dumps(cfg, ensure_ascii=False)
         if not updates:
             return False
@@ -406,6 +462,215 @@ def update_filter(
         res = conn.execute(
             f"UPDATE ai_filters SET {cols} WHERE filter_key = ?",
             list(updates.values()) + [filter_key],
+        )
+    return res.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Filter create / delete (admin)
+# ---------------------------------------------------------------------------
+def create_filter(
+    filter_key: str,
+    display_name: str,
+    *,
+    provider: str = "ailabtools",
+    provider_path: str = "",
+    result_kind: str = "image_url",
+    image_field: str = "image",
+    form: Optional[Dict[str, Any]] = None,
+    ailab_kind: str = "",
+    zooms: bool = False,
+    sale_price_agorot: int = 0,
+    cost_ceiling_agorot: int = 0,
+    ui_category: str = "",
+    sort_order: Optional[int] = None,
+) -> Optional[str]:
+    """Create a new AI filter row. Returns the filter_key, or None if the key
+    is blank / already taken. The catalog is served live, so a new row appears
+    in the client's AI tab with no client update."""
+    filter_key = (filter_key or "").strip()
+    display_name = (display_name or "").strip()
+    if not filter_key or not display_name:
+        return None
+    cfg: Dict[str, Any] = {}
+    if (ailab_kind or "").strip():
+        cfg["ailab_kind"] = ailab_kind.strip()
+    if (image_field or "").strip():
+        cfg["image_field"] = image_field.strip()
+    if form:
+        cfg["form"] = form
+    if (ui_category or "").strip():
+        cfg["ui_category"] = ui_category.strip()
+    if zooms:
+        cfg["zooms"] = True
+    now = _now_iso()
+    with get_connection() as conn:
+        if conn.execute(
+            "SELECT 1 FROM ai_filters WHERE filter_key = ?", (filter_key,)
+        ).fetchone() is not None:
+            return None
+        if sort_order is None:
+            row = conn.execute(
+                "SELECT COALESCE(MAX(sort_order), 0) AS m FROM ai_filters"
+            ).fetchone()
+            sort_order = int(row["m"] or 0) + 10
+        conn.execute(
+            "INSERT INTO ai_filters (filter_key, display_name, provider,"
+            " provider_path, result_kind, provider_credits, sale_price_agorot,"
+            " cost_ceiling_agorot, params_json, is_enabled, sort_order,"
+            " created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, 1, ?, ?, ?)",
+            (
+                filter_key, display_name, (provider or "ailabtools").strip(),
+                (provider_path or "").strip(),
+                (result_kind or "image_url").strip(),
+                max(0, int(sale_price_agorot)), max(0, int(cost_ceiling_agorot)),
+                _json.dumps(cfg, ensure_ascii=False), int(sort_order), now, now,
+            ),
+        )
+    return filter_key
+
+
+def delete_filter(filter_key: str) -> bool:
+    """Delete an AI filter and its stored preview image."""
+    filter_key = (filter_key or "").strip()
+    if not filter_key:
+        return False
+    with get_connection() as conn:
+        conn.execute(
+            "DELETE FROM ai_filter_images WHERE filter_key = ?", (filter_key,)
+        )
+        res = conn.execute(
+            "DELETE FROM ai_filters WHERE filter_key = ?", (filter_key,)
+        )
+    return res.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# AI PROVIDERS — admin CRUD. The api_key is a secret: callers get it MASKED
+# (last 4 only); it is never returned in full, never sent to the client, and
+# never logged. Empty api_key means "fall back to the server env var".
+# ---------------------------------------------------------------------------
+def _mask_key(raw: str) -> str:
+    raw = raw or ""
+    if not raw:
+        return ""
+    if len(raw) <= 4:
+        return "····"
+    return "····" + raw[-4:]
+
+
+def list_providers() -> List[Dict[str, Any]]:
+    """All providers, with the api_key MASKED (never the real value)."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT provider_key, display_name, base_url, auth_header,"
+            " api_key, adapter, is_enabled FROM ai_providers"
+            " ORDER BY display_name"
+        ).fetchall()
+    out: List[Dict[str, Any]] = []
+    for r in rows:
+        d = _row_to_dict(r)
+        raw = str(d.pop("api_key", "") or "")
+        d["api_key_masked"] = _mask_key(raw)
+        d["has_key"] = bool(raw)
+        d["is_enabled"] = int(d.get("is_enabled") or 0)
+        out.append(d)
+    return out
+
+
+def create_provider(
+    provider_key: str,
+    display_name: str,
+    *,
+    base_url: str = "",
+    auth_header: str = "ailabapi-api-key",
+    api_key: str = "",
+    adapter: str = "ailabtools",
+    is_enabled: bool = True,
+) -> Optional[str]:
+    """Create a provider. Returns its key, or None if blank / already taken."""
+    provider_key = (provider_key or "").strip()
+    display_name = (display_name or "").strip()
+    if not provider_key or not display_name:
+        return None
+    now = _now_iso()
+    with get_connection() as conn:
+        if conn.execute(
+            "SELECT 1 FROM ai_providers WHERE provider_key = ?", (provider_key,)
+        ).fetchone() is not None:
+            return None
+        conn.execute(
+            "INSERT INTO ai_providers (provider_key, display_name, base_url,"
+            " auth_header, api_key, adapter, is_enabled, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                provider_key, display_name, (base_url or "").strip(),
+                (auth_header or "ailabapi-api-key").strip(),
+                (api_key or "").strip(), (adapter or "ailabtools").strip(),
+                1 if is_enabled else 0, now, now,
+            ),
+        )
+    return provider_key
+
+
+def update_provider(
+    provider_key: str,
+    *,
+    display_name: Optional[str] = None,
+    base_url: Optional[str] = None,
+    auth_header: Optional[str] = None,
+    api_key: Optional[str] = None,
+    adapter: Optional[str] = None,
+    is_enabled: Optional[bool] = None,
+) -> bool:
+    """Update a provider. ``api_key`` is only changed when a non-None value is
+    passed; pass an empty string to CLEAR it (→ env fallback), or None (the
+    default) to LEAVE THE STORED KEY UNTOUCHED. This lets the edit form omit
+    the key field to keep the existing secret."""
+    provider_key = (provider_key or "").strip()
+    if not provider_key:
+        return False
+    updates: Dict[str, Any] = {}
+    if display_name is not None and display_name.strip():
+        updates["display_name"] = display_name.strip()
+    if base_url is not None:
+        updates["base_url"] = base_url.strip()
+    if auth_header is not None and auth_header.strip():
+        updates["auth_header"] = auth_header.strip()
+    if adapter is not None and adapter.strip():
+        updates["adapter"] = adapter.strip()
+    if is_enabled is not None:
+        updates["is_enabled"] = 1 if is_enabled else 0
+    if api_key is not None:
+        updates["api_key"] = api_key.strip()
+    if not updates:
+        return False
+    updates["updated_at"] = _now_iso()
+    cols = ", ".join(f"{k} = ?" for k in updates)
+    with get_connection() as conn:
+        res = conn.execute(
+            f"UPDATE ai_providers SET {cols} WHERE provider_key = ?",
+            list(updates.values()) + [provider_key],
+        )
+    return res.rowcount > 0
+
+
+def delete_provider(provider_key: str) -> bool:
+    """Delete a provider, unless any filter still points at it (returns False
+    then, so the admin reassigns those filters first)."""
+    provider_key = (provider_key or "").strip()
+    if not provider_key:
+        return False
+    with get_connection() as conn:
+        used = conn.execute(
+            "SELECT COUNT(*) AS n FROM ai_filters WHERE provider = ?",
+            (provider_key,),
+        ).fetchone()
+        if int(used["n"] or 0) > 0:
+            return False
+        res = conn.execute(
+            "DELETE FROM ai_providers WHERE provider_key = ?", (provider_key,)
         )
     return res.rowcount > 0
 
