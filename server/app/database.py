@@ -335,6 +335,29 @@ def _ensure_ailab_catalog(conn: sqlite3.Connection) -> None:
         )
 
 
+def _ensure_ai_categories(conn: sqlite3.Connection) -> None:
+    """Seed the two default display categories once (idempotent).
+
+    Their keys are exactly ``cartoon`` / ``emotion`` so any filter whose
+    ``ui_category`` is unset resolves to them via its ailab_kind. INSERT OR
+    IGNORE keeps the admin's later renames / re-ordering intact.
+    """
+    now = _now_iso()
+    defaults = [
+        ("cartoon", "פילטרים מצויירים", 10),
+        ("emotion", "חיוכים ורגשות", 20),
+    ]
+    for key, name, order in defaults:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO ai_categories
+            (category_key, display_name, sort_order, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (key, name, order, now, now),
+        )
+
+
 def _seed_preview_images(conn: sqlite3.Connection) -> None:
     """Load bundled preview images (server/app/seed_previews/<key>.png) into
     the DB on boot, so the filter catalogue ships WITH its artwork.
@@ -873,6 +896,19 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_ai_filters_enabled
                 ON ai_filters(is_enabled);
 
+            -- Admin-managed DISPLAY categories ("מגירות") shown in the app's
+            -- AI tab. A filter is assigned to a category by storing this
+            -- category_key in its params_json["ui_category"]; renaming a
+            -- category changes only display_name here, so every assigned
+            -- filter follows without edits. Separate from provider routing.
+            CREATE TABLE IF NOT EXISTS ai_categories (
+                category_key  TEXT PRIMARY KEY,
+                display_name  TEXT NOT NULL,
+                sort_order    INTEGER NOT NULL DEFAULT 0,
+                created_at    TEXT NOT NULL,
+                updated_at    TEXT NOT NULL
+            );
+
             -- Preview images uploaded from the admin dashboard. Stored IN THE
             -- DB (not on disk) so they survive Railway redeploys, which wipe
             -- the container filesystem but keep the mounted DB volume. Served
@@ -921,10 +957,24 @@ def init_db() -> None:
             """
         )
 
+        # Additive migration: frozen credit balance.  When a license is
+        # disabled / expired the wallet's spendable balance is swept to 0
+        # and parked here (never spendable, never lost).  An admin can
+        # later restore it back to balance_agorot via the license page.
+        # Runs AFTER the wallets table is created above.
+        _add_column_if_missing(
+            conn, "wallets", "frozen_agorot", "INTEGER NOT NULL DEFAULT 0",
+        )
+
         # Install / refresh the real AILabTools catalogue every boot. This is
         # idempotent: new filters are added, unused placeholders removed, and
         # existing rows (with their admin-set prices/enabled) are preserved.
         _ensure_ailab_catalog(conn)
+
+        # Seed the two default display categories (keys match ailab_kind so
+        # filters with no explicit ui_category fall into them automatically).
+        # INSERT OR IGNORE → admin renames/order are never overwritten.
+        _ensure_ai_categories(conn)
 
         # Seed bundled preview images for filters that don't have one yet
         # (admin uploads always win). Runs after the catalogue so the filter

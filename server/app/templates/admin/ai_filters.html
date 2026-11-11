@@ -73,9 +73,112 @@
   <div class="alert alert-success"><i class="bi bi-check-circle-fill ms-1"></i> {{ success }}</div>
 {% endif %}
 
+<div class="card mb-3" style="border:1px solid #e4e9f2; border-radius:14px;">
+  <div class="card-body py-3">
+    <form method="post" action="/admin/ai-filters/cost-params"
+          class="row g-2 align-items-end">
+      <div class="col-auto">
+        <label class="form-label mb-0" style="font-size:12px;">עלות קרדיט ($)
+          <i class="bi bi-question-circle" title="כמה AILabTools גובה ממך לקרדיט. תלוי בחבילת הקרדיטים שקנית: מ-$0.006 (חבילה קטנה) עד $0.0025 (חבילה גדולה)."></i>
+        </label>
+        <input type="number" name="usd_per_credit" step="0.0001" min="0" dir="ltr"
+               value="{{ '%.4f'|format(usd_per_credit) }}"
+               class="form-control form-control-sm" style="width:130px;">
+      </div>
+      <div class="col-auto">
+        <label class="form-label mb-0" style="font-size:12px;">שער דולר (₪ ל-$1)</label>
+        <input type="number" name="usd_ils_rate" step="0.01" min="0" dir="ltr"
+               value="{{ '%.2f'|format(usd_ils_rate) }}"
+               class="form-control form-control-sm" style="width:130px;">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="bi bi-save"></i> שמור וחשב מחדש
+        </button>
+      </div>
+      <div class="col-12" style="font-size:11.5px; color:#8a96ab;">
+        העלות והרווח לכל פילטר מחושבים מהערכים האלה. קרדיטים בפועל: קרטון 20 · הבעות 12. מחייבים רק על הצלחה.
+      </div>
+    </form>
+  </div>
+</div>
+
 {% set palette = ['#6366f1,#8b5cf6','#ec4899,#f43f5e','#06b6d4,#3b82f6',
                   '#f59e0b,#ef4444','#10b981,#059669','#8b5cf6,#d946ef',
                   '#0ea5e9,#6366f1','#f43f5e,#f59e0b'] %}
+
+{# ── Category manager ("מגירות") — add / rename / order / delete ───────── #}
+<div class="card mb-3" style="border:1px solid #e3e8ef;border-radius:12px;">
+  <div class="card-body">
+    <h6 class="mb-2"><i class="bi bi-folder2-open"></i> קטגוריות (מגירות בתוכנה)</h6>
+    <p class="text-muted mb-3" style="font-size:12px;">
+      כל פילטר משויך לקטגוריה מתוך הרשימה למטה (בטופס "הגדרות ומחיר" של הפילטר).
+      הקטגוריות מופיעות בתוכנה כמגירות נפתחות, לפי סדר העדיפות שתגדיר כאן.
+    </p>
+
+    <form method="post" action="/admin/ai-categories/add" class="row g-2 mb-3">
+      <div class="col-sm-8">
+        <input type="text" name="display_name" required
+               placeholder="שם קטגוריה חדשה (למשל: פורטרטים אמנותיים)"
+               class="form-control form-control-sm">
+      </div>
+      <div class="col-sm-4">
+        <button type="submit" class="btn btn-sm btn-success w-100">
+          <i class="bi bi-plus-lg"></i> הוסף קטגוריה
+        </button>
+      </div>
+    </form>
+
+    {% if categories %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0" style="font-size:12.5px;">
+        <thead><tr>
+          <th style="width:48px;">סדר</th><th>שם הקטגוריה</th>
+          <th style="width:230px;">פעולות</th>
+        </tr></thead>
+        <tbody>
+        {% for c in categories %}
+          <tr>
+            <td>
+              <form method="post"
+                    action="/admin/ai-categories/{{ c.category_key }}/order"
+                    class="d-flex gap-1">
+                <input type="number" name="sort_order" value="{{ c.sort_order }}"
+                       dir="ltr" style="width:64px;"
+                       class="form-control form-control-sm">
+                <button type="submit" class="btn btn-sm btn-outline-secondary"
+                        title="עדכן סדר"><i class="bi bi-check2"></i></button>
+              </form>
+            </td>
+            <td>
+              <form method="post"
+                    action="/admin/ai-categories/{{ c.category_key }}/rename"
+                    class="d-flex gap-1">
+                <input type="text" name="display_name" value="{{ c.display_name }}"
+                       class="form-control form-control-sm">
+                <button type="submit" class="btn btn-sm btn-outline-primary"
+                        title="שמור שם"><i class="bi bi-save"></i></button>
+              </form>
+            </td>
+            <td>
+              <form method="post"
+                    action="/admin/ai-categories/{{ c.category_key }}/delete"
+                    onsubmit="return confirm('למחוק את הקטגוריה? פילטרים ששויכו אליה יחזרו למגירת ברירת המחדל.');">
+                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                  <i class="bi bi-trash"></i> מחק
+                </button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0" style="font-size:12px;">אין קטגוריות עדיין.</p>
+    {% endif %}
+  </div>
+</div>
 
 <div class="ai-grid">
 {% for f in filters %}
@@ -100,6 +203,14 @@
       <div class="ai-price">{{ '%.2f'|format(f.sale_price_ils) }} ₪</div>
       <div class="ai-meta">
         {{ f.ailab_kind_label }}{% if f.ailab_code %} · <code>{{ f.ailab_code }}</code>{% endif %}
+      </div>
+      <div style="font-size:11.5px; line-height:1.5; border-top:1px dashed #e4e9f2; padding-top:5px; margin-top:2px;">
+        <div style="color:#6b7890;">עלות: <b dir="ltr">${{ '%.3f'|format(f.cost_usd) }}</b>
+          · <b>{{ '%.2f'|format(f.cost_ils) }} ₪</b>
+          <span style="color:#a8b3c7;">({{ f.real_credits }} קר׳)</span></div>
+        <div style="color:{% if f.profit_ils >= 0 %}#0a8a3f{% else %}#d12f2f{% endif %}; font-weight:800;">
+          רווח: {{ '%.2f'|format(f.profit_ils) }} ₪
+        </div>
       </div>
 
       <details class="ai-edit">
@@ -135,9 +246,24 @@
                    value="{{ '%.2f'|format(f.cost_ceiling_ils) }}"
                    class="form-control form-control-sm">
           </div>
+          <div class="col-12">
+            <label class="form-label mb-0" style="font-size:11px;">
+              קטגוריה (מגירה בתוכנה)</label>
+            <select name="ui_category" class="form-select form-select-sm">
+              <option value="" {% if not f.ui_category %}selected{% endif %}>
+                ברירת מחדל (לפי סוג)</option>
+              {% for c in categories %}
+              <option value="{{ c.category_key }}"
+                {% if f.ui_category == c.category_key %}selected{% endif %}>
+                {{ c.display_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
           <div class="col-12 ai-meta">
-            קרדיטים ספק: {{ f.provider_credits }} · עלות משוערת מרבית
-            ~{{ '%.2f'|format(f.provider_credits * 0.006 * 3.8 * 1.5) }} ₪
+            קרדיטים בפועל: {{ f.real_credits }} · עלות ספק:
+            <span dir="ltr">${{ '%.3f'|format(f.cost_usd) }}</span> =
+            {{ '%.2f'|format(f.cost_ils) }} ₪ · רווח
+            {{ '%.2f'|format(f.profit_ils) }} ₪
           </div>
           <div class="col-12">
             <button type="submit" class="btn btn-sm btn-primary w-100">
@@ -155,7 +281,8 @@
 
 <p class="text-muted mt-3" style="font-size:12.5px;">
   <i class="bi bi-info-circle"></i>
-  "עלות משוערת מרבית" = קרדיטים × $0.006 × 3.8₪ × מרווח 1.5. אם היא חורגת מתקרת העלות — הבקשה נחסמת לפני קריאה לספק.
+  עלות ספק = קרדיטים בפועל × עלות-קרדיט ($) × שער-דולר. רווח = מחיר מכירה − עלות ספק. מחייבים רק על בקשה שהצליחה.
+  "תקרת עלות" היא גבול ביטחון נפרד — אם עלות תחרוג ממנה, הבקשה נחסמת לפני קריאה לספק.
   התמונה שתעלה מופיעה כאן בניהול וגם כריבוע האפקט בתוכנה.
 </p>
 {% endblock %}

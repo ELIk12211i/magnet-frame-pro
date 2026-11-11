@@ -55,6 +55,11 @@ ENTRY_TOPUP = "topup"
 ENTRY_CHARGE = "charge"
 ENTRY_REFUND = "refund"
 ENTRY_ADJUST = "adjust"
+# Freeze sweeps the spendable balance into the wallet's ``frozen_agorot``
+# holding bucket (license went inactive); restore moves it back. Neither
+# counts as consumption — they are excluded from the "used" total.
+ENTRY_FREEZE = "freeze"
+ENTRY_RESTORE = "restore"
 
 
 def _now_iso() -> str:
@@ -137,6 +142,14 @@ def _get_balance(conn: sqlite3.Connection, customer_id: int) -> int:
         (customer_id,),
     ).fetchone()
     return int(row["balance_agorot"]) if row else 0
+
+
+def _get_frozen(conn: sqlite3.Connection, customer_id: int) -> int:
+    row = conn.execute(
+        "SELECT frozen_agorot FROM wallets WHERE customer_id = ?",
+        (customer_id,),
+    ).fetchone()
+    return int(row["frozen_agorot"]) if row and row["frozen_agorot"] is not None else 0
 
 
 def _find_ledger_by_idem(
@@ -224,7 +237,13 @@ def get_balance_for_license(serial: str) -> Dict[str, Any]:
         cid = _ensure_customer_for_license(conn, serial)
         wid = _ensure_wallet(conn, cid)
         bal = _get_balance(conn, cid)
-    return {"customer_id": cid, "wallet_id": wid, "balance_agorot": bal}
+        frozen = _get_frozen(conn, cid)
+    return {
+        "customer_id": cid,
+        "wallet_id": wid,
+        "balance_agorot": bal,
+        "frozen_agorot": frozen,
+    }
 
 
 def get_balance_for_customer(customer_id: int) -> int:
@@ -251,7 +270,8 @@ def credit_summaries_for_serials(serials: List[str]) -> Dict[str, Dict[str, int]
     One query, safe for a page of licenses.
     """
     out: Dict[str, Dict[str, int]] = {
-        s: {"balance_agorot": 0, "used_agorot": 0} for s in serials
+        s: {"balance_agorot": 0, "used_agorot": 0, "frozen_agorot": 0}
+        for s in serials
     }
     if not serials:
         return out
@@ -261,6 +281,7 @@ def credit_summaries_for_serials(serials: List[str]) -> Dict[str, Dict[str, int]
             f"""
             SELECT l.serial_key AS serial,
                    COALESCE(w.balance_agorot, 0) AS bal,
+                   COALESCE(w.frozen_agorot, 0) AS frozen,
                    COALESCE((
                        SELECT -SUM(cl.amount_agorot)
                        FROM credit_ledger cl
@@ -277,6 +298,7 @@ def credit_summaries_for_serials(serials: List[str]) -> Dict[str, Dict[str, int]
         out[r["serial"]] = {
             "balance_agorot": int(r["bal"] or 0),
             "used_agorot": int(r["used"] or 0),
+            "frozen_agorot": int(r["frozen"] or 0),
         }
     return out
 
@@ -284,7 +306,7 @@ def credit_summaries_for_serials(serials: List[str]) -> Dict[str, Dict[str, int]
 def credit_summary_for_serial(serial: str) -> Dict[str, int]:
     """Single-license variant of :func:`credit_summaries_for_serials`."""
     return credit_summaries_for_serials([serial]).get(
-        serial, {"balance_agorot": 0, "used_agorot": 0})
+        serial, {"balance_agorot": 0, "used_agorot": 0, "frozen_agorot": 0})
 
 
 # ---------------------------------------------------------------------------
@@ -383,3 +405,94 @@ def refund(
             ai_request_id=ai_request_id, idempotency_key=idempotency_key,
         )
     return res
+
+
+# ---------------------------------------------------------------------------
+# Freeze / restore (license went inactive → park the balance; re-enabled →
+# an admin can move it back). Both are addressed by license serial. The
+# parked amount lives in ``wallets.frozen_agorot`` and is never spendable
+# until restored. Neither movement counts as consumption.
+# ---------------------------------------------------------------------------
+def freeze_by_license(
+    serial: str,
+    *,
+    actor: str = "",
+    reason: str = "",
+) -> Dict[str, Any]:
+    """Sweep the spendable balance into the frozen bucket.
+
+    Idempotent in effect: a wallet whose balance is already 0 is a no-op
+    (any previously-frozen amount is preserved and accumulated). Returns
+    ``{"customer_id", "balance_agorot", "frozen_agorot", "frozen_now"}``
+    where ``frozen_now`` is the amount swept by THIS call.
+    """
+    with immediate_transaction() as conn:
+        cid = _ensure_customer_for_license(conn, serial)
+        wid = _ensure_wallet(conn, cid)
+        bal = _get_balance(conn, cid)
+        swept = 0
+        if bal > 0:
+            # Debit the spendable balance down to zero…
+            _apply_entry(
+                conn, cid, ENTRY_FREEZE, -bal,
+                reason=reason or "הקפאת יתרה — רישיון לא פעיל",
+                actor=actor or "system",
+            )
+            # …and park it in the frozen bucket (accumulating).
+            now = _now_iso()
+            conn.execute(
+                "UPDATE wallets SET frozen_agorot = "
+                "COALESCE(frozen_agorot, 0) + ?, updated_at = ? WHERE id = ?",
+                (bal, now, wid),
+            )
+            swept = bal
+        new_bal = _get_balance(conn, cid)
+        new_frozen = _get_frozen(conn, cid)
+    return {
+        "customer_id": cid,
+        "balance_agorot": new_bal,
+        "frozen_agorot": new_frozen,
+        "frozen_now": swept,
+    }
+
+
+def restore_by_license(
+    serial: str,
+    *,
+    actor: str = "",
+    reason: str = "",
+) -> Dict[str, Any]:
+    """Move the frozen bucket back into the spendable balance.
+
+    No-op when nothing is frozen. Returns ``{"customer_id",
+    "balance_agorot", "frozen_agorot", "restored"}`` where ``restored`` is
+    the amount moved by THIS call.
+    """
+    with immediate_transaction() as conn:
+        cid = _ensure_customer_for_license(conn, serial)
+        wid = _ensure_wallet(conn, cid)
+        frozen = _get_frozen(conn, cid)
+        restored = 0
+        if frozen > 0:
+            # Credit the parked amount back onto the spendable balance…
+            _apply_entry(
+                conn, cid, ENTRY_RESTORE, frozen,
+                reason=reason or "החזרת יתרה שהוקפאה",
+                actor=actor or "admin",
+            )
+            # …and empty the frozen bucket.
+            now = _now_iso()
+            conn.execute(
+                "UPDATE wallets SET frozen_agorot = 0, updated_at = ? "
+                "WHERE id = ?",
+                (now, wid),
+            )
+            restored = frozen
+        new_bal = _get_balance(conn, cid)
+        new_frozen = _get_frozen(conn, cid)
+    return {
+        "customer_id": cid,
+        "balance_agorot": new_bal,
+        "frozen_agorot": new_frozen,
+        "restored": restored,
+    }

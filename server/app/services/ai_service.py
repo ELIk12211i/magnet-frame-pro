@@ -45,6 +45,16 @@ from . import license_service as _lic
 
 
 # ---------------------------------------------------------------------------
+# Default display-group (drawer) labels per provider-kind, used by the public
+# catalogue when the admin has not set an explicit ui_category on a filter.
+# ---------------------------------------------------------------------------
+_DEFAULT_GROUP_LABELS = {
+    "cartoon": "פילטרים מצויירים",
+    "emotion": "חיוכים ורגשות",
+}
+
+
+# ---------------------------------------------------------------------------
 # Request status machine (ai_requests.status)
 # ---------------------------------------------------------------------------
 ST_PENDING = "pending"      # row created, not yet charged
@@ -327,7 +337,16 @@ def list_enabled_filters() -> list[Dict[str, Any]]:
             "params_json FROM ai_filters WHERE is_enabled = 1 "
             "ORDER BY sort_order, display_name"
         ).fetchall()
-    out = []
+        # Admin-managed display categories: {key: (display_name, sort_order)}.
+        cat_rows = conn.execute(
+            "SELECT category_key, display_name, sort_order FROM ai_categories"
+        ).fetchall()
+    cat_map = {
+        str(c["category_key"]): (str(c["display_name"] or ""),
+                                 int(c["sort_order"] or 0))
+        for c in cat_rows
+    }
+    tmp = []
     for r in rows:
         cfg = {}
         try:
@@ -336,14 +355,35 @@ def list_enabled_filters() -> list[Dict[str, Any]]:
                 cfg = {}
         except Exception:
             cfg = {}
-        out.append({
-            "filter_key": r["filter_key"],
-            "display_name": r["display_name"],
-            "sale_price_agorot": int(r["sale_price_agorot"]),
-            "preview_url": str(cfg.get("preview_url") or ""),
-            "category": str(cfg.get("ailab_kind") or ""),
-        })
-    return out
+        kind = str(cfg.get("ailab_kind") or "")
+        # Resolve the DISPLAY drawer. The filter stores a category KEY in
+        # ui_category; unset → fall back to its provider-kind (whose key is
+        # seeded into ai_categories). The LABEL + drawer ORDER come from the
+        # ai_categories row, so an admin rename/reorder follows live. Kept
+        # SEPARATE from ``category`` (= ailab_kind), which the client uses for
+        # its anti-crop zoom heuristic, so renaming a drawer never alters
+        # routing. A deleted/unknown key falls back to a friendly default.
+        gkey = str(cfg.get("ui_category") or "").strip() or kind
+        if gkey in cat_map:
+            group_label, group_order = cat_map[gkey]
+        else:
+            group_label = _DEFAULT_GROUP_LABELS.get(gkey) \
+                or _DEFAULT_GROUP_LABELS.get(kind) or gkey or "פילטרים"
+            group_order = 9000
+        tmp.append((
+            group_order, int(r["sort_order"] or 0), {
+                "filter_key": r["filter_key"],
+                "display_name": r["display_name"],
+                "sale_price_agorot": int(r["sale_price_agorot"]),
+                "preview_url": str(cfg.get("preview_url") or ""),
+                "category": kind,
+                "group": group_label,
+            },
+        ))
+    # Order by category order first, then the filter's own sort_order, so the
+    # client's first-appearance grouping yields drawers in the admin's order.
+    tmp.sort(key=lambda t: (t[0], t[1]))
+    return [item for _go, _fo, item in tmp]
 
 
 # ---------------------------------------------------------------------------

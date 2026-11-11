@@ -1023,6 +1023,24 @@ def license_detail(request: Request, serial_key: str):
     license_dict["last_seen_at"]          = last_seen_public
     license_dict["unique_machines_count"] = len(unique_machines)
 
+    # When the license is inactive (disabled / expired), its AI credit must
+    # be unavailable: sweep any spendable balance into the frozen bucket so
+    # the admin sees 0 (with the parked amount preserved + a "restore"
+    # button). Idempotent — a wallet already at 0 is a no-op. Runs on view
+    # so it catches expiry no matter where it was first detected. Disable
+    # also freezes directly in license_service.disable_license.
+    _lic_status_now = (license_dict.get("status") or "").strip().lower()
+    if _lic_status_now in ("disabled", "expired"):
+        try:
+            _credits.freeze_by_license(
+                serial_key, actor="system",
+                reason=("הקפאה אוטומטית — רישיון "
+                        + ("הושבת" if _lic_status_now == "disabled"
+                           else "פג תוקף")),
+            )
+        except Exception:
+            pass
+
     # Credit wallet + AI-request history for this license (read-only — never
     # provisions a wallet just by viewing the page).
     try:
@@ -1128,6 +1146,65 @@ def license_credits_adjust(
         status_code=303)
 
 
+@router.post("/licenses/{serial_key}/credits/restore", include_in_schema=False)
+def license_credits_restore(request: Request, serial_key: str):
+    """Move a license's frozen AI credits back onto its spendable balance."""
+    from urllib.parse import quote as _q
+    user = _require_user_or_redirect(request)
+    try:
+        res = _credits.restore_by_license(serial_key, actor=user)
+    except _credits.CreditsError as err:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error={_q(str(err))}",
+            status_code=303)
+    restored = int(res.get("restored", 0) or 0)
+    if restored <= 0:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error="
+            f"{_q('אין יתרה מוקפאת להחזרה.')}",
+            status_code=303)
+    try:
+        _evt.log_event(serial_key, None, "ai_credits_restore",
+                       message=f"restored {restored/100:.2f} ILS by {user}",
+                       ip=_client_ip(request), actor=user)
+    except Exception:
+        pass
+    return RedirectResponse(
+        f"/admin/licenses/{serial_key}?credit_success="
+        f"{_q('הוחזרו ' + format(restored / 100, '.2f') + ' ₪ ליתרה.')}",
+        status_code=303)
+
+
+@router.post("/licenses/{serial_key}/credits/freeze", include_in_schema=False)
+def license_credits_freeze(request: Request, serial_key: str):
+    """Manually freeze a license's spendable AI credits (sweep to 0)."""
+    from urllib.parse import quote as _q
+    user = _require_user_or_redirect(request)
+    try:
+        res = _credits.freeze_by_license(
+            serial_key, actor=user, reason="הקפאה ידנית")
+    except _credits.CreditsError as err:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error={_q(str(err))}",
+            status_code=303)
+    swept = int(res.get("frozen_now", 0) or 0)
+    if swept <= 0:
+        return RedirectResponse(
+            f"/admin/licenses/{serial_key}?credit_error="
+            f"{_q('אין יתרה פעילה להקפאה.')}",
+            status_code=303)
+    try:
+        _evt.log_event(serial_key, None, "ai_credits_freeze",
+                       message=f"froze {swept/100:.2f} ILS by {user}",
+                       ip=_client_ip(request), actor=user)
+    except Exception:
+        pass
+    return RedirectResponse(
+        f"/admin/licenses/{serial_key}?credit_success="
+        f"{_q('הוקפאו ' + format(swept / 100, '.2f') + ' ₪.')}",
+        status_code=303)
+
+
 # ---------------------------------------------------------------------------
 # AI filter catalogue management
 # ---------------------------------------------------------------------------
@@ -1136,15 +1213,40 @@ def license_credits_adjust(
 def ai_filters_page(request: Request):
     user = _require_user_or_redirect(request)
     qp = request.query_params
+    cost_params = _aiadmin.get_cost_params()
+    filters = _aiadmin.add_cost_fields(_aiadmin.list_filters(), cost_params)
+    categories = _aiadmin.list_categories()
     ctx = {
         "page_title": "פילטרי AI",
         "active_nav": "ai_filters",
         "user": user,
-        "filters": _aiadmin.list_filters(),
+        "filters": filters,
+        "categories": categories,
+        "usd_per_credit": cost_params["usd_per_credit"],
+        "usd_ils_rate": cost_params["usd_ils_rate"],
         "error":   qp.get("error")   or None,
         "success": qp.get("success") or None,
     }
     return _render(request, "admin/ai_filters.html", ctx)
+
+
+@router.post("/ai-filters/cost-params", include_in_schema=False)
+def ai_filters_cost_params(
+    request: Request,
+    usd_per_credit: str = Form(""),
+    usd_ils_rate: str = Form(""),
+):
+    """Save the admin's credit price ($) and $/₪ exchange rate."""
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        _aiadmin.set_cost_params(usd_per_credit, usd_ils_rate)
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('עודכנו שער הדולר ועלות הקרדיט.')}",
+        status_code=303)
 
 
 @router.post("/ai-filters/{filter_key}/edit", include_in_schema=False)
@@ -1156,6 +1258,7 @@ def ai_filters_edit(
     cost_ceiling_ils: str = Form(""),
     sort_order: str = Form(""),
     preview_url: str = Form(""),
+    ui_category: str = Form(""),
 ):
     from urllib.parse import quote as _q
     _require_user_or_redirect(request)
@@ -1183,12 +1286,72 @@ def ai_filters_edit(
             cost_ceiling_agorot=ceiling,
             sort_order=so,
             preview_url=preview_url,
+            ui_category=ui_category,
         )
     except Exception as exc:
         return RedirectResponse(
             f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
     return RedirectResponse(
         f"/admin/ai-filters?success={_q('הפילטר עודכן.')}", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Display categories ("מגירות") — admin CRUD
+# ---------------------------------------------------------------------------
+@router.post("/ai-categories/add", include_in_schema=False)
+def ai_categories_add(request: Request, display_name: str = Form("")):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        key = _aiadmin.create_category(display_name)
+        msg = "הקטגוריה נוספה." if key else "יש להזין שם קטגוריה."
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q(msg)}", status_code=303)
+
+
+@router.post("/ai-categories/{category_key}/rename", include_in_schema=False)
+def ai_categories_rename(request: Request, category_key: str,
+                         display_name: str = Form("")):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        ok = _aiadmin.rename_category(category_key, display_name)
+        msg = "שם הקטגוריה עודכן." if ok else "לא ניתן לעדכן את הקטגוריה."
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q(msg)}", status_code=303)
+
+
+@router.post("/ai-categories/{category_key}/order", include_in_schema=False)
+def ai_categories_order(request: Request, category_key: str,
+                        sort_order: str = Form("")):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        _aiadmin.set_category_order(category_key, sort_order)
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('הסדר עודכן.')}", status_code=303)
+
+
+@router.post("/ai-categories/{category_key}/delete", include_in_schema=False)
+def ai_categories_delete(request: Request, category_key: str):
+    from urllib.parse import quote as _q
+    _require_user_or_redirect(request)
+    try:
+        _aiadmin.delete_category(category_key)
+    except Exception as exc:
+        return RedirectResponse(
+            f"/admin/ai-filters?error={_q(str(exc))}", status_code=303)
+    return RedirectResponse(
+        f"/admin/ai-filters?success={_q('הקטגוריה נמחקה.')}", status_code=303)
 
 
 @router.post("/ai-filters/bulk-toggle", include_in_schema=False)

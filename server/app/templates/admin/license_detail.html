@@ -333,6 +333,13 @@
           <strong style="font-size:20px;color:#0E1B3A;">
             {{ '%.2f'|format(((credits.used_agorot if credits else 0) or 0) / 100) }} ₪
           </strong>
+          {% if credits and (credits.frozen_agorot or 0) > 0 %}
+            <span class="lic-chip" style="background:#E8EDFB;color:#3B4CC0;border:1px solid #C7D2F2;margin-right:18px;"
+                  title="יתרה שהוקפאה כשהרישיון הושבת — ניתן להחזירה">
+              <i class="bi bi-snow2"></i>
+              מוקפא: {{ '%.2f'|format((credits.frozen_agorot or 0) / 100) }} ₪
+            </span>
+          {% endif %}
           {% if credits and credits.counts %}
             <span class="lic-muted" style="margin-right:auto;font-size:12.5px;">
               בקשות: {{ credits.counts.sent }} ·
@@ -379,6 +386,51 @@
           </button>
         </form>
 
+        {# Freeze / restore the frozen bucket (admin only).
+           Freeze sweeps the spendable balance → 0 (AI becomes unavailable);
+           restore moves the frozen amount back onto the balance. #}
+        {% set _lic_inactive = (license.status or '')|lower in ('disabled', 'expired') %}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+                    margin:4px 0 2px;padding-top:10px;border-top:1px dashed #E2E8F4;">
+          <span class="lic-grid" style="color:#7a8aa7;font-size:12px;">
+            הקפאת/החזרת קרדיט:
+          </span>
+          {% if credits and (credits.frozen_agorot or 0) > 0 %}
+            {% if _lic_inactive %}
+              {# Restoring onto an inactive license would just be re-frozen —
+                 guide the admin to re-enable the license first. #}
+              <span class="lic-muted" style="font-size:12px;">
+                <i class="bi bi-info-circle"></i>
+                יש {{ '%.2f'|format((credits.frozen_agorot or 0) / 100) }} ₪ מוקפאים.
+                הפעל את הרישיון כדי להחזיר אותם ליתרה.
+              </span>
+            {% else %}
+              <form method="post"
+                    action="/admin/licenses/{{ license.serial_key }}/credits/restore"
+                    onsubmit="return confirm('להחזיר {{ '%.2f'|format((credits.frozen_agorot or 0) / 100) }} ₪ מהיתרה המוקפאת אל היתרה הפעילה?');"
+                    style="display:inline;">
+                <button type="submit" class="lic-btn lic-btn-ok">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                  <span>החזר יתרה מוקפאת ({{ '%.2f'|format((credits.frozen_agorot or 0) / 100) }} ₪)</span>
+                </button>
+              </form>
+            {% endif %}
+          {% endif %}
+          {% if credits and (credits.balance_agorot or 0) > 0 and not _lic_inactive %}
+            <form method="post"
+                  action="/admin/licenses/{{ license.serial_key }}/credits/freeze"
+                  onsubmit="return confirm('להקפיא את היתרה הפעילה ({{ '%.2f'|format((credits.balance_agorot or 0) / 100) }} ₪)? הקרדיט יתאפס עד להחזרה ידנית.');"
+                  style="display:inline;">
+              <button type="submit" class="lic-btn lic-btn-ghost">
+                <i class="bi bi-snow2"></i><span>הקפא יתרה פעילה</span>
+              </button>
+            </form>
+          {% endif %}
+          {% if not (credits and ((credits.frozen_agorot or 0) > 0 or (credits.balance_agorot or 0) > 0)) %}
+            <span class="lic-muted" style="font-size:12px;">אין יתרה להקפאה או להחזרה.</span>
+          {% endif %}
+        </div>
+
         {# Ledger history #}
         {% if credits and credits.ledger %}
           <div class="lic-act-heading" style="margin-top:14px;">היסטוריית תנועות ({{ credits.ledger|length }})</div>
@@ -395,6 +447,8 @@
                     {% if e.entry_type == 'topup' %}<span class="lic-chip lic-chip-ok">טעינה</span>
                     {% elif e.entry_type == 'charge' %}<span class="lic-chip lic-chip-neutral">חיוב</span>
                     {% elif e.entry_type == 'refund' %}<span class="lic-chip lic-chip-warn">החזר</span>
+                    {% elif e.entry_type == 'freeze' %}<span class="lic-chip" style="background:#E8EDFB;color:#3B4CC0;">הקפאה</span>
+                    {% elif e.entry_type == 'restore' %}<span class="lic-chip lic-chip-ok">החזרת הקפאה</span>
                     {% else %}<span class="lic-chip lic-chip-neutral">תיקון</span>{% endif %}
                   </td>
                   <td dir="ltr" style="text-align:right;font-variant-numeric:tabular-nums;">

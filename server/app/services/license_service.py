@@ -1167,8 +1167,24 @@ def disable_license(
           message=msg, ip=ip, actor=actor or "")
     _safe(_evt.log_event, serial, None, _evt.EVENT_LICENSE_DISABLED,
           message=msg, ip=ip, actor=actor or "")
+
+    # A disabled license is inactive: sweep its spendable AI-credit balance
+    # into the frozen bucket so AI becomes unavailable (balance → 0). The
+    # amount is preserved and an admin can restore it on re-enable. Never
+    # let a wallet error break the disable flow.
+    _safe(_freeze_credits, serial, actor or "")
+
     return _response(_row_to_dict(fresh), "הרישיון בוטל.",
                      status=STATUS_DISABLED, is_demo=True)
+
+
+def _freeze_credits(serial: str, actor: str) -> None:
+    """Freeze a license's AI credits (lazy import avoids a cycle)."""
+    from . import credits_service as _credits
+    _credits.freeze_by_license(
+        serial, actor=actor or "system",
+        reason="הקפאה אוטומטית — הרישיון הושבת",
+    )
 
 
 def enable_license(

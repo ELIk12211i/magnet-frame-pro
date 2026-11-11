@@ -65,9 +65,24 @@ def balance(
     machine_uuid: str = Form(""),
     machine_id: str = Form(""),
 ):
-    """Return the wallet balance for a license + whether AI is allowed now."""
+    """Return the wallet balance for a license + whether AI is allowed now.
+
+    When the license is inactive (expired / disabled), its spendable AI
+    credit is swept into the frozen bucket so the client sees 0 and the
+    amount is preserved for a manual admin restore. Machine-mismatch is
+    NOT frozen — the license is still active on its real machine.
+    """
     auth = _lic.authorize_for_ai(serial_key, machine_uuid=machine_uuid,
                                  mid=machine_id)
+    status = str(auth.get("status") or "")
+    if not auth.get("ok") and status in ("expired", "disabled"):
+        try:
+            _credits.freeze_by_license(
+                serial_key, actor="system",
+                reason="הקפאה אוטומטית — רישיון לא פעיל",
+            )
+        except _credits.CreditsError:
+            pass
     try:
         info = _credits.get_balance_for_license(serial_key)
         bal = info["balance_agorot"]
@@ -76,7 +91,7 @@ def balance(
     return {
         "success": True,
         "license_ok": bool(auth["ok"]),
-        "license_status": auth["status"],
+        "license_status": status,
         "balance_agorot": bal,
     }
 

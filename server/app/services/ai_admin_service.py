@@ -18,7 +18,7 @@ import json as _json
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from ..database import get_connection
+from ..database import get_connection, get_config, set_config
 from . import credits_service as _credits
 
 
@@ -51,7 +51,7 @@ def license_credit_overview(serial: str) -> Optional[Dict[str, Any]]:
         if not cid:
             return {
                 "customer_id": None, "public_id": "", "balance_agorot": 0,
-                "used_agorot": 0,
+                "used_agorot": 0, "frozen_agorot": 0,
                 "ledger": [], "requests": [],
                 "counts": {"sent": 0, "succeeded": 0, "failed": 0,
                            "unknown": 0},
@@ -60,7 +60,8 @@ def license_credit_overview(serial: str) -> Optional[Dict[str, Any]]:
             "SELECT public_id FROM customers WHERE id = ?", (cid,)
         ).fetchone()
         wal = conn.execute(
-            "SELECT balance_agorot FROM wallets WHERE customer_id = ?", (cid,)
+            "SELECT balance_agorot, frozen_agorot FROM wallets "
+            "WHERE customer_id = ?", (cid,)
         ).fetchone()
         ledger = conn.execute(
             "SELECT * FROM credit_ledger WHERE customer_id = ? "
@@ -93,6 +94,9 @@ def license_credit_overview(serial: str) -> Optional[Dict[str, Any]]:
         "customer_id": int(cid),
         "public_id": (cust["public_id"] if cust else "") or "",
         "balance_agorot": int(wal["balance_agorot"]) if wal else 0,
+        "frozen_agorot": (
+            int(wal["frozen_agorot"])
+            if wal and wal["frozen_agorot"] is not None else 0),
         "used_agorot": used_agorot,
         "ledger": [_row_to_dict(r) for r in ledger],
         "requests": [_row_to_dict(r) for r in reqs],
@@ -171,6 +175,11 @@ def _enrich_filter(d: Dict[str, Any]) -> Dict[str, Any]:
     d["ailab_code"] = code
     d["category"] = kind or "other"
     d["category_label"] = _CATEGORY_LABELS.get(kind, "אחר")
+    # ui_category — admin-chosen DISPLAY drawer/group the filter appears under
+    # in the desktop app (free text, e.g. "פילטרים מצויירים"). Separate from
+    # ``category``/``ailab_kind`` (which drives provider routing + the client's
+    # anti-crop zoom heuristic), so renaming the drawer never changes behaviour.
+    d["ui_category"] = str(cfg.get("ui_category") or "")
     d["preview_url"] = str(cfg.get("preview_url") or "")
     d["sale_price_ils"] = (int(d.get("sale_price_agorot") or 0)) / 100.0
     d["cost_ceiling_ils"] = (int(d.get("cost_ceiling_agorot") or 0)) / 100.0
@@ -185,6 +194,166 @@ def list_filters() -> List[Dict[str, Any]]:
     return [_enrich_filter(_row_to_dict(r)) for r in rows]
 
 
+# ---------------------------------------------------------------------------
+# Display categories ("מגירות") — admin CRUD
+# ---------------------------------------------------------------------------
+def list_categories() -> List[Dict[str, Any]]:
+    """All display categories, ordered as they appear in the app."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT category_key, display_name, sort_order FROM ai_categories "
+            "ORDER BY sort_order, display_name"
+        ).fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+def _new_category_key(conn) -> str:
+    import secrets as _secrets
+    for _ in range(20):
+        key = "cat_" + _secrets.token_hex(4)
+        if conn.execute(
+            "SELECT 1 FROM ai_categories WHERE category_key = ?", (key,)
+        ).fetchone() is None:
+            return key
+    return "cat_" + _secrets.token_hex(8)
+
+
+def create_category(display_name: str) -> Optional[str]:
+    """Create a category (auto-generated stable key). Returns its key or None."""
+    name = (display_name or "").strip()
+    if not name:
+        return None
+    now = _now_iso()
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) AS m FROM ai_categories"
+        ).fetchone()
+        nxt = int(row["m"] or 0) + 10
+        key = _new_category_key(conn)
+        conn.execute(
+            "INSERT INTO ai_categories (category_key, display_name, sort_order,"
+            " created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+            (key, name, nxt, now, now),
+        )
+    return key
+
+
+def rename_category(category_key: str, display_name: str) -> bool:
+    key = (category_key or "").strip()
+    name = (display_name or "").strip()
+    if not key or not name:
+        return False
+    with get_connection() as conn:
+        res = conn.execute(
+            "UPDATE ai_categories SET display_name = ?, updated_at = ? "
+            "WHERE category_key = ?", (name, _now_iso(), key),
+        )
+    return res.rowcount > 0
+
+
+def set_category_order(category_key: str, sort_order: Any) -> bool:
+    key = (category_key or "").strip()
+    if not key:
+        return False
+    try:
+        so = int(sort_order)
+    except (TypeError, ValueError):
+        return False
+    with get_connection() as conn:
+        res = conn.execute(
+            "UPDATE ai_categories SET sort_order = ?, updated_at = ? "
+            "WHERE category_key = ?", (so, _now_iso(), key),
+        )
+    return res.rowcount > 0
+
+
+def delete_category(category_key: str) -> bool:
+    """Delete a category. Filters still pointing at the now-missing key fall
+    back to their default (by-kind) drawer in the catalogue — no filter is lost
+    or disabled; the admin can reassign them to another category."""
+    key = (category_key or "").strip()
+    if not key:
+        return False
+    with get_connection() as conn:
+        res = conn.execute(
+            "DELETE FROM ai_categories WHERE category_key = ?", (key,)
+        )
+    return res.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Supplier-cost economics (admin dashboard display)
+# ---------------------------------------------------------------------------
+# Real AILabTools credits billed per SUCCESSFUL image, by provider kind (from
+# the official endpoint catalogue). The stored ``provider_credits`` is a
+# uniform, conservative 20 used only by the cost-CEILING guard; these are the
+# TRUE per-image charges used for the cost/profit display.
+#   cartoon (portrait-animation) = 20 · emotion (emotion-editor) = 12
+_REAL_CREDITS_BY_KIND = {
+    "cartoon": 20,
+    "emotion": 12,
+}
+_DEFAULT_USD_PER_CREDIT = 0.006   # worst (smallest) AILabTools credit pack
+_DEFAULT_USD_ILS_RATE = 3.80      # ₪ per $1 — admin-editable
+
+
+def get_cost_params() -> Dict[str, float]:
+    """Admin-set economics for the cost/profit display (config-backed).
+
+    ``usd_per_credit`` — what AILabTools charges you per credit (depends on the
+    credit pack you bought). ``usd_ils_rate`` — ₪ per $1, the admin types it.
+    """
+    def _num(key: str, dflt: float) -> float:
+        try:
+            v = float(str(get_config(key, "") or "").strip() or dflt)
+            return v if v > 0 else dflt
+        except Exception:
+            return dflt
+    return {
+        "usd_per_credit": _num("ai_usd_per_credit", _DEFAULT_USD_PER_CREDIT),
+        "usd_ils_rate": _num("ai_usd_ils_rate", _DEFAULT_USD_ILS_RATE),
+    }
+
+
+def set_cost_params(usd_per_credit: Any, usd_ils_rate: Any) -> None:
+    """Persist the admin's credit price ($) and $/₪ rate (config table)."""
+    def _f(v: Any, dflt: float) -> float:
+        try:
+            x = float(str(v).strip().replace(",", "."))
+            return x if x > 0 else dflt
+        except Exception:
+            return dflt
+    set_config("ai_usd_per_credit",
+               repr(_f(usd_per_credit, _DEFAULT_USD_PER_CREDIT)))
+    set_config("ai_usd_ils_rate",
+               repr(_f(usd_ils_rate, _DEFAULT_USD_ILS_RATE)))
+
+
+def add_cost_fields(filters: List[Dict[str, Any]],
+                    params: Optional[Dict[str, float]] = None
+                    ) -> List[Dict[str, Any]]:
+    """Annotate each filter with real-credit supplier cost + profit (display).
+
+    Adds: ``real_credits``, ``cost_usd``, ``cost_ils``, ``profit_ils``.
+    """
+    p = params or get_cost_params()
+    upc = p["usd_per_credit"]
+    rate = p["usd_ils_rate"]
+    for d in filters:
+        kind = str(d.get("ailab_kind") or "")
+        credits = _REAL_CREDITS_BY_KIND.get(kind)
+        if credits is None:
+            credits = int(d.get("provider_credits") or 0)
+        cost_usd = credits * upc
+        cost_ils = cost_usd * rate
+        sale_ils = float(d.get("sale_price_ils") or 0.0)
+        d["real_credits"] = credits
+        d["cost_usd"] = cost_usd
+        d["cost_ils"] = cost_ils
+        d["profit_ils"] = sale_ils - cost_ils
+    return filters
+
+
 def update_filter(
     filter_key: str,
     *,
@@ -194,6 +363,7 @@ def update_filter(
     is_enabled: Optional[bool] = None,
     sort_order: Optional[int] = None,
     preview_url: Optional[str] = None,
+    ui_category: Optional[str] = None,
 ) -> bool:
     updates: Dict[str, Any] = {}
     if display_name is not None and display_name.strip():
@@ -207,19 +377,27 @@ def update_filter(
     if sort_order is not None:
         updates["sort_order"] = int(sort_order)
     with get_connection() as conn:
-        # Merge preview_url into params_json WITHOUT clobbering the routing
-        # keys (ailab_kind / image_field / form) that the provider relies on.
-        if preview_url is not None:
+        # Merge preview_url / ui_category into params_json WITHOUT clobbering
+        # the routing keys (ailab_kind / image_field / form) the provider
+        # relies on. Both are optional and read the current JSON once.
+        if preview_url is not None or ui_category is not None:
             row = conn.execute(
                 "SELECT params_json FROM ai_filters WHERE filter_key = ?",
                 (filter_key,),
             ).fetchone()
             cfg = _parse_params(row["params_json"] if row else "")
-            pu = preview_url.strip()
-            if pu:
-                cfg["preview_url"] = pu
-            else:
-                cfg.pop("preview_url", None)
+            if preview_url is not None:
+                pu = preview_url.strip()
+                if pu:
+                    cfg["preview_url"] = pu
+                else:
+                    cfg.pop("preview_url", None)
+            if ui_category is not None:
+                uc = ui_category.strip()
+                if uc:
+                    cfg["ui_category"] = uc
+                else:
+                    cfg.pop("ui_category", None)
             updates["params_json"] = _json.dumps(cfg, ensure_ascii=False)
         if not updates:
             return False
